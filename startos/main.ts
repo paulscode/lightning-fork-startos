@@ -29,8 +29,10 @@ import { channelBackupJson } from './fileModels/channel-backup.json'
 import {
   backupAgentScript,
   bitcoindMnt,
+  chainIdentityHostPath,
+  ChainIdentityStatus,
   channelBackupPath,
-  getBitcoindBundle,
+  getBackendBundle,
   GetInfo,
   literal,
   lndDataDir,
@@ -38,11 +40,11 @@ import {
   localRestoreBackupTempPath,
   remoteRestoreDir,
   mainMounts,
-  neutrinoBundle,
   selfGrpcHost,
   selfRestUrl,
   sleep,
 } from './utils'
+import { readFile } from 'fs/promises'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
@@ -99,6 +101,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     .read((s) => ({
       walletPassword: s.walletPassword,
       watchtowerClients: s.watchtowerClients,
+      backend: s.backend,
     }))
     .const(effects)
   if (!store) {
@@ -170,11 +173,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
     throw new Error('No lnd.conf')
   }
 
-  const useBitcoind = conf['bitcoin.node'] === 'bitcoind'
-
-  const bitcoindSettings = useBitcoind
-    ? await getBitcoindBundle(effects)
-    : neutrinoBundle
+  // The selected node, not a hardcoded `bitcoind`: both packages share a
+  // volume id and layout, so the mountpoint stays constant and only the
+  // source changes.
+  const backend = store.backend
+  const bitcoindSettings = await getBackendBundle(effects, backend)
 
   // Enforce backend bundle — ensures rpchost, rpccookie, zmq, fee.url stay in
   // sync. This write also re-renders the conf through the file-model schema,
@@ -187,17 +190,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   const { walletPassword, watchtowerClients } = store
 
-  let mounts = mainMounts
-
-  if (useBitcoind) {
-    mounts = mounts.mountDependency<typeof bitcoinManifest>({
-      dependencyId: 'bitcoind',
-      volumeId: 'main',
-      mountpoint: bitcoindMnt,
-      subpath: null,
-      readonly: true,
-    })
-  }
+  const mounts = mainMounts.mountDependency<typeof bitcoinManifest>({
+    dependencyId: backend as 'bitcoind',
+    volumeId: 'main',
+    mountpoint: bitcoindMnt,
+    subpath: null,
+    readonly: true,
+  })
 
   const lndSub = sdk.SubContainer.of(
     effects,
@@ -206,16 +205,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
     'lnd-sub',
   )
 
-  // Restart only when bitcoind writes a replacement cookie — an absent cookie
-  // means bitcoind is down, and stopping LND then hangs its shutdown.
-  if (useBitcoind) {
-    await FileHelper.string(`${await lndSub.rootfs}${bitcoindMnt}/.cookie`)
-      .read(
-        (cookie) => cookie,
-        (prev, next) => next === null || prev === next,
-      )
-      .const(effects)
-  }
+  // Restart only when the node writes a replacement cookie — an absent cookie
+  // means the node is down, and stopping LND then hangs its shutdown.
+  await FileHelper.string(`${await lndSub.rootfs}${bitcoindMnt}/.cookie`)
+    .read(
+      (cookie) => cookie,
+      (prev, next) => next === null || prev === next,
+    )
+    .const(effects)
 
   // LND reads its TLS pair once at startup, so re-running main is what carries
   // a reissued certificate — a new address on the gRPC interface — to a client.
@@ -689,6 +686,73 @@ export const main = sdk.setupMain(async ({ effects }) => {
               return { result: 'success', message: i18n('Wallet is unlocked') }
             }
             return { result: 'starting', message: null }
+          },
+        },
+        requires: ['lnd'],
+      })
+      .addHealthCheck('chain-identity', {
+        ready: {
+          display: i18n('Chain Identity'),
+          trigger: sdk.trigger.statusTrigger(30_000, {
+            starting: 2_000,
+            loading: 5_000,
+            failure: 10_000,
+          }),
+          fn: async () => {
+            // The daemon writes this file before its RPC server is up, so
+            // a refusal is visible even though the daemon then exits and
+            // is restarted. A missing file means the check has not run yet
+            // in this data directory (it runs after wallet unlock).
+            let status: ChainIdentityStatus
+            try {
+              status = JSON.parse(
+                await readFile(chainIdentityHostPath, 'utf8'),
+              ) as ChainIdentityStatus
+            } catch {
+              return {
+                result: 'starting',
+                message: i18n(
+                  'Waiting for the daemon to check which chain the Bitcoin node is on',
+                ),
+              }
+            }
+            switch (status.state) {
+              case 'confirmed':
+                return {
+                  result: 'success',
+                  message: i18n(
+                    'On the Bitcoin BLAKE2b chain: block ${height} is ${hash}',
+                    {
+                      height: String(status.activation_height),
+                      hash: literal(status.activation_hash ?? ''),
+                    },
+                  ),
+                }
+              case 'waiting':
+                return {
+                  result: 'loading',
+                  message: i18n(
+                    'Waiting for the Bitcoin node to reach block ${height} (it has ${headers}); the chain cannot be identified before then',
+                    {
+                      height: String(status.activation_height),
+                      headers: String(status.node_headers ?? 0),
+                    },
+                  ),
+                }
+              case 'refused':
+                return {
+                  result: 'failure',
+                  message: i18n(
+                    'The selected Bitcoin node is not on the Bitcoin BLAKE2b chain. Choose a Bitcoin Knots node (29.4.1 or later) or the BLAKE2b Companion under Select Node. Detail: ${reason}',
+                    { reason: literal(status.reason ?? '') },
+                  ),
+                }
+              default:
+                return {
+                  result: 'success',
+                  message: i18n('Chain check skipped (development build)'),
+                }
+            }
           },
         },
         requires: ['lnd'],

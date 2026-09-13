@@ -22,88 +22,13 @@ const initWalletSpec = InputSpec.of({
   method: Value.union({
     name: i18n('Initialization Method'),
     description: i18n(
-      'Choose how to initialize your LND wallet. Start Fresh creates a new wallet. The migration options import an existing wallet from another node on your local network.',
+      'Start Fresh creates a new wallet. Migrating a wallet from another node is not offered: a node on the SHA256d chain has channels that cannot be moved to the Bitcoin BLAKE2b chain.',
     ),
     default: 'fresh',
     variants: Variants.of({
       fresh: {
         name: i18n('Start Fresh'),
         spec: InputSpec.of({}),
-      },
-      umbrel: {
-        name: i18n('Migrate from ${source}', { source: 'Umbrel' }),
-        spec: InputSpec.of({
-          'umbrel-host': Value.text({
-            name: i18n('Umbrel Address'),
-            description: i18n(
-              'The IP address or hostname of your Umbrel (e.g. 192.168.1.9 or umbrel.local).',
-            ),
-            default: null,
-            required: true,
-            placeholder: 'umbrel.local',
-            patterns: [lanHost],
-          }),
-          'umbrel-password': Value.text({
-            name: i18n('Umbrel Password'),
-            description: i18n(
-              'The password you use to log into your Umbrel dashboard or SSH',
-            ),
-            default: null,
-            required: true,
-            masked: true,
-            placeholder: 'password',
-          }),
-        }),
-      },
-      mynode: {
-        name: i18n('Migrate from ${source}', { source: 'myNode' }),
-        spec: InputSpec.of({
-          'mynode-host': Value.text({
-            name: i18n('myNode Address'),
-            description: i18n(
-              'The IP address or hostname of your myNode (e.g. 192.168.1.7 or mynode.local).',
-            ),
-            default: null,
-            required: true,
-            placeholder: 'mynode.local',
-            patterns: [lanHost],
-          }),
-          'mynode-password': Value.text({
-            name: i18n('myNode Password'),
-            description: i18n(
-              'The password for your myNode "admin" user — the one you use for SSH and for the myNode web interface.',
-            ),
-            default: null,
-            required: true,
-            masked: true,
-            placeholder: 'password',
-          }),
-        }),
-      },
-      startos: {
-        name: i18n('Migrate from ${source}', { source: 'StartOS' }),
-        spec: InputSpec.of({
-          'startos-host': Value.text({
-            name: i18n('Origin Server Address'),
-            description: i18n(
-              'The LAN IP address or hostname of your old StartOS server (e.g. 192.168.1.9 or adjective-noun.local).',
-            ),
-            default: null,
-            required: true,
-            placeholder: 'adjective-noun.local',
-            patterns: [lanHost],
-          }),
-          'startos-password': Value.text({
-            name: i18n('Master Password'),
-            description: i18n(
-              'The master password for your old StartOS server.',
-            ),
-            default: null,
-            required: true,
-            masked: true,
-            placeholder: 'password',
-          }),
-        }),
       },
     }),
   }),
@@ -116,7 +41,7 @@ export const initializeWallet = sdk.Action.withInput(
   // metadata
   async ({ effects }) => ({
     name: i18n('Initialize Wallet'),
-    description: i18n('Create a new LND wallet or migrate from another device'),
+    description: i18n('Create a new wallet'),
     warning: null,
     allowedStatuses: 'only-stopped',
     group: null,
@@ -177,39 +102,6 @@ export const initializeWallet = sdk.Action.withInput(
     switch (input.method.selection) {
       case 'fresh':
         return await initFresh(effects)
-      case 'umbrel':
-        return await scheduleImport(effects, {
-          id: 'umbrel',
-          label: 'Umbrel',
-          user: 'umbrel',
-          host: input.method.value['umbrel-host'],
-          password: input.method.value['umbrel-password'],
-          reached: i18n(
-            'Your Umbrel was reached and its credentials verified.',
-          ),
-        })
-      case 'mynode':
-        return await scheduleImport(effects, {
-          id: 'mynode',
-          label: 'myNode',
-          user: 'admin',
-          host: input.method.value['mynode-host'],
-          password: input.method.value['mynode-password'],
-          reached: i18n(
-            'Your myNode was reached and its credentials verified.',
-          ),
-        })
-      case 'startos':
-        return await scheduleImport(effects, {
-          id: 'startos',
-          label: 'StartOS',
-          user: 'start9',
-          host: input.method.value['startos-host'],
-          password: input.method.value['startos-password'],
-          reached: i18n(
-            'Your old StartOS server was reached and its credentials verified.',
-          ),
-        })
     }
   },
 )

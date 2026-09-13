@@ -8,7 +8,7 @@ import {
 } from './coldStorage'
 import { unlockWallet } from './unlockWallet'
 import { configureChannelBackup } from './configureChannelBackup'
-import { backendConfig } from './backend'
+import { selectBackend } from './selectBackend'
 import { autopilotConfig } from './config/autopilot'
 import { channelsConfig } from './config/channels'
 import { customExternalHostConfig } from './config/customExternalHost'
@@ -31,7 +31,7 @@ export const actions = sdk.Actions.of()
   .addAction(autopilotConfig)
   .addAction(torConfig)
   .addAction(customExternalHostConfig)
-  .addAction(backendConfig)
+  .addAction(selectBackend)
   .addAction(performanceConfig)
   .addAction(watchtowerServerConfig)
   .addAction(wtClientConfig)

@@ -1,30 +1,30 @@
-# Updating the upstream version
+# Updating
 
-## Determining the upstream version
+## Upstream daemon
 
-- **LND** — [lightningnetwork/lnd](https://github.com/lightningnetwork/lnd)
-  - Latest release:
-    ```sh
-    gh release view -R lightningnetwork/lnd --json tagName -q .tagName
-    ```
-  - Current pin: the **`Dockerfile`**, not the manifest. The manifest's `images.lnd.source` is `dockerBuild: {}` — this package builds its own image (LND + the `lndinit` binary), so there is no `dockerTag` to bump. The `Dockerfile` carries **two** pins that must move together:
-    - `FROM lightninglabs/lnd:v<version>` — the LND runtime.
-    - `COPY --from=lightninglabs/lndinit:v<lndinit>-lnd-v<version> /bin/lndinit /bin/lndinit` — the `lndinit` image tag **embeds the LND version**, so bumping LND without bumping this tag leaves it pointing at an image that doesn't exist.
+The image builds `github.com/paulscode/lightning-fork` at `LIGHTNING_FORK_REF`
+in `Dockerfile`. To move to a new daemon release: set the ref to the new commit
+(a tag is fine; the builder records the resolved commit), bump `version` in
+`startos/versions/current.ts` (`<lnd base>-beta:<downstream>`, e.g.
+`0.21.3-beta:1`), write release notes, `npm run check`, `make x86`, install
+and verify against a running BLAKE2b node, then a universal build.
 
-  GitHub releases are the source of truth. The `lightninglabs/lnd` image on Docker Hub may lag the GitHub release by a few minutes to hours, and the combined `lightninglabs/lndinit` tag for the new LND version is published separately and lags further. **Confirm both tags are pullable before bumping:**
+`lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta`);
+move it together with the LND base version the daemon is rebased on.
 
-  ```sh
-  curl -fsSL "https://hub.docker.com/v2/repositories/lightninglabs/lnd/tags/v<version>" | jq -r .name
-  curl -fsSL "https://hub.docker.com/v2/repositories/lightninglabs/lndinit/tags/v<lndinit>-lnd-v<version>" | jq -r .name
-  ```
+## Start9's LND package
 
-  (A 404 from either means the image isn't published yet — wait, don't pin.) Browse the available `lndinit` tags to find the one built against the new LND version:
+This package tracks `Start9Labs/lnd-startos` (`upstream` remote). To pull
+their changes, merge or rebase `startos-0.4` onto their `master` and re-apply
+the intent of `startos/backends.ts`, `startos/dependencies.ts`, the
+`chain-identity` health check in `startos/main.ts`, the node selection action,
+and the removals listed in `README.md`. Their version files below `current`
+must not come back: nothing older was ever installed under this id.
 
-  ```sh
-  curl -fsSL "https://hub.docker.com/v2/repositories/lightninglabs/lndinit/tags?page_size=20&ordering=last_updated" | jq -r '.results[].name'
-  ```
+## Dependencies
 
-## Applying the bump
-
-- **`Dockerfile`** — bump `FROM lightninglabs/lnd:v<new version>` **and** the `COPY --from=lightninglabs/lndinit:v<lndinit>-lnd-v<new version>` tag.
-- **`startos/manifest/index.ts`** — the comment above `images.lnd` names the pinned LND version; keep it accurate. There is no tag to change here.
+- `bitcoin-core-startos` (`next/28.x`) and `knots-blake2b-startos` (`main`)
+  are npm `github:` dependencies; `startos/backends.ts` imports their host ids
+  and ports so a change on their side is a type error here.
+- The companion's minimum version (`>=1.0.0:31`) is the revision with the
+  official action set (the `autoconfig` action this package drives).

@@ -1,34 +1,52 @@
 import { setupManifest } from '@start9labs/start-sdk'
-import { depBitcoindDescription, depTorDescription, long, short } from './i18n'
+import {
+  depBitcoindDescription,
+  depCompanionDescription,
+  depTorDescription,
+  long,
+  short,
+} from './i18n'
 
 export const manifest = setupManifest({
-  id: 'lnd',
-  title: 'LND',
+  id: 'lightning-fork',
+  title: 'Lightning Fork',
   license: 'MIT',
-  packageRepo: 'https://github.com/Start9Labs/lnd-startos',
-  upstreamRepo: 'https://github.com/lightningnetwork/lnd',
-  marketingUrl: 'https://lightning.engineering/',
+  packageRepo: 'https://github.com/paulscode/lightning-fork-startos',
+  upstreamRepo: 'https://github.com/paulscode/lightning-fork',
+  marketingUrl: 'https://github.com/paulscode/lightning-fork',
   donationUrl: null,
   description: { short, long },
   volumes: ['main'],
   images: {
     lnd: {
-      // Built from ./Dockerfile: lnd v0.21.3-beta + the lndinit binary and the
-      // sqlite3 CLI, both used by the bolt → SQLite migration
-      // (startos/versions/v0.21.2-beta_5.ts, startos/sqliteBackend.ts).
+      // Built from ./Dockerfile: Lightning Fork from a pinned commit of
+      // github.com/paulscode/lightning-fork, plus lndinit and the sqlite3 CLI
+      // used by wallet setup and the bolt → SQLite migration
+      // (startos/sqliteBackend.ts).
       source: {
         dockerBuild: {},
       },
       arch: ['aarch64', 'x86_64'],
     },
   },
+  // Both nodes are optional here and exactly one is returned as required from
+  // dependencies.ts, chosen by the user. Declaring the official package
+  // mandatory would demand it of someone running the companion.
   dependencies: {
     bitcoind: {
       description: depBitcoindDescription,
       optional: true,
       metadata: {
-        title: 'Bitcoin',
+        title: 'Bitcoin Knots',
         icon: 'https://raw.githubusercontent.com/Start9Labs/bitcoin-core-startos/feec0b1dae42961a257948fe39b40caf8672fce1/dep-icon.svg',
+      },
+    },
+    'knots-blake2b': {
+      description: depCompanionDescription,
+      optional: true,
+      metadata: {
+        title: 'Bitcoin Knots (BLAKE2b) Companion',
+        icon: 'https://raw.githubusercontent.com/paulscode/knots-blake2b-startos/main/dep-icon.png',
       },
     },
     tor: {

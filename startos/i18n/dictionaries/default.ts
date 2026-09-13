@@ -519,6 +519,21 @@ const dict = {
   'While this is on, LND is offline from every restart until you unlock it by hand, including restarts caused by Bitcoin or a StartOS update. An offline node cannot route or respond to a channel closing, and peers may force-close. Do not turn this on for a node you cannot check regularly.': 540,
   'Write them down and store them offline before continuing. Once Cold Storage Mode is on, this server no longer holds them, and nobody can recover them for you.': 541,
   'LND is not listening. Start the service, or wait a moment if it just started.': 542,
+  // Lightning Fork additions (node selection, chain identity)
+  'Chain Identity': 543,
+  'Chain check skipped (development build)': 544,
+  'Choose which Bitcoin node backs Lightning Fork': 545,
+  'Create a new wallet': 546,
+  'Lightning Fork needs to know which Bitcoin node to use. It must be on the Bitcoin BLAKE2b chain.': 547,
+  'Lightning Fork requires ZMQ enabled in the Bitcoin node': 548,
+  'On the Bitcoin BLAKE2b chain: block ${height} is ${hash}': 549,
+  'Select Node': 550,
+  'Start Fresh creates a new wallet. Migrating a wallet from another node is not offered: a node on the SHA256d chain has channels that cannot be moved to the Bitcoin BLAKE2b chain.': 551,
+  'Switching nodes restarts Lightning Fork. The node you switch to must be on the Bitcoin BLAKE2b chain.': 552,
+  'The selected Bitcoin node is not on the Bitcoin BLAKE2b chain. Choose a Bitcoin Knots node (29.4.1 or later) or the BLAKE2b Companion under Select Node. Detail: ${reason}': 553,
+  'Waiting for the Bitcoin node to reach block ${height} (it has ${headers}); the chain cannot be identified before then': 554,
+  'Waiting for the daemon to check which chain the Bitcoin node is on': 555,
+  'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.': 556,
 } as const
 
 /**

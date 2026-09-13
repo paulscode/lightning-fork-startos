@@ -3,10 +3,19 @@ import { readFile } from 'fs/promises'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
 
+// Internal ports are lnd's defaults, so lnd.conf and every tool that reads
+// it stay stock. The preferred external ports differ from the official LND
+// package's so both can be installed on one server: 9737 / 10010 / 8180 /
+// 9913 were chosen by surveying what other common StartOS and Umbrel apps
+// publish.
 export const gRPCPort = 10009
 export const restPort = 8080
 export const peerPort = 9735
 export const watchtowerPort = 9911
+export const preferredGRPCPort = 10010
+export const preferredRestPort = 8180
+export const preferredPeerPort = 9737
+export const preferredWatchtowerPort = 9913
 
 // Host ids (the `sdk.MultiHost.of` groups) — distinct from the interface ids
 // exported on them. Used for `sdk.host.getOwn`/`get` lookups.
@@ -54,11 +63,11 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
       const restMulti = sdk.MultiHost.of(effects, controlHostId)
       const restMultiOrigin = await restMulti.bindPort(restPort, {
         protocol: 'https',
-        preferredExternalPort: restPort,
+        preferredExternalPort: preferredRestPort,
         addSsl: {
           alpn: null,
           auth: null,
-          preferredExternalPort: restPort,
+          preferredExternalPort: preferredRestPort,
           addXForwardedHeaders: false,
         },
       })
@@ -100,7 +109,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
       const gRPCMultiOrigin = await gRPCMulti.bindPort(gRPCPort, {
         protocol: null,
         addSsl: null,
-        preferredExternalPort: gRPCPort,
+        preferredExternalPort: preferredGRPCPort,
         secure: { ssl: true },
       })
 
@@ -132,7 +141,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   const peerMultiOrigin = await peerMulti.bindPort(peerPort, {
     protocol: null,
     addSsl: null,
-    preferredExternalPort: peerPort,
+    preferredExternalPort: preferredPeerPort,
     secure: { ssl: false },
   })
   const peer = sdk.createInterface(effects, {
@@ -153,7 +162,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   const watchtowerMultiOrigin = await watchtowerMulti.bindPort(watchtowerPort, {
     protocol: null,
     addSsl: null,
-    preferredExternalPort: watchtowerPort,
+    preferredExternalPort: preferredWatchtowerPort,
     secure: { ssl: false },
   })
   const watchtower = sdk.createInterface(effects, {

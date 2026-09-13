@@ -87,7 +87,9 @@ export const shape = z.object({
   'accept-amp': iniBoolean,
   alias: iniString,
   color: iniString,
-  'fee.url': iniString,
+  // Never set: fee estimation comes from the Bitcoin node. The URL existed
+  // for the neutrino backend, which this package does not offer.
+  'fee.url': z.undefined().catch(undefined),
   externalip: iniStringArray,
 
   // ──── Channel Settings ────
@@ -115,7 +117,9 @@ export const shape = z.object({
   'protocol.custom-init': z.literal(undefined).catch(undefined),
 
   // ──── Bitcoin ────
-  'bitcoin.node': z.enum(['bitcoind', 'neutrino']).optional().catch(undefined),
+  // Always a Bitcoin node over RPC/ZMQ: neutrino cannot validate BLAKE2b
+  // proof of work and btcd cannot follow the chain at all.
+  'bitcoin.node': z.literal('bitcoind').catch('bitcoind'),
   'bitcoin.defaultchanconfs': iniNumber,
   'bitcoin.basefee': iniNumber,
   'bitcoin.feerate': iniNumber,
@@ -610,19 +614,6 @@ export const fullConfigSpec = InputSpec.of({
     }),
   }),
 
-  // ── Backend ──
-  bitcoind: Value.select({
-    name: i18n('Select Bitcoin Node'),
-    description: i18n(
-      'Select between a local Bitcoin node and Neutrino as the backend for LND. As Neutrino involves reliance on third-party nodes it is advisable to use a local Bitcoin node instead. Once a local Bitcoin node is selected it is not supported to switch to Neutrino; however LND can always switch from Neutrino to a local Bitcoin node at a later time.',
-    ),
-    default: 'bitcoind',
-    values: {
-      bitcoind: i18n('Local Bitcoin Node'),
-      neutrino: i18n('Neutrino'),
-    },
-  }),
-
   // ── Watchtower Client ──
   'wt-client': Value.union({
     name: i18n('Enable Watchtower Client'),
@@ -727,10 +718,6 @@ export function fileToForm(conf: LndConf): PartialFormType {
       : { selection: 'disabled' as const },
 
     // Backend
-    bitcoind:
-      conf['bitcoin.node'] === 'neutrino'
-        ? ('neutrino' as const)
-        : ('bitcoind' as const),
 
     // Watchtower Client — wt-client reads from store, not conf.
     // Actions that need it will overlay from storeJson.
@@ -855,7 +842,6 @@ export function formToFile(
   }
 
   // Backend
-  if ('bitcoind' in input) result['bitcoin.node'] = input.bitcoind
 
   // Watchtower Client — handled by action (writes to store + conf separately)
   if (input['wt-client']) {
