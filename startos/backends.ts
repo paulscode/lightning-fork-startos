@@ -27,6 +27,17 @@ type Endpoints = {
 }
 
 /**
+ * How the daemon learns of new blocks and transactions from a backend: ZMQ
+ * when the node serves it, RPC polling when it does not. The companion's
+ * bitcoind is built without libzmq (its `getzmqnotifications` is "Method not
+ * found"), so the ZMQ endpoints its package exports are never listened on;
+ * subscribing to them stops the daemon at start with "connection refused".
+ * Polling notices a block within ten seconds, which a Lightning node can live
+ * with. Switch the companion back to `zmq` once its image serves it.
+ */
+export type Notifications = 'zmq' | 'rpcpolling'
+
+/**
  * The health checks a backend must be passing before Lightning Fork is
  * started against it. Written out because a health check id is not exported
  * by the package that declares it. StartOS treats an id the dependency does
@@ -67,6 +78,7 @@ export const backends = {
       zmqPortTransaction: btcZmqPortTransaction,
     } satisfies Endpoints,
     healthChecks: officialHealthChecks,
+    notifications: 'zmq' as Notifications,
     versionRange: '>=28.4:17',
   },
   'knots-blake2b': {
@@ -79,8 +91,10 @@ export const backends = {
       zmqPortTransaction: b2bZmqPortTransaction,
     } satisfies Endpoints,
     healthChecks: companionHealthChecks,
+    notifications: 'rpcpolling' as Notifications,
     // The revision that adopted the official action set, including the
-    // autoconfig action this package drives to turn ZMQ on.
+    // autoconfig action this package will drive to turn ZMQ on once the
+    // companion's image serves it.
     versionRange: '>=1.0.0:31',
   },
 } as const

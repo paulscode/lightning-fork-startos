@@ -65,6 +65,10 @@ export const shape = z.object({
   'bitcoind.rpccookie': iniString,
   'bitcoind.zmqpubrawblock': iniString,
   'bitcoind.zmqpubrawtx': iniString,
+  // Set instead of the ZMQ pair for a backend that does not serve ZMQ.
+  'bitcoind.rpcpolling': iniBoolean,
+  'bitcoind.blockpollinginterval': iniString,
+  'bitcoind.txpollinginterval': iniString,
 
   // ──── Application Options ────
   // LND debuglevel: a global level, optionally with per-subsystem overrides.

@@ -35,14 +35,18 @@ Node** action and recorded in `store.json`:
 | Bitcoin Knots | `bitcoind` (the official package; only its Knots flavor at 29.4.1 or later follows the BLAKE2b chain) | `bitcoin-core-startos/startos/utils` |
 | Bitcoin Knots (BLAKE2b) Companion | `knots-blake2b` | `knots-blake2b-startos/startos/utils` |
 
-`startos/backends.ts` holds each node's RPC/ZMQ host ids and ports and the
+`startos/backends.ts` holds each node's RPC/ZMQ host ids and ports, the
 health checks it must pass (`bitcoind`+`sync-progress` for the official
 package, `node`+`chain` for the companion, whose `chain` check already fails
-below the activation height). `startos/utils.ts` resolves the selected node's
-bridge addresses into `lnd.conf` at start; the RPC cookie is read through a
-read-only mount of the selected package's volume. Both packages expose the
-same `autoconfig` action, which this package drives with a critical task to
-turn ZMQ on.
+below the activation height), and how the daemon is told about new blocks:
+ZMQ for the official package, whose `autoconfig` action this package drives
+with a critical task to turn ZMQ on; RPC polling at ten-second intervals for
+the companion, whose bitcoind is built without libzmq and never listens on
+the ZMQ ports its package exports (subscribing to them stopped the daemon at
+start with "connection refused"). `startos/utils.ts` resolves the selected
+node's bridge addresses into `lnd.conf` at start, writing every key of both
+modes so a switch leaves nothing of the other behind; the RPC cookie is read
+through a read-only mount of the selected package's volume.
 
 Neither dependency constrains the *chain* the node is on. That is the
 daemon's job:

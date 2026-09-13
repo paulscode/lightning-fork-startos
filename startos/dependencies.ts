@@ -24,27 +24,33 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
     }
   }
 
-  // Lightning Fork subscribes to blocks and transactions over ZMQ, so the
-  // selected node has to have it on. Both packages expose the same
-  // autoconfig action for exactly this.
-  const autoconfig =
-    backend === 'bitcoind' ? bitcoindAutoconfig : companionAutoconfig
-  // A critical task blocks this service until satisfied, so the one raised
-  // on a node that is no longer selected (or was never installed) must go;
-  // the SDK keys tasks as `<package>:<action>`.
+  // Where Lightning Fork subscribes to blocks and transactions over ZMQ, the
+  // selected node has to have it on; both packages expose the same
+  // autoconfig action for exactly this. A backend that is polled instead
+  // (see backends.ts) gets no such task. A critical task blocks this service
+  // until satisfied, so any raised on a node that is not the selected ZMQ
+  // backend (no longer selected, never installed, or polled) must go; the
+  // SDK keys tasks as `<package>:<action>`.
+  const usesZmq = backends[backend].notifications === 'zmq'
   await sdk.action.clearTask(
     effects,
-    ...backendIds.filter((b) => b !== backend).map((b) => `${b}:autoconfig`),
+    ...backendIds
+      .filter((b) => b !== backend || !usesZmq)
+      .map((b) => `${b}:autoconfig`),
   )
-  await sdk.action.createTask(effects, backend, autoconfig, 'critical', {
-    input: {
-      kind: 'partial',
-      accept: [{ zmqEnabled: true }],
-      set: { zmqEnabled: true },
-    },
-    reason: i18n('Lightning Fork requires ZMQ enabled in the Bitcoin node'),
-    when: { condition: 'input-not-matches', once: false },
-  })
+  if (usesZmq) {
+    const autoconfig =
+      backend === 'bitcoind' ? bitcoindAutoconfig : companionAutoconfig
+    await sdk.action.createTask(effects, backend, autoconfig, 'critical', {
+      input: {
+        kind: 'partial',
+        accept: [{ zmqEnabled: true }],
+        set: { zmqEnabled: true },
+      },
+      reason: i18n('Lightning Fork requires ZMQ enabled in the Bitcoin node'),
+      when: { condition: 'input-not-matches', once: false },
+    })
+  }
 
   // Exactly one node, chosen by the user. Return ONLY the selected one: a
   // present-but-undefined entry for the other id crashes the host, which

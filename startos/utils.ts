@@ -34,7 +34,7 @@ export const getBackendBundle = async (
   effects: T.Effects,
   backend: BackendId,
 ) => {
-  const { endpoints } = backends[backend]
+  const { endpoints, notifications } = backends[backend]
 
   const zmqAddr = (internalPort: number) =>
     sdk.host
@@ -53,6 +53,23 @@ export const getBackendBundle = async (
       ssl: false,
     })
     .const()
+
+  // A backend that does not serve ZMQ is polled instead (see backends.ts);
+  // every key of both modes is written so a switch between backends leaves
+  // nothing of the other mode behind in lnd.conf.
+  if (notifications === 'rpcpolling') {
+    return {
+      'bitcoin.node': 'bitcoind' as const,
+      'bitcoind.rpchost': rpchost ?? undefined,
+      'bitcoind.rpccookie': `${bitcoindMnt}/.cookie`,
+      'bitcoind.zmqpubrawblock': undefined,
+      'bitcoind.zmqpubrawtx': undefined,
+      'bitcoind.rpcpolling': true,
+      'bitcoind.blockpollinginterval': '10s',
+      'bitcoind.txpollinginterval': '10s',
+    }
+  }
+
   const block = await zmqAddr(endpoints.zmqPortBlock)
   const tx = await zmqAddr(endpoints.zmqPortTransaction)
 
@@ -62,6 +79,9 @@ export const getBackendBundle = async (
     'bitcoind.rpccookie': `${bitcoindMnt}/.cookie`,
     'bitcoind.zmqpubrawblock': block ? `tcp://${block}` : undefined,
     'bitcoind.zmqpubrawtx': tx ? `tcp://${tx}` : undefined,
+    'bitcoind.rpcpolling': undefined,
+    'bitcoind.blockpollinginterval': undefined,
+    'bitcoind.txpollinginterval': undefined,
   }
 }
 
