@@ -28,12 +28,10 @@ type Endpoints = {
 
 /**
  * How the daemon learns of new blocks and transactions from a backend: ZMQ
- * when the node serves it, RPC polling when it does not. The companion's
- * bitcoind is built without libzmq (its `getzmqnotifications` is "Method not
- * found"), so the ZMQ endpoints its package exports are never listened on;
- * subscribing to them stops the daemon at start with "connection refused".
- * Polling notices a block within ten seconds, which a Lightning node can live
- * with. Switch the companion back to `zmq` once its image serves it.
+ * when the node serves it, RPC polling when it does not. Both backends serve
+ * it now (the companion from 1.0.0:34; before that its bitcoind was built
+ * without libzmq and subscribing stopped the daemon with "connection
+ * refused"); polling stays available for a backend that stops serving it.
  */
 export type Notifications = 'zmq' | 'rpcpolling'
 
@@ -79,7 +77,17 @@ export const backends = {
     } satisfies Endpoints,
     healthChecks: officialHealthChecks,
     notifications: 'zmq' as Notifications,
-    versionRange: '>=28.4:17',
+    // Any version. A range cannot name a flavor (the SDK's parser rejects
+    // `#knots:>=…`), and a flavored version such as `#knots:29.4.1:7` only
+    // satisfies an unflavored range through the package's own `satisfies`
+    // list, which the Knots build most BLAKE2b users run (from the
+    // start9.mempool.guide registry) ships empty; the inherited `>=28.4:17`
+    // therefore showed an unmet dependency against exactly the node this
+    // package is for. Nothing is lost: a range never told Core from Knots
+    // either, and the requirement that matters, a node on the BLAKE2b
+    // chain (Knots 29.4.1 or later), is checked by the daemon at start and
+    // shown by the Chain Identity health check.
+    versionRange: '*',
   },
   'knots-blake2b': {
     title: 'Bitcoin Knots (BLAKE2b) Companion',
@@ -91,11 +99,11 @@ export const backends = {
       zmqPortTransaction: b2bZmqPortTransaction,
     } satisfies Endpoints,
     healthChecks: companionHealthChecks,
-    notifications: 'rpcpolling' as Notifications,
-    // The revision that adopted the official action set, including the
-    // autoconfig action this package will drive to turn ZMQ on once the
-    // companion's image serves it.
-    versionRange: '>=1.0.0:31',
+    notifications: 'zmq' as Notifications,
+    // 1.0.0:34 is the first companion whose bitcoind is built with libzmq;
+    // earlier ones advertised ZMQ ports they never listened on, which is
+    // why this package polled the companion until now.
+    versionRange: '>=1.0.0:34',
   },
 } as const
 

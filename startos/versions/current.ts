@@ -1,9 +1,11 @@
 import { VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta:0',
+  version: '0.21.3-beta:1',
   releaseNotes: {
-    en_US: `First release of Lightning Fork, an LND fork that follows the Bitcoin BLAKE2b chain (Bitcoin Knots 29.4.1, activated at block 961640 on 2026-08-30).
+    en_US: `The Bitcoin Knots dependency no longer shows as unmet with the Knots build most BLAKE2b users run (the version range now accepts any version of that package, since a range cannot tell the Knots flavor apart and the chain check at start is what enforces Knots 29.4.1 or later). The Bitcoin Knots (BLAKE2b) Companion is used over ZMQ from its 1.0.0:34, which is the first built with it; that version is now required, and the companion gets a task to turn ZMQ on.
+
+First release of Lightning Fork, an LND fork that follows the Bitcoin BLAKE2b chain (Bitcoin Knots 29.4.1, activated at block 961640 on 2026-08-30).
 
 It runs against Bitcoin Knots (29.4.1 or later) or the Bitcoin Knots (BLAKE2b) Companion, chosen under Select Node, and refuses to start against a node on the SHA256d chain: the Chain Identity health check says which chain the node is on and why it was refused. It advertises the BLAKE2b chain in every handshake, drops peers that do not, and uses the lnblake invoice prefix, so nothing here can connect to, pay, or be paid from the Bitcoin Lightning network by accident.
 

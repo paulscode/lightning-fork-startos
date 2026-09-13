@@ -39,11 +39,14 @@ Node** action and recorded in `store.json`:
 health checks it must pass (`bitcoind`+`sync-progress` for the official
 package, `node`+`chain` for the companion, whose `chain` check already fails
 below the activation height), and how the daemon is told about new blocks:
-ZMQ for the official package, whose `autoconfig` action this package drives
-with a critical task to turn ZMQ on; RPC polling at ten-second intervals for
-the companion, whose bitcoind is built without libzmq and never listens on
-the ZMQ ports its package exports (subscribing to them stopped the daemon at
-start with "connection refused"). `startos/utils.ts` resolves the selected
+ZMQ for both, driven on with a critical task through each package's
+`autoconfig` action (the companion from 1.0.0:34, the first whose bitcoind is
+built with libzmq; earlier ones never listened on the ZMQ ports they
+exported, so this package polled them over RPC). The official package's
+version range is `*`: a range cannot name a flavor, and the Knots build most
+BLAKE2b users run ships an empty `satisfies` list, so any narrower range
+shows an unmet dependency against the very node this package is for; the
+chain check at start is what enforces "Knots 29.4.1 or later". `startos/utils.ts` resolves the selected
 node's bridge addresses into `lnd.conf` at start, writing every key of both
 modes so a switch leaves nothing of the other behind; the RPC cookie is read
 through a read-only mount of the selected package's volume.

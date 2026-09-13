@@ -24,8 +24,8 @@ check will say so in words.
 1. Install and start your BLAKE2b node and let it sync.
 2. Install Lightning Fork. Two critical tasks appear: **Initialize Wallet**
    creates your wallet, and **Select Node** asks which Bitcoin node to use.
-   Complete both. A third, **Configure Channel Backups**, can wait. If you
-   chose Bitcoin Knots, it gets a task of its own to turn on ZMQ; accept it.
+   Complete both. A third, **Configure Channel Backups**, can wait. The node
+   you chose gets a task of its own to turn on ZMQ; accept it.
 3. Start the service. The **Chain Identity** health check goes to *waiting*
    while the node is still syncing to block 961640, then to *On the Bitcoin
    BLAKE2b chain*. Then the usual chain and graph sync follows.
