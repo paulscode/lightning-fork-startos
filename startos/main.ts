@@ -1315,7 +1315,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               return {
                 result: 'failure',
                 message: i18n(
-                  'No dashboard password is set. Run Dashboard Password to set one.',
+                  'No dashboard password is set. Run Set Dashboard Password to set one.',
                 ),
               }
             }

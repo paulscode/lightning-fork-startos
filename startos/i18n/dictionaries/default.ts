@@ -542,7 +542,6 @@ const dict = {
   Dashboard: 565,
   'The dashboard is serving': 567,
   'The dashboard is not answering yet': 568,
-  'No dashboard password is set. Run Dashboard Password to set one.': 569,
   'Show the password the Dashboard interface asks for.': 570,
   'No dashboard password is set yet. Restart the service to have one generated, or set one with Set Dashboard Password.': 571,
   'Paste this on the sign-in screen of the Dashboard interface. Treat it like a wallet key: the dashboard can send funds.': 572,
@@ -551,6 +550,7 @@ const dict = {
   '8 to 128 characters. Takes effect at once; use Dashboard Password to copy it afterwards.': 575,
   'The new password is in effect. Dashboard Password shows it whenever you need it again.': 576,
   'Wallet, channels and payments in the browser, behind the password from the Dashboard Password action.': 577,
+  'No dashboard password is set. Run Set Dashboard Password to set one.': 578,
 } as const
 
 /**

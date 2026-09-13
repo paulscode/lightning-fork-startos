@@ -470,7 +470,6 @@ export default {
     565: 'Panel',
     567: 'El panel está en servicio',
     568: 'El panel aún no responde',
-    569: 'No hay contraseña del panel. Ejecuta Contraseña del panel para establecer una.',
     570: 'Muestra la contraseña que pide la interfaz Panel.',
     571: 'Aún no hay contraseña del panel. Reinicia el servicio para que se genere una, o establece una con Establecer contraseña del panel.',
     572: 'Pégala en la pantalla de acceso de la interfaz Panel. Trátala como una clave del monedero: el panel puede enviar fondos.',
@@ -479,6 +478,7 @@ export default {
     575: 'De 8 a 128 caracteres. Surte efecto al instante; usa Contraseña del panel para copiarla después.',
     576: 'La nueva contraseña ya está en vigor. Contraseña del panel la muestra cuando la necesites.',
     577: 'Monedero, canales y pagos en el navegador, tras la contraseña de la acción Contraseña del panel.',
+    578: 'No hay contraseña del panel. Ejecuta Establecer contraseña del panel para establecer una.',
   },
   de_DE: {
     309: 'Backups',
@@ -949,7 +949,6 @@ export default {
     565: 'Dashboard',
     567: 'Das Dashboard antwortet',
     568: 'Das Dashboard antwortet noch nicht',
-    569: 'Kein Dashboard-Passwort gesetzt. Führe Dashboard-Passwort aus, um eines zu setzen.',
     570: 'Zeigt das Passwort, das die Dashboard-Schnittstelle verlangt.',
     571: 'Noch kein Dashboard-Passwort gesetzt. Starte den Dienst neu, damit eines erzeugt wird, oder setze eines mit Dashboard-Passwort setzen.',
     572: 'Füge es auf dem Anmeldebildschirm der Dashboard-Schnittstelle ein. Behandle es wie einen Wallet-Schlüssel: das Dashboard kann Geld senden.',
@@ -958,6 +957,7 @@ export default {
     575: '8 bis 128 Zeichen. Gilt sofort; mit Dashboard-Passwort lässt es sich danach kopieren.',
     576: 'Das neue Passwort gilt. Dashboard-Passwort zeigt es, wann immer du es wieder brauchst.',
     577: 'Wallet, Kanäle und Zahlungen im Browser, hinter dem Passwort aus der Aktion Dashboard-Passwort.',
+    578: 'Kein Dashboard-Passwort gesetzt. Führe Dashboard-Passwort setzen aus, um eines zu setzen.',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1428,7 +1428,6 @@ export default {
     565: 'Panel',
     567: 'Panel działa',
     568: 'Panel jeszcze nie odpowiada',
-    569: 'Hasło panelu nie jest ustawione. Uruchom Hasło panelu, aby je ustawić.',
     570: 'Pokaż hasło, o które prosi interfejs Panel.',
     571: 'Hasło panelu nie jest jeszcze ustawione. Zrestartuj usługę, aby je wygenerować, albo ustaw je akcją Ustaw hasło panelu.',
     572: 'Wklej je na ekranie logowania interfejsu Panel. Traktuj je jak klucz portfela: panel może wysyłać środki.',
@@ -1437,6 +1436,7 @@ export default {
     575: 'Od 8 do 128 znaków. Działa natychmiast; użyj Hasło panelu, aby je potem skopiować.',
     576: 'Nowe hasło obowiązuje. Hasło panelu pokaże je, gdy będzie znów potrzebne.',
     577: 'Portfel, kanały i płatności w przeglądarce, za hasłem z akcji Hasło panelu.',
+    578: 'Hasło panelu nie jest ustawione. Uruchom Ustaw hasło panelu, aby je ustawić.',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -1907,7 +1907,6 @@ export default {
     565: 'Tableau de bord',
     567: 'Le tableau de bord répond',
     568: 'Le tableau de bord ne répond pas encore',
-    569: "Aucun mot de passe du tableau de bord n'est défini. Lancez Mot de passe du tableau de bord pour en définir un.",
     570: "Affiche le mot de passe demandé par l'interface Tableau de bord.",
     571: "Aucun mot de passe du tableau de bord n'est encore défini. Redémarrez le service pour en générer un, ou définissez-en un avec Définir le mot de passe du tableau de bord.",
     572: "Collez-le sur l'écran de connexion de l'interface Tableau de bord. Traitez-le comme une clé de portefeuille : le tableau de bord peut envoyer des fonds.",
@@ -1916,5 +1915,6 @@ export default {
     575: '8 à 128 caractères. Prend effet immédiatement ; utilisez Mot de passe du tableau de bord pour le copier ensuite.',
     576: "Le nouveau mot de passe est en vigueur. Mot de passe du tableau de bord l'affiche quand vous en avez besoin.",
     577: "Portefeuille, canaux et paiements dans le navigateur, derrière le mot de passe de l'action Mot de passe du tableau de bord.",
+    578: "Aucun mot de passe du tableau de bord n'est défini. Lancez Définir le mot de passe du tableau de bord pour en définir un.",
   },
 } satisfies Record<string, LangDict>
