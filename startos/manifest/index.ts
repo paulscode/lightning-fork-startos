@@ -31,8 +31,8 @@ export const manifest = setupManifest({
       // once published. What it resolved to when this version was released,
       // to compare with `docker buildx imagetools inspect <tag>`:
       //   index sha256:75616e39ea32f03601f3bc37b08ccf497647f766715f31197789af12371e697b
-      // The Makefile refuses to pack while the DASHBOARD_IMAGE_DIGEST
-      // placeholder is in place, for a future edit that forgets this line.
+      // The Makefile refuses to pack while a digest placeholder is in
+      // place, for a future edit that forgets this line.
       source: {
         dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.5',
       },
