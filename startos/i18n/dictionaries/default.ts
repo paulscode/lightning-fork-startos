@@ -537,17 +537,20 @@ const dict = {
   'Unknown chain-identity state ${state}; treat the node as unverified': 557,
   // the dashboard (interfaces.ts, main.ts, actions/dashboardPassword.ts)
   'Dashboard Password': 558,
-  'Show the password the Dashboard interface asks for, or replace it.': 559,
   'New Password': 560,
-  'Leave empty to keep the current password and only show it. Otherwise 8 to 128 characters; it takes effect on the next request, no restart needed.': 561,
   'The password must be between ${min} and ${max} characters': 562,
-  'No dashboard password is set yet. Restart the service to have one generated, or enter one here.': 563,
-  'The browser asks for this when you open the Dashboard interface. Any username will do.': 564,
   Dashboard: 565,
-  'Wallet, channels and payments in the browser. The browser asks for the password from the Dashboard Password action; any username.': 566,
   'The dashboard is serving': 567,
   'The dashboard is not answering yet': 568,
   'No dashboard password is set. Run Dashboard Password to set one.': 569,
+  'Show the password the Dashboard interface asks for.': 570,
+  'No dashboard password is set yet. Restart the service to have one generated, or set one with Set Dashboard Password.': 571,
+  'Paste this on the sign-in screen of the Dashboard interface. Treat it like a wallet key: the dashboard can send funds.': 572,
+  'Set Dashboard Password': 573,
+  'Replace the password the Dashboard interface asks for, with one of your own or a generated one.': 574,
+  '8 to 128 characters. Takes effect at once; use Dashboard Password to copy it afterwards.': 575,
+  'The new password is in effect. Dashboard Password shows it whenever you need it again.': 576,
+  'Wallet, channels and payments in the browser, behind the password from the Dashboard Password action.': 577,
 } as const
 
 /**

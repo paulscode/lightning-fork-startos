@@ -56,9 +56,11 @@ Lightning app's dashboard, forked for this chain and trimmed to what StartOS
 does not already do; wallet setup, LND settings, backups and connection
 strings stay in StartOS.
 
-The browser asks for a password when you open it. Run the **Dashboard
-Password** action to see it (any username will do), or to set one of your
-own; a new password applies at once. Fiat amounts are BTCB2's own price from
+It opens on a sign-in screen that asks for one password, generated when the
+service was installed. The **Dashboard Password** action shows it, masked,
+with a copy button; **Set Dashboard Password** replaces it with one of your
+own or a freshly generated one, effective at once. A session lasts twelve
+hours, and **Sign out** is in the dashboard's menu. Fiat amounts are BTCB2's own price from
 neoxa.exchange, converted to other currencies through Coingecko's rate table;
 while a feed is unreachable the dashboard shows sats or BTC instead.
 

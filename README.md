@@ -31,10 +31,12 @@ the index digest the tag resolved to at release time is recorded beside it in
 the manifest): the Umbrel Lightning app's web UI, forked
 for this chain (`github.com/paulscode/umbrel-lightning-fork`) and run with
 `DASHBOARD_PLATFORM=startos`, which drops wallet setup, LND configuration,
-Umbrel's backup server, widgets and connection strings, and puts HTTP Basic
-authentication on every path. The password lives in `dashboard.json` on the
-`dashboard` volume, read on every request, so the **Dashboard Password** action
-changes it without a restart and `main` never watches that file. The dashboard
+Umbrel's backup server, widgets and connection strings, and puts a sign-in
+screen in front of the API: one password, a session cookie with a CSRF token,
+and a global lockout that backs off from the third wrong attempt. The password
+lives in `dashboard.json` on the `dashboard` volume, read on every attempt, so
+**Set Dashboard Password** changes it without a restart and `main` never
+watches that file; **Dashboard Password** shows it masked with a copy button. The dashboard
 reaches LND over the loopback the subcontainers share, and reads the selected
 node's RPC cookie through the same read-only dependency mount LND uses. It
 mounts nothing of LND's own volume: the SDK ignores `readonly` on a package's

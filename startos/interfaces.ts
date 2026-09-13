@@ -152,7 +152,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     name: i18n('Dashboard'),
     id: dashboardInterfaceId,
     description: i18n(
-      'Wallet, channels and payments in the browser. The browser asks for the password from the Dashboard Password action; any username.',
+      'Wallet, channels and payments in the browser, behind the password from the Dashboard Password action.',
     ),
     type: 'ui',
     masked: false,

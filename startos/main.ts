@@ -1225,9 +1225,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                 return null
               } catch (e) {
                 // LND is up, so both files are moments away.
-                console.log(
-                  `dashboard credentials not ready yet: ${String(e)}`,
-                )
+                console.log(`dashboard credentials not ready yet: ${String(e)}`)
                 await sleep(2_000, abort)
               }
             }

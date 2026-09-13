@@ -8,6 +8,7 @@ import {
 } from './coldStorage'
 import { unlockWallet } from './unlockWallet'
 import { dashboardPassword } from './dashboardPassword'
+import { setDashboardPassword } from './setDashboardPassword'
 import { configureChannelBackup } from './configureChannelBackup'
 import { selectBackend } from './selectBackend'
 import { autopilotConfig } from './config/autopilot'
@@ -40,6 +41,7 @@ export const actions = sdk.Actions.of()
   .addAction(towerInfo)
   .addAction(nodeInfo)
   .addAction(dashboardPassword)
+  .addAction(setDashboardPassword)
   .addAction(initializeWallet)
   .addAction(revokeMacaroons)
   .addAction(autoconfig)
