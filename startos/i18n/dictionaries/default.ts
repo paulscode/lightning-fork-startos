@@ -521,7 +521,7 @@ const dict = {
   'LND is not listening. Start the service, or wait a moment if it just started.': 542,
   // Lightning Fork additions (node selection, chain identity)
   'Chain Identity': 543,
-  'Chain check skipped (development build)': 544,
+  'Chain check skipped: this is an integration build': 544,
   'Choose which Bitcoin node backs Lightning Fork': 545,
   'Create a new wallet': 546,
   'Lightning Fork needs to know which Bitcoin node to use. It must be on the Bitcoin BLAKE2b chain.': 547,
@@ -534,6 +534,7 @@ const dict = {
   'Waiting for the Bitcoin node to reach block ${height} (it has ${headers}); the chain cannot be identified before then': 554,
   'Waiting for the daemon to check which chain the Bitcoin node is on': 555,
   'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.': 556,
+  'Unknown chain-identity state ${state}; treat the node as unverified': 557,
 } as const
 
 /**

@@ -1,7 +1,7 @@
 import { T } from '@start9labs/start-sdk'
 import { autoconfig as bitcoindAutoconfig } from 'bitcoin-core-startos/startos/actions/config/autoconfig'
 import { autoconfig as companionAutoconfig } from 'knots-blake2b-startos/startos/actions/config/autoconfig'
-import { backends, defaultBackend } from './backends'
+import { backendIds, backends, defaultBackend } from './backends'
 import { lndConfFile } from './fileModels/lnd.conf'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
@@ -29,6 +29,13 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
   // autoconfig action for exactly this.
   const autoconfig =
     backend === 'bitcoind' ? bitcoindAutoconfig : companionAutoconfig
+  // A critical task blocks this service until satisfied, so the one raised
+  // on a node that is no longer selected (or was never installed) must go;
+  // the SDK keys tasks as `<package>:<action>`.
+  await sdk.action.clearTask(
+    effects,
+    ...backendIds.filter((b) => b !== backend).map((b) => `${b}:autoconfig`),
+  )
   await sdk.action.createTask(effects, backend, autoconfig, 'critical', {
     input: {
       kind: 'partial',

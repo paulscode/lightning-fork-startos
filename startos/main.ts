@@ -44,7 +44,7 @@ import {
   selfRestUrl,
   sleep,
 } from './utils'
-import { readFile } from 'fs/promises'
+import { readFile, rm } from 'fs/promises'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
@@ -177,6 +177,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // volume id and layout, so the mountpoint stays constant and only the
   // source changes.
   const backend = store.backend
+  // The verdict on disk belongs to the previous run, possibly against a
+  // different node. Drop it so the Chain Identity check can never show a
+  // stale success (or a stale refusal) for the node selected now.
+  await rm(chainIdentityHostPath, { force: true })
   const bitcoindSettings = await getBackendBundle(effects, backend)
 
   // Enforce backend bundle — ensures rpchost, rpccookie, zmq, fee.url stay in
@@ -699,10 +703,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
             failure: 10_000,
           }),
           fn: async () => {
-            // The daemon writes this file before its RPC server is up, so
-            // a refusal is visible even though the daemon then exits and
-            // is restarted. A missing file means the check has not run yet
-            // in this data directory (it runs after wallet unlock).
+            // The daemon writes this file before its RPC server is up and
+            // exits on a refusal, so this check must not depend on the lnd
+            // daemon being healthy (it never is while the node is refused)
+            // nor soften failures during a grace period; it reads the host
+            // path and nothing else. A missing file means the check has not
+            // run yet in this run of the service (it runs after wallet
+            // unlock, and main deletes the previous run's file at start).
             let status: ChainIdentityStatus
             try {
               status = JSON.parse(
@@ -747,15 +754,28 @@ export const main = sdk.setupMain(async ({ effects }) => {
                     { reason: literal(status.reason ?? '') },
                   ),
                 }
-              default:
+              case 'skipped':
+                // Only an integration build writes this; a release build
+                // never does.
                 return {
                   result: 'success',
-                  message: i18n('Chain check skipped (development build)'),
+                  message: i18n(
+                    'Chain check skipped: this is an integration build',
+                  ),
+                }
+              default:
+                return {
+                  result: 'failure',
+                  message: i18n(
+                    'Unknown chain-identity state ${state}; treat the node as unverified',
+                    { state: literal(String(status.state)) },
+                  ),
                 }
             }
           },
+          gracePeriod: 0,
         },
-        requires: ['lnd'],
+        requires: [],
       })
       .addHealthCheck('sync-progress', {
         ready: {

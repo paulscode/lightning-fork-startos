@@ -17,6 +17,9 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
           'data/chain/bitcoin/mainnet/neutrino.db',
           'data/chain/bitcoin/mainnet/block_headers.bin',
           'data/chain/bitcoin/mainnet/reg_filter_headers.bin',
+          // This run's verdict on the selected node; meaningless anywhere
+          // else, and main deletes it at every start anyway.
+          'data/chain/bitcoin/mainnet/chain-identity.json',
           'logs',
           '.channel-backup-state.json',
           '.channel-backup.lock',

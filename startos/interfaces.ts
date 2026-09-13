@@ -59,7 +59,7 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
         buf.toString('base64url'),
       )
       // `protocol: 'https'` alone would not put the proxy in front; the addSsl
-      // block is what does. See README § Network Access and Interfaces.
+      // block is what does.
       const restMulti = sdk.MultiHost.of(effects, controlHostId)
       const restMultiOrigin = await restMulti.bindPort(restPort, {
         protocol: 'https',
