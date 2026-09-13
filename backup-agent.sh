@@ -565,11 +565,13 @@ watch_loop() {
     _last=$_fp
     OP_DEADLINE=$((_now + WATCH_RUN_SECS))
     do_backup normal
+    _rc=$?
     OP_DEADLINE=0
-    case $? in
+    case $_rc in
       0)
         _retry_at=0
         _last_ok=$(state_get '.lastSuccess')
+        case "$_last_ok" in '' | *[!0-9]*) _last_ok=0 ;; esac
         ;;
       3 | 4) _retry_at=0 ;;
       6) _last=none ;;
