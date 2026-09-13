@@ -4,8 +4,11 @@ import { gRPCPort, restPort } from './interfaces'
 import { sdk } from './sdk'
 
 export const lndDataDir = '/root/.lnd'
+// Where the dashboard subcontainer mounts its own volume.
+export const dashboardDataDir = '/data/dashboard'
 export const bitcoindMnt = '/mnt/bitcoin'
 export const mainVolumeHost = '/media/startos/volumes/main'
+export const dashboardVolumeHost = '/media/startos/volumes/dashboard'
 
 // For untrusted text passed as an i18n parameter: the SDK substitutes with
 // String.replace, which reads `$&`, `$'` and `` $` `` in the value as patterns.

@@ -24,6 +24,22 @@ start-cli package attach lightning-fork -n lnd-sub -- cat /etc/lightning-fork-co
 `lndinit` is the stock `lightninglabs/lndinit` build; it speaks the same RPC and
 reads the same database layout.
 
+A second image, `dashboard`, is pulled by digest from
+`paulscode/umbrel-lightning-fork`: the Umbrel Lightning app's web UI, forked
+for this chain (`github.com/paulscode/umbrel-lightning-fork`) and run with
+`DASHBOARD_PLATFORM=startos`, which drops wallet setup, LND configuration,
+Umbrel's backup server, widgets and connection strings, and puts HTTP Basic
+authentication on every path. The password lives in `dashboard.json` on the
+`dashboard` volume, read on every request, so the **Dashboard Password** action
+changes it without a restart and `main` never watches that file. The dashboard
+reaches LND over the loopback the subcontainers share, and reads the selected
+node's RPC cookie through the same read-only dependency mount LND uses. It
+mounts nothing of LND's own volume: the SDK ignores `readonly` on a package's
+own volumes, so a `dashboard-credentials` oneshot copies `tls.cert` and
+`admin.macaroon` into the `dashboard` volume at each start instead (after
+`unlock-wallet` in a lifecycle that rotates the macaroon root key), and the
+dashboard's health check reads `/ping`, which reports whether a password is set.
+
 ## Node selection
 
 Two Bitcoin nodes are declared as optional dependencies and exactly one is
@@ -96,7 +112,8 @@ in the daemon's repository for the whole design.
 ## Ports
 
 Internal ports are lnd's defaults (9735 peer, 10009 gRPC, 8080 REST, 9911
-watchtower) so `lnd.conf` stays stock. Preferred external ports are 9737,
+watchtower) so `lnd.conf` stays stock; the dashboard listens on 3006, exported
+as the `dashboard` UI interface behind StartOS's own TLS. Preferred external ports are 9737,
 10010, 8180 and 9913 so this package and the official LND can be installed on
 one server; on StartOS a colliding preferred port silently lands on a random
 one, so read the interface addresses rather than assuming these.

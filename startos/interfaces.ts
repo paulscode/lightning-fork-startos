@@ -16,6 +16,10 @@ export const preferredGRPCPort = 10010
 export const preferredRestPort = 8180
 export const preferredPeerPort = 9737
 export const preferredWatchtowerPort = 9913
+// The dashboard's own port, and the external port asked for so the address
+// stays put across reinstalls; StartOS serves it behind its own TLS.
+export const dashboardPort = 3006
+export const preferredDashboardPort = 3006
 
 // Host ids (the `sdk.MultiHost.of` groups) — distinct from the interface ids
 // exported on them. Used for `sdk.host.getOwn`/`get` lookups.
@@ -23,6 +27,7 @@ export const controlHostId = 'control'
 export const gRPCHostId = 'grpc'
 export const peerHostId = 'peer'
 export const watchtowerHostId = 'watchtower'
+export const dashboardHostId = 'dashboard'
 
 // Interface ids (the exported service interfaces on the hosts above).
 export const peerInterfaceId = 'peer'
@@ -30,6 +35,7 @@ export const gRPCInterfaceId = 'grpc'
 export const controlInterfaceId = 'control'
 export const lndconnectRestId = 'lnd-connect-rest'
 export const watchtowerInterfaceId = 'watchtower'
+export const dashboardInterfaceId = 'dashboard'
 
 export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   const receipts = []
@@ -135,6 +141,27 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
   } else {
     console.log('waiting for admin.macaroon to be created...')
   }
+
+  // dashboard — the web UI, behind the password from Dashboard Password
+  const dashboardMulti = sdk.MultiHost.of(effects, dashboardHostId)
+  const dashboardOrigin = await dashboardMulti.bindPort(dashboardPort, {
+    protocol: 'http',
+    preferredExternalPort: preferredDashboardPort,
+  })
+  const dashboard = sdk.createInterface(effects, {
+    name: i18n('Dashboard'),
+    id: dashboardInterfaceId,
+    description: i18n(
+      'Wallet, channels and payments in the browser. The browser asks for the password from the Dashboard Password action; any username.',
+    ),
+    type: 'ui',
+    masked: false,
+    schemeOverride: null,
+    username: null,
+    path: '',
+    query: {},
+  })
+  receipts.push(await dashboardOrigin.export([dashboard]))
 
   // peer
   const peerMulti = sdk.MultiHost.of(effects, peerHostId)

@@ -47,13 +47,30 @@ differ from an LND node on Bitcoin:
   connected. Open channels with other Lightning Fork nodes (or other
   implementations that follow this chain).
 
+## Dashboard
+
+The **Dashboard** interface is a web page for everyday use: the on-chain and
+Lightning wallets with send and receive, channels with open and close,
+transaction history, and the node's status and sync. It is the Umbrel
+Lightning app's dashboard, forked for this chain and trimmed to what StartOS
+does not already do; wallet setup, LND settings, backups and connection
+strings stay in StartOS.
+
+The browser asks for a password when you open it. Run the **Dashboard
+Password** action to see it (any username will do), or to set one of your
+own; a new password applies at once. Fiat amounts are BTCB2's own price from
+neoxa.exchange, converted to other currencies through Coingecko's rate table;
+while a feed is unreachable the dashboard shows sats or BTC instead.
+
 ## Funds and replay
 
-Coins that existed before block 961640 exist on both chains. Until Lightning
-Fork signs its transactions with the chain's replay-protected signature type
-(planned), a channel funded with such coins could be mirrored on the other
-chain. Prefer funding channels with coins you received after the split, and
-keep amounts modest: this chain is weeks old.
+Coins that existed before block 961640 exist on both chains. Everything
+Lightning Fork signs on its own uses the chain's replay-protected signature
+type, so its transactions cannot be mirrored on the other chain. A channel
+funded before that protection arrived, or with a signature made elsewhere, is
+the exception; the node warns about channels funded before the fork. Prefer
+funding channels with coins you received after the split, and keep amounts
+modest: this chain is weeks old.
 
 ## Backups
 

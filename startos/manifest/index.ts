@@ -16,8 +16,25 @@ export const manifest = setupManifest({
   marketingUrl: 'https://github.com/paulscode/lightning-fork',
   donationUrl: null,
   description: { short, long },
-  volumes: ['main'],
+  // `dashboard` holds the dashboard's own small state (password, settings)
+  // and copies of the two LND files it needs (tls.cert, admin.macaroon), so
+  // the dashboard container mounts nothing of LND's: the SDK does not honour
+  // `readonly` on a package's own volumes.
+  volumes: ['main', 'dashboard'],
   images: {
+    dashboard: {
+      // The Umbrel Lightning app's web UI, forked for this chain and run in
+      // its StartOS mode (github.com/paulscode/umbrel-lightning-fork). Pulled
+      // by digest at pack time; the Makefile refuses to pack while the
+      // placeholder below is still in place. Update with
+      //   docker buildx imagetools inspect paulscode/umbrel-lightning-fork:<tag>
+      // and take the manifest-list digest.
+      source: {
+        dockerTag:
+          'paulscode/umbrel-lightning-fork:1.3.2-blake2b.5@sha256:75616e39ea32f03601f3bc37b08ccf497647f766715f31197789af12371e697b',
+      },
+      arch: ['aarch64', 'x86_64'],
+    },
     lnd: {
       // Built from ./Dockerfile: Lightning Fork from a pinned commit of
       // github.com/paulscode/lightning-fork, plus lndinit and the sqlite3 CLI

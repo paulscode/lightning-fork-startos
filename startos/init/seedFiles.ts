@@ -1,5 +1,6 @@
 import { utils } from '@start9labs/start-sdk'
 import { coldStorageJson } from '../fileModels/cold-storage.json'
+import { dashboardJson } from '../fileModels/dashboard.json'
 import { lndConfFile } from '../fileModels/lnd.conf'
 import { startupFlagsJson } from '../fileModels/startupFlags.json'
 import { storeJson } from '../fileModels/store.json'
@@ -26,5 +27,17 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
   } else {
     await lndConfFile.merge(effects, {})
     await storeJson.merge(effects, {})
+  }
+
+  // The dashboard password: on install, and on the first start after an
+  // update from a version that had no dashboard. Never regenerated once set.
+  await dashboardJson.merge(effects, {})
+  if (!(await dashboardJson.read((d) => d.password).once())) {
+    await dashboardJson.merge(effects, {
+      password: utils.getDefaultString({
+        charset: 'a-z,A-Z,2-9',
+        len: 24,
+      }),
+    })
   }
 })

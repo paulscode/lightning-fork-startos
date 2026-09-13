@@ -535,6 +535,19 @@ const dict = {
   'Waiting for the daemon to check which chain the Bitcoin node is on': 555,
   'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.': 556,
   'Unknown chain-identity state ${state}; treat the node as unverified': 557,
+  // the dashboard (interfaces.ts, main.ts, actions/dashboardPassword.ts)
+  'Dashboard Password': 558,
+  'Show the password the Dashboard interface asks for, or replace it.': 559,
+  'New Password': 560,
+  'Leave empty to keep the current password and only show it. Otherwise 8 to 128 characters; it takes effect on the next request, no restart needed.': 561,
+  'The password must be between ${min} and ${max} characters': 562,
+  'No dashboard password is set yet. Restart the service to have one generated, or enter one here.': 563,
+  'The browser asks for this when you open the Dashboard interface. Any username will do.': 564,
+  Dashboard: 565,
+  'Wallet, channels and payments in the browser. The browser asks for the password from the Dashboard Password action; any username.': 566,
+  'The dashboard is serving': 567,
+  'The dashboard is not answering yet': 568,
+  'No dashboard password is set. Run Dashboard Password to set one.': 569,
 } as const
 
 /**

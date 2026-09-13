@@ -32,6 +32,9 @@ import {
   chainIdentityHostPath,
   ChainIdentityStatus,
   channelBackupPath,
+  dashboardDataDir,
+  dashboardVolumeHost,
+  mainVolumeHost,
   getBackendBundle,
   GetInfo,
   literal,
@@ -44,7 +47,9 @@ import {
   selfRestUrl,
   sleep,
 } from './utils'
-import { readFile, rm } from 'fs/promises'
+import { readFile, rename, rm, writeFile } from 'fs/promises'
+import { get as httpGet } from 'http'
+import { dashboardPort, gRPCPort, restPort } from './interfaces'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
@@ -54,6 +59,31 @@ const IMPORT_TIMEOUT_MS = 6 * 60 * 60_000
 // Well past the observed 36 s – 2 m 37 s a healthy node takes to reach
 // synced_to_graph, so crossing it means the elected peer is not answering.
 const GRAPH_SYNC_SLOW_MS = 15 * 60_000
+
+// GET /ping on the dashboard: its version, platform and whether a password is
+// set; null when it is not listening or does not answer within five seconds.
+function dashboardPing(
+  port: number,
+): Promise<{ platform?: string; auth?: string } | null> {
+  return new Promise((resolve) => {
+    const req = httpGet(
+      { host: '127.0.0.1', port, path: '/ping', timeout: 5_000 },
+      (res) => {
+        let data = ''
+        res.on('data', (c) => (data += c))
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data))
+          } catch {
+            resolve(null)
+          }
+        })
+      },
+    )
+    req.on('timeout', () => req.destroy())
+    req.on('error', () => resolve(null))
+  })
+}
 
 // LND gates synced_to_graph on one elected peer, and holds every other peer
 // passive until it finishes — so one unresponsive peer stalls all gossip, and
@@ -182,6 +212,16 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // stale success (or a stale refusal) for the node selected now.
   await rm(chainIdentityHostPath, { force: true })
   const bitcoindSettings = await getBackendBundle(effects, backend)
+  // The same node, for the dashboard's sync display: host and port apart,
+  // since the dashboard takes them as two variables. Split at the last
+  // colon, and unbracketed, for a bridge address that is IPv6.
+  const dashboardRpc = (() => {
+    const rpchost = bitcoindSettings['bitcoind.rpchost'] ?? '127.0.0.1:8332'
+    const colon = rpchost.lastIndexOf(':')
+    const host = colon === -1 ? rpchost : rpchost.slice(0, colon)
+    const port = colon === -1 ? '8332' : rpchost.slice(colon + 1)
+    return { host: host.replace(/^\[|\]$/g, ''), port }
+  })()
 
   // Enforce backend bundle — ensures rpchost, rpccookie, zmq, fee.url stay in
   // sync. This write also re-renders the conf through the file-model schema,
@@ -1155,6 +1195,139 @@ export const main = sdk.setupMain(async ({ effects }) => {
           },
         },
         requires: ['channel-backup-agent'],
+      })
+      // The dashboard's credentials: copies of tls.cert and admin.macaroon
+      // in the dashboard's own volume, so the dashboard mounts nothing of
+      // LND's. (The SDK's own-volume mounts ignore `readonly`, so a mount of
+      // the LND volume would have been writable by a browser-facing Node app;
+      // narrowing it to the mainnet directory would still have covered
+      // wallet.db.) Fresh at every start: main re-runs when tls.cert is
+      // reissued, and a macaroon rotation happens inside unlock-wallet, which
+      // this waits for in the lifecycle that rotates.
+      .addOneshot('dashboard-credentials', {
+        subcontainer: null,
+        exec: {
+          fn: async (_, abort) => {
+            const copies: Array<[string, string]> = [
+              [certPath, `${dashboardVolumeHost}/tls.cert`],
+              [
+                `${mainVolumeHost}/data/chain/bitcoin/mainnet/admin.macaroon`,
+                `${dashboardVolumeHost}/admin.macaroon`,
+              ],
+            ]
+            while (!abort.aborted) {
+              try {
+                for (const [from, to] of copies) {
+                  const bytes = await readFile(from)
+                  await writeFile(`${to}.tmp`, bytes, { mode: 0o600 })
+                  await rename(`${to}.tmp`, to)
+                }
+                return null
+              } catch (e) {
+                // LND is up, so both files are moments away.
+                console.log(
+                  `dashboard credentials not ready yet: ${String(e)}`,
+                )
+                await sleep(2_000, abort)
+              }
+            }
+            return null
+          },
+        },
+        requires: rotateMacaroonRootKey ? ['lnd', 'unlock-wallet'] : ['lnd'],
+      })
+      // The dashboard: the Umbrel Lightning app's web UI, forked for this
+      // chain and run in its StartOS mode, which drops the wallet setup, LND
+      // configuration, backup and connection-string features this package
+      // provides itself (github.com/paulscode/umbrel-lightning-fork). It
+      // reaches LND over the loopback the subcontainers share, reads the
+      // node's cookie for the Bitcoin RPC calls behind its sync display, and
+      // checks every request against dashboard.json, so Dashboard Password
+      // takes effect without a restart and main never watches that file.
+      // Requires only LND (through the credentials copy): while the wallet is
+      // locked it shows a page that says so, which is more use than a stopped
+      // daemon.
+      .addDaemon('dashboard', {
+        subcontainer: sdk.SubContainer.of(
+          effects,
+          { imageId: 'dashboard' },
+          sdk.Mounts.of()
+            .mountVolume({
+              volumeId: 'dashboard',
+              subpath: null,
+              mountpoint: dashboardDataDir,
+              readonly: false,
+            })
+            .mountDependency<typeof bitcoinManifest>({
+              dependencyId: backend as 'bitcoind',
+              volumeId: 'main',
+              mountpoint: bitcoindMnt,
+              subpath: null,
+              readonly: true,
+            }),
+          'dashboard-sub',
+        ),
+        exec: {
+          command: ['node', 'bin/www'],
+          // module-alias and the static frontend path resolve from here.
+          cwd: '/app/apps/backend',
+          env: {
+            DASHBOARD_PLATFORM: 'startos',
+            DASHBOARD_PASSWORD_FILE: `${dashboardDataDir}/dashboard.json`,
+            PORT: String(dashboardPort),
+            LND_HOST: '127.0.0.1',
+            LND_PORT: String(gRPCPort),
+            LND_GRPC_PORT: String(gRPCPort),
+            LND_REST_PORT: String(restPort),
+            LND_NETWORK: 'mainnet',
+            TLS_FILE: `${dashboardDataDir}/tls.cert`,
+            // The backend appends admin.macaroon; the trailing slash matters.
+            MACAROON_DIR: `${dashboardDataDir}/`,
+            JSON_STORE_FILE: `${dashboardDataDir}/state.json`,
+            JSON_SETTINGS_FILE: `${dashboardDataDir}/settings.json`,
+            BITCOIN_HOST: dashboardRpc.host,
+            RPC_PORT: dashboardRpc.port,
+            RPC_COOKIE_FILE: `${bitcoindMnt}/.cookie`,
+            DEVICE_DOMAIN_NAME: '',
+            EXPLORER_PORT: '',
+            EXPLORER_HIDDEN_SERVICE: '',
+          },
+        },
+        ready: {
+          display: i18n('Dashboard'),
+          // Calmer than the default second-by-second poll: node loads grpc
+          // and its protos before it listens, seconds on ARM.
+          trigger: sdk.trigger.statusTrigger(30_000, {
+            starting: 5_000,
+            waiting: 5_000,
+            failure: 10_000,
+          }),
+          // /ping answers without a password and says whether one is set;
+          // without one every other request is a 503, which a check that
+          // only wanted an HTTP response would have called healthy.
+          fn: async () => {
+            const ping = await dashboardPing(dashboardPort)
+            if (!ping) {
+              return {
+                result: 'starting',
+                message: i18n('The dashboard is not answering yet'),
+              }
+            }
+            if (ping.auth !== 'configured') {
+              return {
+                result: 'failure',
+                message: i18n(
+                  'No dashboard password is set. Run Dashboard Password to set one.',
+                ),
+              }
+            }
+            return {
+              result: 'success',
+              message: i18n('The dashboard is serving'),
+            }
+          },
+        },
+        requires: ['dashboard-credentials'],
       })
 
   return sdk.Daemons.dynamic(effects, async ({ effects: dynEffects }) => {

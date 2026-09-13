@@ -3,31 +3,40 @@ import { sdk } from './sdk'
 
 export const { createBackup, restoreInit } = sdk.setupBackups(
   async ({ effects }) =>
-    sdk.Backups.ofVolumes('main')
-      .setOptions({
-        exclude: [
-          // Holds nothing a restore needs — setPostRestore and seedFiles
-          // recreate it with what restore requires, and needsSqliteMigration
-          // decides from files on disk — while importPending can hold an
-          // origin's password in cleartext, which must not ride into backups.
-          'startup-flags.json',
-          'data/graph',
-          'data/chain/bitcoin/mainnet/channel.db',
-          'data/chain/bitcoin/mainnet/sphinxreplay.db',
-          'data/chain/bitcoin/mainnet/neutrino.db',
-          'data/chain/bitcoin/mainnet/block_headers.bin',
-          'data/chain/bitcoin/mainnet/reg_filter_headers.bin',
-          // This run's verdict on the selected node; meaningless anywhere
-          // else, and main deletes it at every start anyway.
-          'data/chain/bitcoin/mainnet/chain-identity.json',
-          'logs',
-          '.channel-backup-state.json',
-          '.channel-backup.lock',
-          'channel.backup.startos-restore',
-          'channel.backup.startos-restore.tmp',
-          '.channel-backup-restore',
-          'unlock-status.json',
-        ],
+    sdk.Backups.ofVolumes()
+      // The copies main makes of tls.cert and admin.macaroon for the
+      // dashboard are remade at every start; the main volume carries the
+      // originals.
+      .addVolume('dashboard', {
+        options: { delete: true, exclude: ['tls.cert', 'admin.macaroon'] },
+      })
+      .addVolume('main', {
+        options: {
+          delete: true,
+          exclude: [
+            // Holds nothing a restore needs — setPostRestore and seedFiles
+            // recreate it with what restore requires, and needsSqliteMigration
+            // decides from files on disk — while importPending can hold an
+            // origin's password in cleartext, which must not ride into backups.
+            'startup-flags.json',
+            'data/graph',
+            'data/chain/bitcoin/mainnet/channel.db',
+            'data/chain/bitcoin/mainnet/sphinxreplay.db',
+            'data/chain/bitcoin/mainnet/neutrino.db',
+            'data/chain/bitcoin/mainnet/block_headers.bin',
+            'data/chain/bitcoin/mainnet/reg_filter_headers.bin',
+            // This run's verdict on the selected node; meaningless anywhere
+            // else, and main deletes it at every start anyway.
+            'data/chain/bitcoin/mainnet/chain-identity.json',
+            'logs',
+            '.channel-backup-state.json',
+            '.channel-backup.lock',
+            'channel.backup.startos-restore',
+            'channel.backup.startos-restore.tmp',
+            '.channel-backup-restore',
+            'unlock-status.json',
+          ],
+        },
       })
       .setPostRestore(async (effects) => {
         // Drop any import the backup was carrying: its origin credentials are

@@ -32,9 +32,7 @@ export const selectBackend = sdk.Action.withInput(
 
   {
     name: i18n('Select Node'),
-    description: i18n(
-      'Choose which Bitcoin node backs Lightning Fork',
-    ),
+    description: i18n('Choose which Bitcoin node backs Lightning Fork'),
     warning: i18n(
       'Switching nodes restarts Lightning Fork. The node you switch to must be on the Bitcoin BLAKE2b chain.',
     ),

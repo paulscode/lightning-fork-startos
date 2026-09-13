@@ -1,17 +1,13 @@
 import { VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta:1',
+  version: '0.21.3-beta:2',
   releaseNotes: {
-    en_US: `The Bitcoin Knots dependency no longer shows as unmet with the Knots build most BLAKE2b users run (the version range now accepts any version of that package, since a range cannot tell the Knots flavor apart and the chain check at start is what enforces Knots 29.4.1 or later). The Bitcoin Knots (BLAKE2b) Companion is used over ZMQ from its 1.0.0:34, which is the first built with it; that version is now required, and the companion gets a task to turn ZMQ on.
+    en_US: `A dashboard. The Umbrel Lightning app's web UI, forked for this chain (github.com/paulscode/umbrel-lightning-fork), now ships with the package as the Dashboard interface: on-chain and Lightning wallets with send and receive, channels with open and close, transaction history, node status and sync. The browser asks for the password from the new Dashboard Password action (any username); the password is generated at install and can be changed there without a restart.
 
-First release of Lightning Fork, an LND fork that follows the Bitcoin BLAKE2b chain (Bitcoin Knots 29.4.1, activated at block 961640 on 2026-08-30).
+The dashboard runs in a StartOS mode that leaves to StartOS what StartOS does: wallet setup, LND configuration, channel backups and connection strings are not in it. Fiat amounts are priced for this chain, from BTCB2's own market at neoxa.exchange with other currencies converted through Coingecko's rate table, as Sparrow BLAKE2b does it; while a feed is unreachable the dashboard shows sats or BTC instead.
 
-It runs against Bitcoin Knots (29.4.1 or later) or the Bitcoin Knots (BLAKE2b) Companion, chosen under Select Node, and refuses to start against a node on the SHA256d chain: the Chain Identity health check says which chain the node is on and why it was refused. It advertises the BLAKE2b chain in every handshake, drops peers that do not, and uses the lnblake invoice prefix, so nothing here can connect to, pay, or be paid from the Bitcoin Lightning network by accident.
-
-Everything it signs on its own (on-chain sends, sweeps, its own funding inputs, the second-level and justice transactions it broadcasts) opts into the chain's replay-protected signature hash, so those transactions cannot be replayed on the SHA256d chain. Channels funded from coins that existed before the fork are reported at startup, since their commitment transactions cannot be protected the same way; prefer coins received after block 961640.
-
-Based on LND 0.21.3-beta (Lightning Fork 0.21.3-beta-blake2b.5) and the Start9 LND package. Wallet setup, channel backups, cold storage mode, Tor and the watchtower work as in that package. Migrating a wallet from another node is not offered: channels of a node on the SHA256d chain cannot be moved to this one.`,
+The node itself is unchanged from 0.21.3-beta:1 (Lightning Fork 0.21.3-beta-blake2b.5). A second volume, dashboard, holds the dashboard's settings and password; it is included in StartOS backups.`,
   },
   migrations: {
     up: async () => {},
