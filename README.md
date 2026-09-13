@@ -64,7 +64,18 @@ check. The outcome is written to
 | `waiting` | loading: the node has not reached block 961640 yet (shows its header count) |
 | `confirmed` | success, with the activation block hash |
 | `refused` | failure, with the daemon's reason and a pointer to Select Node |
+| `skipped` | success; only an integration build writes it |
+| anything else | failure naming the state |
 | file absent | starting: the check runs after wallet unlock |
+
+The check reads the host path only: it does not require the lnd daemon to
+be healthy (a refused daemon exits and is restarted, so it never is) and
+has no grace period, so the refusal is visible as soon as it is written.
+`main` deletes the file when the service starts, so a verdict always belongs
+to this run and the node selected now, and backups exclude it. The daemon
+also accepts `--bitcoin.chain-identity-file` to write the verdict elsewhere;
+this package keeps the default location because it reads the volume from the
+host side.
 
 The daemon also advertises the BLAKE2b chain hash in every `init` handshake and
 disconnects peers that do not list it, and issues `lnblake…` invoices. See
