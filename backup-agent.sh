@@ -11,7 +11,7 @@
 set -u
 umask 077
 
-LND_DIR=/root/.lnd
+LND_DIR=${LND_DIR:-/root/.lnd}
 BACKUP="$LND_DIR/data/chain/bitcoin/mainnet/channel.backup"
 CONFIG="$LND_DIR/channel-backup.json"
 STATE="$LND_DIR/.channel-backup-state.json"
