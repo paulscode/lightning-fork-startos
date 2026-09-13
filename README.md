@@ -72,6 +72,10 @@ check. The outcome is written to
 | anything else | failure naming the state |
 | file absent | starting: the check runs after wallet unlock |
 
+Once confirmed, the file also carries `reduced_data`, the state of the
+chain's temporary block-size reduction as the node reports it; the package
+does not act on it yet.
+
 The check reads the host path only: it does not require the lnd daemon to
 be healthy (a refused daemon exits and is restarted, so it never is) and
 has no grace period, so the refusal is visible as soon as it is written.
