@@ -24,8 +24,11 @@ start-cli package attach lightning-fork -n lnd-sub -- cat /etc/lightning-fork-co
 `lndinit` is the stock `lightninglabs/lndinit` build; it speaks the same RPC and
 reads the same database layout.
 
-A second image, `dashboard`, is pulled by digest from
-`paulscode/umbrel-lightning-fork`: the Umbrel Lightning app's web UI, forked
+A second image, `dashboard`, is pulled by tag from
+`paulscode/umbrel-lightning-fork` (a universal pack needs the image for both
+architectures, and Docker cannot hold one digest reference for two platforms;
+the index digest the tag resolved to at release time is recorded beside it in
+the manifest): the Umbrel Lightning app's web UI, forked
 for this chain (`github.com/paulscode/umbrel-lightning-fork`) and run with
 `DASHBOARD_PLATFORM=startos`, which drops wallet setup, LND configuration,
 Umbrel's backup server, widgets and connection strings, and puts HTTP Basic

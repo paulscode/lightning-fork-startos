@@ -25,13 +25,16 @@ export const manifest = setupManifest({
     dashboard: {
       // The Umbrel Lightning app's web UI, forked for this chain and run in
       // its StartOS mode (github.com/paulscode/umbrel-lightning-fork). Pulled
-      // by digest at pack time; the Makefile refuses to pack while the
-      // placeholder below is still in place. Update with
-      //   docker buildx imagetools inspect paulscode/umbrel-lightning-fork:<tag>
-      // and take the manifest-list digest.
+      // by tag at pack time, not by digest: a universal pack pulls the image
+      // for both architectures, and Docker cannot hold one digest reference
+      // for two platforms ("cannot overwrite digest"). The tag is never moved
+      // once published. What it resolved to when this version was released,
+      // to compare with `docker buildx imagetools inspect <tag>`:
+      //   index sha256:75616e39ea32f03601f3bc37b08ccf497647f766715f31197789af12371e697b
+      // The Makefile refuses to pack while the DASHBOARD_IMAGE_DIGEST
+      // placeholder is in place, for a future edit that forgets this line.
       source: {
-        dockerTag:
-          'paulscode/umbrel-lightning-fork:1.3.2-blake2b.5@sha256:75616e39ea32f03601f3bc37b08ccf497647f766715f31197789af12371e697b',
+        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.5',
       },
       arch: ['aarch64', 'x86_64'],
     },
