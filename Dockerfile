@@ -8,7 +8,7 @@ FROM golang:1.26.6-alpine AS builder
 ENV GODEBUG=netdns=cgo
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=3b839d90ff31025db96a4490cf9eb2e3abb5da8a
+ARG LIGHTNING_FORK_REF=b8d1b16be4c338aec897527a6c0bb93c9dd20b10
 
 # The module path is upstream's (github.com/lightningnetwork/lnd); go.mod
 # replaces btcd with github.com/paulscode/btcd-blake2b at a tagged release.

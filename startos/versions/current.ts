@@ -1,11 +1,11 @@
 import { VersionInfo } from '@start9labs/start-sdk'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta:3',
+  version: '0.21.3-beta:4',
   releaseNotes: {
-    en_US: `The dashboard signs you in on its own screen: one password, no username, and no browser prompt. The password is the one generated at install; Dashboard Password shows it masked with a copy button, and the new Set Dashboard Password action replaces it with one of your own or a generated one, effective at once. Sessions last twelve hours, Sign out is in the dashboard's menu, and wrong attempts back off from the third. Setting a new password ends every open session and clears any lockout.
+    en_US: `BOLT 12 offers, native to the node. Mint an offer with lncli offer create and hand the lno1... string to a pool that pays to offers, the way OCEAN does; the node answers the pool's invoice requests over onion messages and is paid to an ordinary invoice with blinded paths. The same offer comes back after a restore from seed, and a request for an offer the node lost is still served. The node can also fetch and pay other nodes' offers (lncli offer fetchinvoice, lncli offer pay), including through a peer it is the introduction node of. Offers, requests and invoices decode as valid in an unmodified Core Lightning.
 
-The node itself is unchanged from 0.21.3-beta:2 (Lightning Fork 0.21.3-beta-blake2b.5).`,
+Lightning Fork 0.21.3-beta-blake2b.6. The dashboard is unchanged.`,
   },
   migrations: {
     up: async () => {},
