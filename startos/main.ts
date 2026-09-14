@@ -46,6 +46,7 @@ import {
   selfGrpcHost,
   selfRestUrl,
   sleep,
+  mempoolAppsEnv,
 } from './utils'
 import { readFile, rename, rm, writeFile } from 'fs/promises'
 import { get as httpGet } from 'http'
@@ -222,6 +223,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
     const port = colon === -1 ? '8332' : rpchost.slice(colon + 1)
     return { host: host.replace(/^\[|\]$/g, ''), port }
   })()
+
+  // The Mempool apps the dashboard can reach, for fee rates and links.
+  const mempoolEnv = await mempoolAppsEnv(effects)
 
   // Enforce backend bundle — ensures rpchost, rpccookie, zmq, fee.url stay in
   // sync. This write also re-renders the conf through the file-model schema,
@@ -1289,6 +1293,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             DEVICE_DOMAIN_NAME: '',
             EXPLORER_PORT: '',
             EXPLORER_HIDDEN_SERVICE: '',
+            ...mempoolEnv,
           },
         },
         ready: {

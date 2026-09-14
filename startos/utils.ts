@@ -94,6 +94,76 @@ export const getBackendBundle = async (
  * height), confirmed, or refused with the reason. Read from the host path so
  * the health check works whether or not the subcontainer is up.
  */
+/**
+ * The Mempool apps the dashboard may take fee rates and transaction links
+ * from, when installed: for each, the bridge address of the app's web UI
+ * (its nginx serves the fee endpoint the app's own page reads, so the
+ * dashboard shows the numbers that page shows) for the dashboard's own
+ * requests, and the UI's LAN and onion addresses for the links a browser
+ * follows. An app that is not installed resolves to nothing and is not
+ * offered. Read once at start: an app installed later is picked up by a
+ * restart of this service, which the dashboard's Mempool page says.
+ */
+export const mempoolApps = [
+  { id: 'mempool', prefix: 'MEMPOOL_GUIDE' },
+  { id: 'mempool-pruned', prefix: 'MEMPOOL_PRUNED' },
+] as const
+export const mempoolUiHostId = 'main'
+export const mempoolUiPort = 8080
+
+export const mempoolAppsEnv = async (
+  effects: T.Effects,
+): Promise<Record<string, string>> => {
+  const env: Record<string, string> = {}
+  for (const { id, prefix } of mempoolApps) {
+    let api: string | null = null
+    try {
+      api = await sdk.host
+        .getBridgeAddress(effects, {
+          packageId: id,
+          hostId: mempoolUiHostId,
+          internalPort: mempoolUiPort,
+          ssl: false,
+        })
+        .once()
+    } catch (_e) {
+      api = null
+    }
+    if (!api) continue
+    env[`${prefix}_API`] = `http://${api}`
+    try {
+      // The app's web UI binding, with every address the host enabled for
+      // it as a URL: the LAN name for a browser on the LAN, the onion
+      // address for a page opened over Tor.
+      const addresses = await sdk.host
+        .get(
+          effects,
+          { hostId: mempoolUiHostId, packageId: id },
+          (host) => {
+            const info =
+              host?.bindings?.[mempoolUiPort]?.interfaces?.webui?.addressInfo
+            const urls = (info?.format() ?? []) as string[]
+            return {
+              lan: urls.filter((u) => /\.local(:\d+)?\/?$/.test(u)),
+              onion: urls.filter((u) => /\.onion(:\d+)?\/?$/.test(u)),
+            }
+          },
+        )
+        .once()
+      if (addresses?.lan[0]) env[`${prefix}_UI_URL`] = addresses.lan[0]
+      if (addresses?.onion[0]) {
+        env[`${prefix}_HIDDEN_SERVICE`] = addresses.onion[0].replace(
+          /^https?:\/\//,
+          '',
+        )
+      }
+    } catch (_e) {
+      // The addresses are a convenience for links; the rates still work.
+    }
+  }
+  return env
+}
+
 export const chainIdentityHostPath = `${mainVolumeHost}/data/chain/bitcoin/mainnet/chain-identity.json`
 
 export type ChainIdentityStatus = {

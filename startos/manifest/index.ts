@@ -2,6 +2,8 @@ import { setupManifest } from '@start9labs/start-sdk'
 import {
   depBitcoindDescription,
   depCompanionDescription,
+  depMempoolDescription,
+  depMempoolPrunedDescription,
   depTorDescription,
   long,
   short,
@@ -30,11 +32,11 @@ export const manifest = setupManifest({
       // for two platforms ("cannot overwrite digest"). The tag is never moved
       // once published. What it resolved to when this version was released,
       // to compare with `docker buildx imagetools inspect <tag>`:
-      //   index sha256:ba7e7f043e87b4e6208edc781da9c3121c4f60eb22afcc70868d92c765c15053
+      //   index sha256:6a8473ca8a4effdf1cead8d81a3cf1ed1ce793d97e6999480d3ca0b3a299f95a
       // The Makefile refuses to pack while a digest placeholder is in
       // place, for a future edit that forgets this line.
       source: {
-        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.10',
+        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.11',
       },
       arch: ['aarch64', 'x86_64'],
     },
@@ -67,6 +69,24 @@ export const manifest = setupManifest({
       metadata: {
         title: 'Bitcoin Knots (BLAKE2b) Companion',
         icon: 'https://raw.githubusercontent.com/paulscode/knots-blake2b-startos/main/dep-icon.png',
+      },
+    },
+    // Either Mempool app, when installed, feeds the dashboard's fee rates
+    // and transaction links; neither is ever required.
+    mempool: {
+      description: depMempoolDescription,
+      optional: true,
+      metadata: {
+        title: 'Mempool',
+        icon: 'https://raw.githubusercontent.com/Start9Labs/mempool-startos/master/icon.svg',
+      },
+    },
+    'mempool-pruned': {
+      description: depMempoolPrunedDescription,
+      optional: true,
+      metadata: {
+        title: 'Mempool Pruned',
+        icon: 'https://raw.githubusercontent.com/paulscode/mempool-pruned-startos/master/icon.png',
       },
     },
     tor: {

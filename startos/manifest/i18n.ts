@@ -79,3 +79,16 @@ export const depCompanionDescription = {
 }
 
 export const depTorDescription = {}
+
+const depMempoolEn =
+  'Optional. The dashboard takes its fee rates (the Low, Medium and High its page shows) and its transaction links from a Mempool app you choose.'
+
+export const depMempoolDescription = {
+  en_US: depMempoolEn,
+  es_ES: depMempoolEn,
+  de_DE: depMempoolEn,
+  pl_PL: depMempoolEn,
+  fr_FR: depMempoolEn,
+}
+
+export const depMempoolPrunedDescription = depMempoolDescription
