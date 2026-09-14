@@ -1,24 +1,31 @@
 # Lightning Fork for StartOS: lnd and lncli built from a pinned commit of
 # github.com/paulscode/lightning-fork, plus the tools the package's own scripts
 # need. Built from source rather than pulled, so the image records exactly
-# which commit it runs and no published image has to exist first.
-FROM golang:1.26.6-alpine AS builder
-
-# Force Go to use the cgo based DNS resolver, as upstream's image does.
-ENV GODEBUG=netdns=cgo
+# which commit it runs and no published image has to exist first. The
+# builder runs on the build machine's own platform and cross-compiles for
+# the target, so the aarch64 image takes minutes rather than the hours an
+# emulated Go build takes.
+FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine AS builder
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=b8d1b16be4c338aec897527a6c0bb93c9dd20b10
+ARG LIGHTNING_FORK_REF=a38f91a473bf71df23771fb0f86ccf3c83311ad3
+ARG TARGETOS
+ARG TARGETARCH
 
 # The module path is upstream's (github.com/lightningnetwork/lnd); go.mod
 # replaces btcd with github.com/paulscode/btcd-blake2b at a tagged release.
+# Go installs a cross-compiled binary under a per-platform directory, so it
+# is moved to where the final stage looks.
 RUN apk add --no-cache --update alpine-sdk git make gcc \
 &&  git clone "$LIGHTNING_FORK_REPO" /go/src/github.com/lightningnetwork/lnd \
 &&  cd /go/src/github.com/lightningnetwork/lnd \
 &&  git checkout "$LIGHTNING_FORK_REF" \
 &&  git rev-parse HEAD > /lightning-fork-commit \
 &&  go list -m -f '{{.Replace.Path}} {{.Replace.Version}}' github.com/btcsuite/btcd > /btcd-blake2b-version \
-&&  make release-install
+&&  GOOS=$TARGETOS GOARCH=$TARGETARCH make release-install \
+&&  if [ -d "/go/bin/${TARGETOS}_${TARGETARCH}" ]; then \
+        mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \
+    fi
 
 FROM alpine:3.21
 
