@@ -4,10 +4,36 @@
 
 The image builds `github.com/paulscode/lightning-fork` at `LIGHTNING_FORK_REF`
 in `Dockerfile`. To move to a new daemon release: set the ref to the new commit
-(a tag is fine; the builder records the resolved commit), bump `version` in
-`startos/versions/current.ts` (`<lnd base>-beta:<downstream>`, e.g.
-`0.21.3-beta:1`), write release notes, `npm run check`, `make x86`, install
-and verify against a running BLAKE2b node, then a universal build.
+(a tag is fine; the builder records the resolved commit), set `version` in
+`startos/versions/current.ts`, write release notes, `npm run check`,
+`make x86`, install and verify against a running BLAKE2b node, then a
+universal build.
+
+### The version
+
+The package version names the daemon release it ships, so the number users
+see in the registry is the one the daemon reports:
+
+| Daemon | Package version |
+| --- | --- |
+| `0.21.3-beta-blake2b.13` | `0.21.3-beta.13:0` |
+| the same daemon, a package-only fix | `0.21.3-beta.13:1` |
+| `0.21.4-beta-blake2b.14` | `0.21.4-beta.14:0` |
+
+That is `<lnd base>-beta.<fork release>:<package revision>`, the revision
+starting at 0 for each daemon release. The daemon's own spelling,
+`beta-blake2b.13`, is not a valid StartOS version: its pre-release part takes
+only dot-separated segments that are all letters or all digits, so neither the
+hyphen nor `blake2b` parses. The Umbrel app spells the same release
+`0.21.3-beta-blake2b.13.0`.
+
+Up to `0.21.3-beta:9` the part after the colon counted packages rather than
+naming the daemon, so `:9` shipped `0.21.3-beta-blake2b.12`, and users referred
+to the same release as both "beta 9" and "beta 12". Any `beta.N` sorts above
+those, so the switch needs nothing beyond the new number; checked with the SDK,
+including the upgrade from `:9` and `:7` through `current`'s migration. Never
+publish an upstream release candidate: `beta.rc1` is not a valid version
+either.
 
 `lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta`);
 move it together with the LND base version the daemon is rebased on.
