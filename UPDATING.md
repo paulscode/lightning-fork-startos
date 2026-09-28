@@ -19,7 +19,8 @@ their changes, merge or rebase `startos-0.4` onto their `master` and re-apply
 the intent of `startos/backends.ts`, `startos/dependencies.ts`, the
 `chain-identity` health check in `startos/main.ts`, the node selection action,
 and the removals listed in `README.md`. Their version files below `current`
-must not come back: nothing older was ever installed under this id.
+must not come back: they migrate their package's data, never this one's, and
+every revision of this package upgrades through `current`'s no-op migration.
 
 ## Dependencies
 

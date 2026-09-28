@@ -11,7 +11,7 @@ export const short = {
 
 const longEn = `Lightning Fork is a fork of LND (Lightning Network Daemon) that follows the Bitcoin BLAKE2b chain: the Bitcoin Knots hard fork that replaced SHA256d proof of work with BLAKE2b at block 961640 on 30 August 2026. It creates and closes channels, routes payments, sends and receives over the Lightning Network on that chain, and keeps a fully validated channel graph, exactly as LND does on Bitcoin.
 
-The BLAKE2b chain shares its history, addresses and keys with Bitcoin, so a Lightning node cannot tell the two apart by any ordinary check. Lightning Fork therefore refuses to start against a node on the SHA256d chain, advertises the BLAKE2b chain in every peer handshake and drops peers that do not, and issues invoices with the lnblake prefix that no Bitcoin wallet will pay. Nothing here can connect to, pay, or be paid from the Bitcoin Lightning network by accident.
+The BLAKE2b chain shares its history, addresses and keys with Bitcoin, so a Lightning node cannot tell the two apart by any ordinary check. Lightning Fork therefore refuses to start against a node on the SHA256d chain, and marks its peer handshakes, invoices and offers with a required feature bit that a Lightning node or wallet on Bitcoin following the specification refuses, and refuses any invoice or offer without it. Nothing here can connect to, pay, or be paid from the Bitcoin Lightning network by accident.
 
 It runs against a Bitcoin Knots node (29.4.1 or later) or the Bitcoin Knots (BLAKE2b) Companion, chosen under Select Node. The Chain Identity health check shows which chain the node is on.`
 
@@ -24,7 +24,7 @@ export const long = {
 }
 
 const alertInstallEn =
-  'READ CAREFULLY! Lightning Fork, LND and the Lightning Network are considered beta software, and the Bitcoin BLAKE2b chain is weeks old. Please use with caution and do not risk more money than you are willing to lose. We encourage frequent backups, particularly after opening or closing channels. If for any reason you need to restore from a backup, your on-chain wallet will be restored. Any channels in the backup will be closed and their funds returned to your on-chain wallet, minus fees. It may also take some time for this process to occur. Any channels opened after the last backup CANNOT be recovered by backup restore. Coins that existed before block 961640 exist on both chains; until Lightning Fork signs with the replay-protected signature type, prefer funding channels with coins received after that block.'
+  'READ CAREFULLY! Lightning Fork, LND and the Lightning Network are considered beta software, and the Bitcoin BLAKE2b chain is weeks old. Please use with caution and do not risk more money than you are willing to lose. We encourage frequent backups, particularly after opening or closing channels. If for any reason you need to restore from a backup, your on-chain wallet will be restored. Any channels in the backup will be closed and their funds returned to your on-chain wallet, minus fees. It may also take some time for this process to occur. Any channels opened after the last backup CANNOT be recovered by backup restore. Coins that existed before block 961640 exist on both chains; Lightning Fork signs with the replay-protected signature type, but prefer funding channels with coins received after that block, and keep amounts modest.'
 
 export const alertInstall = {
   en_US: alertInstallEn,

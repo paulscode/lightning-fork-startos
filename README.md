@@ -109,8 +109,10 @@ also accepts `--bitcoin.chain-identity-file` to write the verdict elsewhere;
 this package keeps the default location because it reads the volume from the
 host side.
 
-The daemon also advertises the BLAKE2b chain hash in every `init` handshake and
-disconnects peers that do not list it, and issues `lnblake…` invoices. See
+The daemon also sets `option_blake2b` (feature bit 512, even) in `init`, in
+its invoices and in its offers, which a node on Bitcoin must refuse, and
+refuses invoices and offers that do not set it; the chain hash and the `lnbc`
+prefix are Bitcoin's, unchanged. See
 [docs/blake2b.md](https://github.com/paulscode/lightning-fork/blob/blake2b/docs/blake2b.md)
 in the daemon's repository for the whole design.
 
@@ -130,8 +132,9 @@ one, so read the interface addresses rather than assuming these.
 - Wallet migration from Umbrel, myNode or another StartOS server: those hold
   channels on the SHA256d chain with peers on the SHA256d chain, and nothing
   here could close them. Initialize Wallet offers Start Fresh only.
-- The version graph below `current`: nothing older was ever installed under
-  this package id.
+- The version graph below `current`: no revision so far has changed the
+  package's data, so every earlier one upgrades through `current`'s own no-op
+  migration.
 
 ## Building
 
@@ -150,7 +153,8 @@ workspace's `release.sh` stages universal builds for the registry.
   will not start.
 - `start-cli package attach lightning-fork -n lnd-sub -- lncli getinfo`
   reports `version` ending in `-blake2b.<n>`, and `chains: [{chain: bitcoin,
-  network: mainnet}]`; the chain distinction is in the handshake and the
-  invoice prefix, not in those strings.
-- `lncli decodepayreq lnbc…` fails with a message naming the SHA256 network;
-  that is the intended behaviour.
+  network: mainnet}]`; the chain distinction is `option_blake2b` in the
+  handshake, invoices and offers, not in those strings.
+- Paying an invoice from a node on Bitcoin, or from a Lightning Fork node
+  older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
+  does not set `option_blake2b`; that is the intended behaviour.

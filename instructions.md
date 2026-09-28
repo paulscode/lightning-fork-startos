@@ -39,13 +39,16 @@ Connect a wallet or dashboard with the LND Connect interfaces exactly as you
 would to LND: the API, macaroons and certificates are the same. Two things
 differ from an LND node on Bitcoin:
 
-- **Invoices start with `lnblake`** instead of `lnbc`. A Bitcoin wallet will
-  refuse them, and Lightning Fork refuses `lnbc` invoices. That is intended: it
-  is the last line of defence against paying the wrong chain.
-- **Peers must be on the BLAKE2b chain.** Lightning Fork drops any peer that
-  does not say it serves this chain, so an ordinary LND node will not stay
-  connected. Open channels with other Lightning Fork nodes (or other
-  implementations that follow this chain).
+- **Invoices and offers carry a required feature bit** (`option_blake2b`,
+  bit 512). They still start with `lnbc` and `lno`, but a Lightning wallet on
+  Bitcoin that follows the specification refuses them, and Lightning Fork
+  refuses any invoice or offer without the bit. That is intended: it is the
+  last line of defence against paying the wrong chain.
+- **Peers must be on the BLAKE2b chain.** Lightning Fork sets the same bit in
+  every peer handshake, and a node on Bitcoin disconnects when it sees it, so
+  an ordinary LND node will not stay connected. Open channels with other
+  Lightning Fork nodes, or with privkeyio's Core Lightning from
+  v26.06.8-blake2b.5.
 
 ## Dashboard
 
