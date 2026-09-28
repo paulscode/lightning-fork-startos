@@ -3,7 +3,7 @@ import { VersionInfo } from '@start9labs/start-sdk'
 export const current = VersionInfo.of({
   version: '0.21.3-beta:9',
   releaseNotes: {
-    en_US: `The coordinated upgrade of Lightning on this chain. Lightning Fork and privkeyio's Core Lightning (from v26.06.8-blake2b.5) now mark themselves with the feature bits both projects agreed on. Updated nodes connect to each other; they do not connect to nodes that have not updated, in either direction. Update at the agreed time, Monday 28 September 2026 at 23:00 UTC, or as soon as you can after it.
+    en_US: `The coordinated upgrade of Lightning on this chain. Lightning Fork and privkeyio's Core Lightning (from v26.06.8-blake2b.5) now mark themselves with the feature bits both projects agreed on. Updated nodes connect to each other; they do not connect to nodes that have not updated, in either direction. Update now: a channel whose peer has not updated yet stays inactive until it does, then resumes on its own.
 
 You do not need to close any channels. The first start converts the node's channel database once, and every open channel carries over, including one that is still closing. A channel whose peer has not updated yet shows as inactive, and becomes active again as soon as that peer updates. Do not force close a channel only because it is inactive right after the update. In the hour before you update, avoid sending or routing payments, so that none is still pending while your peers are updating too.
 
