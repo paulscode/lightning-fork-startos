@@ -131,6 +131,17 @@ export const mempoolAppsEnv = async (
     }
     if (!api) continue
     env[`${prefix}_API`] = `http://${api}`
+    // The installed package's own title. The id "mempool" is both Start9's
+    // Mempool and the Mempool Guide build, so the dashboard cannot name it
+    // from the id alone; without a title it names both.
+    try {
+      const title = await sdk
+        .getServiceManifest(effects, id, (m) => m?.title ?? null)
+        .once()
+      if (title) env[`${prefix}_NAME`] = title
+    } catch (_e) {
+      // The name is a convenience; the dashboard has a fallback.
+    }
     try {
       // The app's web UI binding, with every address the host enabled for
       // it as a URL: the LAN name for a browser on the LAN, the onion
