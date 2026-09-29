@@ -16,6 +16,7 @@ see in the registry is the one the daemon reports:
 
 | Daemon | Package version |
 | --- | --- |
+| `0.21.3-beta-blake2b.12`, the first package under this scheme | `0.21.3-beta.12:0` |
 | `0.21.3-beta-blake2b.13` | `0.21.3-beta.13:0` |
 | the same daemon, a package-only fix | `0.21.3-beta.13:1` |
 | `0.21.4-beta-blake2b.14` | `0.21.4-beta.14:0` |
