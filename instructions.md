@@ -97,3 +97,7 @@ can share one account without overwriting each other, a restore from your
 seed finds the same folder again, and the layout is the same as Start9's LND
 package uses. A copy made by an earlier release, directly in the folder you
 named, is still found on a restore when the node's own folder holds none.
+
+For SFTP, the folder path is relative to the directory your SFTP login starts
+in: your home directory on most servers, somewhere else on a NAS or a
+chrooted account. Connect with an SFTP client and run `pwd` to see it.
