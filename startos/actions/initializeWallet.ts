@@ -5,6 +5,7 @@ import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
 import { lndDataDir, mainMounts, selfRestUrl, sleep } from '../utils'
+import { UNLOCK_TIMEOUT_MS } from '../walletUnlocker'
 
 const { InputSpec, Value, Variants } = sdk
 
@@ -158,23 +159,29 @@ async function initFresh(
       const walletPassword = (await storeJson.read().once())?.walletPassword
       if (!walletPassword) throw new Error('No wallet password found')
 
-      const status = await subc.exec([
-        'curl',
-        '--no-progress-meter',
-        '-X',
-        'POST',
-        '--cacert',
-        `${lndDataDir}/tls.cert`,
-        '--fail-with-body',
-        `${selfRestUrl}/v1/initwallet`,
-        '-d',
-        JSON.stringify({
-          wallet_password: base64.stringify(
-            Buffer.from(walletPassword, 'latin1'),
-          ),
-          cipher_seed_mnemonic: cipherSeed,
-        }),
-      ])
+      // Creating the wallet is the same work as opening it, and a SIGKILLed
+      // curl would carry on to store the seed and stop LND mid-write.
+      const status = await subc.exec(
+        [
+          'curl',
+          '--no-progress-meter',
+          '-X',
+          'POST',
+          '--cacert',
+          `${lndDataDir}/tls.cert`,
+          '--fail-with-body',
+          `${selfRestUrl}/v1/initwallet`,
+          '-d',
+          JSON.stringify({
+            wallet_password: base64.stringify(
+              Buffer.from(walletPassword, 'latin1'),
+            ),
+            cipher_seed_mnemonic: cipherSeed,
+          }),
+        ],
+        {},
+        UNLOCK_TIMEOUT_MS,
+      )
 
       if (status.stderr !== '' && typeof status.stderr === 'string') {
         console.log(`Error running initwallet: ${status.stderr}`)
