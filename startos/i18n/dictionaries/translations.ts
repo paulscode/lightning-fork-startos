@@ -477,6 +477,10 @@ export default {
     579: 'Mostrar credenciales',
     580: 'Desactivar',
     581: 'Activar',
+    582: 'Bitcoin no está sirviendo bloques a LND: ${error}',
+    583: 'tiempo de espera agotado',
+    584: 'LND no está viendo bloques nuevos',
+    585: 'Bitcoin no está sirviendo bloques a LND, así que LND no puede ver bloques nuevos ni responder a tiempo a un intento de fraude en un canal o a un HTLC que expira. Revisa el nodo Bitcoin elegido en Select Node. Último error: ${error}',
   },
   de_DE: {
     309: 'Backups',
@@ -954,6 +958,10 @@ export default {
     579: 'Zugangsdaten anzeigen',
     580: 'Ausschalten',
     581: 'Einschalten',
+    582: 'Bitcoin liefert LND keine Blöcke: ${error}',
+    583: 'Zeitüberschreitung',
+    584: 'LND sieht keine neuen Blöcke',
+    585: 'Bitcoin liefert LND keine Blöcke, daher sieht LND keine neuen Blöcke und kann nicht rechtzeitig auf einen Betrugsversuch in einem Kanal oder einen ablaufenden HTLC reagieren. Prüfe den unter Select Node gewählten Bitcoin-Knoten. Letzter Fehler: ${error}',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1431,6 +1439,10 @@ export default {
     579: 'Pokaż dane dostępowe',
     580: 'Wyłącz',
     581: 'Włącz',
+    582: 'Bitcoin nie dostarcza bloków do LND: ${error}',
+    583: 'przekroczono limit czasu',
+    584: 'LND nie widzi nowych bloków',
+    585: 'Bitcoin nie dostarcza bloków do LND, więc LND nie widzi nowych bloków i nie może na czas zareagować na próbę oszustwa w kanale ani na wygasający HTLC. Sprawdź węzeł Bitcoin wybrany w Select Node. Ostatni błąd: ${error}',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -1908,5 +1920,9 @@ export default {
     579: 'Afficher les identifiants',
     580: 'Désactiver',
     581: 'Activer',
+    582: 'Bitcoin ne fournit pas de blocs à LND : ${error}',
+    583: 'délai dépassé',
+    584: 'LND ne voit pas de nouveaux blocs',
+    585: 'Bitcoin ne fournit pas de blocs à LND : LND ne peut donc pas voir les nouveaux blocs ni réagir à temps à une tentative de fraude sur un canal ou à un HTLC qui expire. Vérifiez le nœud Bitcoin choisi dans Select Node. Dernière erreur : ${error}',
   },
 } satisfies Record<string, LangDict>

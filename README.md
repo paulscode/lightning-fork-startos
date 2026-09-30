@@ -155,6 +155,14 @@ workspace's `release.sh` stages universal builds for the registry.
   reports `version` ending in `-blake2b.<n>`, and `chains: [{chain: bitcoin,
   network: mainnet}]`; the chain distinction is `option_blake2b` in the
   handshake, invoices and offers, not in those strings.
+- **Network and Graph Sync Progress** also checks that the Bitcoin node
+  serves blocks, not just headers: once LND has been behind the chain for
+  five minutes, and every five minutes after, it has LND fetch the tip block
+  (`lncli chain getblock`). A failure reads *Bitcoin is not serving blocks to
+  LND* with the error, and two in a row send one error notification. The
+  result stays `loading`, which dependents gate on. Upstream also sets
+  `routing.assumechanvalid` on a pruned node; this package does not (see
+  `AGENTS.md`).
 - Paying an invoice from a node on Bitcoin, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.

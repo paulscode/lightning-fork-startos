@@ -550,6 +550,11 @@ const dict = {
   'Show Credentials': 579,
   'Turn Off': 580,
   'Turn On': 581,
+  // main.ts, the sync-progress check's tip-block probe
+  'Bitcoin is not serving blocks to LND: ${error}': 582,
+  'timed out': 583,
+  'LND Is Not Seeing New Blocks': 584,
+  'Bitcoin is not serving blocks to LND, so LND cannot see new blocks or respond in time to a channel breach or an expiring HTLC. Check the Bitcoin node chosen under Select Node. Last error: ${error}': 585,
 } as const
 
 /**

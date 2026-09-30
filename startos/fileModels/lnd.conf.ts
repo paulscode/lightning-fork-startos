@@ -25,6 +25,7 @@ const iniNumber = z
     z.string().transform(Number),
     z.number(),
   ])
+  .pipe(z.number()) // rejects the NaN or Infinity that Number() makes of a non-numeric value
   .optional()
   .catch(undefined)
 

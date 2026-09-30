@@ -33,6 +33,12 @@ check will say so in words.
 If Chain Identity reports a refusal, open **Select Node** and choose a node on
 the BLAKE2b chain.
 
+If **Network and Graph Sync Progress** reads *Bitcoin is not serving blocks
+to LND*, LND has fallen behind the chain because your Bitcoin node cannot
+hand it blocks: check that node and its logs. If it lasts, you also get a
+notification. Until it clears, LND cannot see new blocks, which it needs to
+protect your channels.
+
 ## Using your node
 
 Connect a wallet or dashboard with the LND Connect interfaces exactly as you
