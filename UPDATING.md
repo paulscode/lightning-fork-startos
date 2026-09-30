@@ -19,7 +19,8 @@ see in the registry is the one the daemon reports:
 | `0.21.3-beta-blake2b.12`, the first package under this scheme | `0.21.3-beta.12:0` |
 | `0.21.3-beta-blake2b.13` | `0.21.3-beta.13:0` |
 | the same daemon, a package-only fix | `0.21.3-beta.13:1` |
-| `0.21.4-beta-blake2b.14` | `0.21.4-beta.14:0` |
+| `0.21.3-beta-blake2b.14` | `0.21.3-beta.14:0` |
+| a later release on lnd 0.21.4, say `0.21.4-beta-blake2b.15` | `0.21.4-beta.15:0` |
 
 That is `<lnd base>-beta.<fork release>:<package revision>`, the revision
 starting at 0 for each daemon release. The daemon's own spelling,

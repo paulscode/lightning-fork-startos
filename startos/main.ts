@@ -1105,6 +1105,16 @@ export const main = sdk.setupMain(async ({ effects }) => {
                       ['sh', backupAgentScript, '--pull'],
                       600_000,
                     )
+                    // 7: the agent could not learn the node's identity,
+                    // which names its folder on each target. LND is up by
+                    // now, so that is a getinfo that failed this once;
+                    // ask again shortly rather than abandon the restore.
+                    if (pull.exitCode === 7) {
+                      await sleep(30_000, abort)
+                      if (abort.aborted)
+                        throw new Error('aborted while waiting for LND')
+                      continue
+                    }
                     if (pull.exitCode !== 0 && pull.exitCode !== 6) {
                       throw new Error(
                         `could not retrieve the channel backups: ${tail(pull.stderr)}`,

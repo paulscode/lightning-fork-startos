@@ -5,11 +5,11 @@ import { nextcloudDavUrl } from '../utils'
 export const current = VersionInfo.of({
   version: '0.21.3-beta.14:0',
   releaseNotes: {
-    en_US: `Watchtowers now check which chain they serve. A tower and its client used to recognise each other only by a value this chain shares with Bitcoin nodes that have not upgraded, so a client could hold sessions with a stock tower that watched the wrong chain and would never act on a breach here. From this release every tower and client of Lightning Fork says it follows the BLAKE2b rules, and refuses one that does not. If you use a watchtower, update the node running it too: a client on this release cannot use a tower on an earlier one, or the other way round, and channel backups to it wait until both are on this release, then resume.
+    en_US: `Watchtowers now check that they follow the BLAKE2b rules. A tower and its client used to recognise each other only by a value Bitcoin nodes that have not upgraded carry too, so a client could hold sessions with a stock tower that never saw the blocks this node follows and would never act on a breach. From this release every tower and client of Lightning Fork says it follows the BLAKE2b rules, and refuses one that does not. If you use a watchtower, update the node running it too: a client on this release cannot use a tower on an earlier one, or the other way round, and watchtower backups to it wait until both are on this release, then resume.
 
 Public channels opened before 17 September are announced again. Their announcements were signed in a form only Lightning Fork can check, so Core Lightning nodes never learned them and answered with warnings. They are no longer passed on in that form; instead, once both ends of such a channel run this release, the two sign it again and it is announced to everyone. Nothing to do but update, and ask the peer on the other end to update too.
 
-A channel is only opened with a peer that says it follows the BLAKE2b rules, in either direction. Such a peer stays connected, but an open to or from it is refused with "peer does not set option_blake2b". Every Lightning Fork release and privkeyio's Core Lightning say so; this only affects clients that connect for other purposes.
+A channel is only opened with a peer that says it follows the BLAKE2b rules, in either direction. Such a peer stays connected, but an open to or from it is refused with "peer does not set option_blake2b". Every current Lightning Fork release and privkeyio's Core Lightning say so; this only affects clients that connect for other purposes.
 
 Also from the specification Lightning Fork shares with privkeyio's Core Lightning, merged on 29 September: stricter checks on the channel type a peer answers with, and on gossip about channels funded before block 961640.
 
@@ -25,19 +25,26 @@ Lightning Fork 0.21.3-beta-blake2b.14, dashboard 1.3.2-blake2b.13.`,
     // migration. Idempotent: a complete address comes back unchanged and
     // is not written. Carry it into the next `current` (UPDATING.md): a
     // node that skips this release would never run it otherwise.
+    //
+    // Best effort: an unreadable configuration must not fail the update,
+    // which the backup agent reports on its own.
     up: async ({ effects }) => {
-      const nextcloud = (await channelBackupJson.read().once())?.nextcloud
-      if (!nextcloud?.url) return
-      let url: string
       try {
-        url = nextcloudDavUrl(nextcloud.url, nextcloud.user)
-      } catch {
-        return
+        const nextcloud = (await channelBackupJson.read().once())?.nextcloud
+        if (!nextcloud?.url) return
+        let url: string
+        try {
+          url = nextcloudDavUrl(nextcloud.url, nextcloud.user)
+        } catch {
+          return
+        }
+        if (url !== nextcloud.url)
+          await channelBackupJson.merge(effects, {
+            nextcloud: { ...nextcloud, url },
+          })
+      } catch (e) {
+        console.warn('Could not complete the saved Nextcloud address', e)
       }
-      if (url !== nextcloud.url)
-        await channelBackupJson.merge(effects, {
-          nextcloud: { ...nextcloud, url },
-        })
     },
   },
 })
