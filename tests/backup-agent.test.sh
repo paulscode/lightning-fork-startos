@@ -146,6 +146,18 @@ check "and says why" 'grep -q "identity" "$T/err"'
 run_agent --pull
 rc=$?
 check "--pull exits 7 while LND has not reported its identity" '[ $rc -eq 7 ]'
+state_failure() { jq -r '[.failures[]? | select(.target == "agent") | .detail] | join(";")' "$T/lnd/.channel-backup-state.json" 2>/dev/null; }
+check "within the grace period nothing is recorded as a failure" '! state_failure | grep -q identity'
+setup
+touch "$T/lncli-down"
+IDENTITY_GRACE_SECS=0 run_agent --once
+rc=$?
+check "past the grace period the missing identity is recorded as a failure" \
+  '[ $rc -eq 7 ] && state_failure | grep -q "has not reported the node'"'"'s identity"'
+rm -f "$T/lncli-down"
+run_agent --once
+rc=$?
+check "and a copy made once it is known clears it" '[ $rc -eq 0 ] && ! state_failure | grep -q identity'
 setup
 STUB_PUBKEY=not-a-key run_agent --once
 rc=$?

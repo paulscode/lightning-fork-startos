@@ -43,6 +43,13 @@ MAX_CONFIG_BYTES=$((256 * 1024))
 POLL=10
 RETRY_SECS=300
 BACKSTOP_SECS=86400
+# How long the identity may stay unknown before it counts as a failure. Until
+# LND reports it the agent copies nothing, and without a recorded failure the
+# health check would keep showing the last copy an earlier release made as if
+# it were current.
+IDENTITY_GRACE_SECS=${IDENTITY_GRACE_SECS:-600}
+IDENTITY_MISSING_SINCE=0
+IDENTITY_RECORDED=0
 WATCH_RUN_SECS=600
 ONCE_SECS=95
 CLEANUP_SECS=5
@@ -451,10 +458,19 @@ do_backup() {
     return 4
   fi
   node_id || {
+    _id_now=$(date +%s)
+    [ "$IDENTITY_MISSING_SINCE" -gt 0 ] || IDENTITY_MISSING_SINCE=$_id_now
+    if [ "$IDENTITY_RECORDED" = 0 ] &&
+      [ $((_id_now - IDENTITY_MISSING_SINCE)) -ge "$IDENTITY_GRACE_SECS" ]; then
+      record_preflight_failure "LND has not reported the node's identity, which names its folder on each target; nothing has been copied since" || :
+      IDENTITY_RECORDED=1
+    fi
     unlock
     [ "$_announce" = force ] && log "LND has not reported the node's identity yet"
     return 7
   }
+  IDENTITY_MISSING_SINCE=0
+  IDENTITY_RECORDED=0
   build_conf || {
     record_preflight_failure 'backup credentials could not be prepared' || :
     unlock

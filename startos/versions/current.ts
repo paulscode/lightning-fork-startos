@@ -23,7 +23,8 @@ Lightning Fork 0.21.3-beta-blake2b.14, dashboard 1.3.2-blake2b.13.`,
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER
     // form rclone requires, as Start9's LND package does in its :4
     // migration. Idempotent: a complete address comes back unchanged and
-    // is not written.
+    // is not written. Carry it into the next `current` (UPDATING.md): a
+    // node that skips this release would never run it otherwise.
     up: async ({ effects }) => {
       const nextcloud = (await channelBackupJson.read().once())?.nextcloud
       if (!nextcloud?.url) return

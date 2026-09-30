@@ -50,6 +50,12 @@ must not come back: they migrate their package's data, never this one's, and
 every revision of this package upgrades through `current`'s migration, so
 whatever it does must be idempotent.
 
+For the same reason, a migration written into `current` must be carried into
+the next `current` when a release rewrites the file, or a node that skips a
+release never runs it. `0.21.3-beta.14:0` added the first: completing a saved
+Nextcloud address to the `/remote.php/dav/files/USER/` form rclone requires.
+Keep it until no installed package could predate it.
+
 ## Dependencies
 
 - `bitcoin-core-startos` (`next/28.x`) and `knots-blake2b-startos` (`main`)
