@@ -132,9 +132,23 @@ one, so read the interface addresses rather than assuming these.
 - Wallet migration from Umbrel, myNode or another StartOS server: those hold
   channels on the SHA256d chain with peers on the SHA256d chain, and nothing
   here could close them. Initialize Wallet offers Start Fresh only.
-- The version graph below `current`: no revision so far has changed the
-  package's data, so every earlier one upgrades through `current`'s own no-op
-  migration.
+- The version graph below `current`: every earlier revision upgrades
+  through `current`'s own migration, which is idempotent (it completes a
+  saved Nextcloud address, and leaves a complete one alone).
+
+## Channel backups
+
+`backup-agent.sh` is the LND package's agent, shared with the Umbrel build
+of the dashboard (which pins it by commit and SHA-256). It copies to
+`<folder>/<sha256 of the identity pubkey's hex>/channel.backup` on each
+target, the layout Start9's LND package uses, and exits 7 until the node's
+identity is known. `--pull` falls back to the flat `<folder>/channel.backup`
+of earlier releases when the per-node file is absent. The identity comes from
+`NODE_PUBKEY` when set (the Umbrel dashboard has no lncli), otherwise from
+`lncli getinfo` on `LNCLI_RPCSERVER` (default `127.0.0.1:10009`) with
+`LNCLI_LNDDIR` when set. `sh tests/backup-agent.test.sh` exercises it with
+stub `lncli` and `rclone`. `current`'s migration completes a saved Nextcloud
+address to the `/remote.php/dav/files/USER/` form rclone requires.
 
 ## Building
 

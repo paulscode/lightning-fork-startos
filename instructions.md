@@ -89,3 +89,11 @@ Make a StartOS backup after every channel open or close, and consider
 **Configure Channel Backups** for a continuous off-server copy. Restoring a
 backup closes the channels it contains and returns the funds on-chain, as with
 LND. A backup taken from an LND node on Bitcoin cannot be restored here.
+
+Configure Channel Backups keeps each node's copy in a folder of its own,
+inside the folder you name: `<folder>/<node id>/channel.backup`, where the
+node id is 64 characters derived from the node's public key. Several nodes
+can share one account without overwriting each other, a restore from your
+seed finds the same folder again, and the layout is the same as Start9's LND
+package uses. A copy made by an earlier release, directly in the folder you
+named, is still found on a restore when the node's own folder holds none.

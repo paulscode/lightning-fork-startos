@@ -73,6 +73,12 @@ export const backupChannelsNow = sdk.Action.withoutInput(
         throw new Error(
           i18n('The backup settings could not be read. Try again in a moment.'),
         )
+      case 7:
+        throw new Error(
+          i18n(
+            'LND has not reported its identity yet, which names the folder on each target. Try again in a moment.',
+          ),
+        )
     }
 
     const attemptText = String(res.stdout).trim().split('\n')[0]

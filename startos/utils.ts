@@ -1,5 +1,6 @@
 import { T } from '@start9labs/start-sdk'
 import { BackendId, backends } from './backends'
+import { i18n } from './i18n'
 import { gRPCPort, restPort } from './interfaces'
 import { sdk } from './sdk'
 
@@ -224,3 +225,42 @@ export const localRestoreBackupTempPath = `${localRestoreBackupPath}.tmp`
 export const remoteRestoreDir = `${lndDataDir}/.channel-backup-restore`
 export const backupAgentScript = '/usr/local/bin/backup-agent.sh'
 export const backupFolderDefault = 'lnd-channel-backups'
+
+// rclone's nextcloud vendor refuses any address that does not end in
+// /remote.php/dav/files/USER — the form neither Nextcloud's UI nor StartOS's
+// Nextcloud interface shows. From Start9's LND package, which runs the same
+// completion over a saved address in a migration (versions/current.ts here).
+export function nextcloudDavUrl(
+  address: string,
+  user: string,
+  previousUser?: string,
+): string {
+  let url: URL
+  try {
+    url = new URL(address)
+  } catch {
+    throw new Error(i18n('Nextcloud: that is not a valid address.'))
+  }
+  if (!user) return address
+
+  const existing = url.pathname.match(/^(.*\/dav\/files\/)([^/]+)(\/.*)?$/)
+  if (existing) {
+    let pathUser = ''
+    try {
+      pathUser = decodeURIComponent(existing[2])
+    } catch {}
+    if (previousUser && previousUser !== user && pathUser === previousUser) {
+      url.pathname = `${existing[1]}${encodeURIComponent(user)}${existing[3] ?? '/'}`
+      return url.toString()
+    }
+    return address
+  }
+
+  const base = url.pathname
+    .replace(/\/+$/, '')
+    .replace(
+      /\/(remote\.php\/(dav(\/files)?|webdav)|index\.php.*|apps\/.*)$/,
+      '',
+    )
+  return `${url.origin}${base}/remote.php/dav/files/${encodeURIComponent(user)}/`
+}

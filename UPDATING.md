@@ -47,7 +47,8 @@ the intent of `startos/backends.ts`, `startos/dependencies.ts`, the
 `chain-identity` health check in `startos/main.ts`, the node selection action,
 and the removals listed in `README.md`. Their version files below `current`
 must not come back: they migrate their package's data, never this one's, and
-every revision of this package upgrades through `current`'s no-op migration.
+every revision of this package upgrades through `current`'s migration, so
+whatever it does must be idempotent.
 
 ## Dependencies
 

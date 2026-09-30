@@ -7,6 +7,16 @@
 #   --pull     download each target's channel.backup into $RESTORE_DIR and
 #              print {"retrieved":[...],"unreachable":[...]}; exit 6 when a
 #              target could not be consulted
+#
+# Each node has its own folder on every target, <folder>/<node id>, the same
+# layout as Start9's LND package, so every mode exits 7 until the node's
+# identity is known. A restore also looks at <folder>/channel.backup, where
+# releases before per-node folders kept the copy.
+#
+# The identity comes from NODE_PUBKEY when the caller already knows it (the
+# Umbrel dashboard, which has no lncli), otherwise from `lncli getinfo`
+# against LNCLI_RPCSERVER, with LNCLI_LNDDIR when set; the defaults are the
+# StartOS package's.
 # shellcheck disable=SC2016
 set -u
 umask 077
@@ -17,6 +27,9 @@ CONFIG="$LND_DIR/channel-backup.json"
 STATE="$LND_DIR/.channel-backup-state.json"
 LOCK="$LND_DIR/.channel-backup.lock"
 RESTORE_DIR="$LND_DIR/.channel-backup-restore"
+LNCLI_RPCSERVER=${LNCLI_RPCSERVER:-127.0.0.1:10009}
+LNCLI_LNDDIR=${LNCLI_LNDDIR:-}
+NODE_PUBKEY=${NODE_PUBKEY:-}
 
 WORK=/tmp/lnd-channel-backup
 RCONF="$WORK/rclone.conf"
@@ -39,6 +52,7 @@ MANUAL=0
 DEADLINE=0
 OP_DEADLINE=0
 SNAPSHOT=''
+NODE_ID=''
 REMOTE_TMP=''
 REMOTE_NAME=''
 REMOTE_PATH=''
@@ -70,12 +84,12 @@ write_atomic() {
 }
 
 state_get() { jq -r "$1 // empty" "$STATE" 2>/dev/null || true; }
-state_attempt() {
-  _attempt=$(state_get '.attempt')
-  case "$_attempt" in
+state_number() {
+  _number=$(state_get "$1")
+  case "$_number" in
     '' | *[!0-9]*) echo 0 ;;
     *)
-      if [ ${#_attempt} -le 15 ]; then echo "$_attempt"; else echo 0; fi
+      if [ ${#_number} -le 15 ]; then echo "$_number"; else echo 0; fi
       ;;
   esac
 }
@@ -226,9 +240,32 @@ generate_remotes() {
   done
 }
 
+# The node's folder is the SHA-256 of its identity pubkey, as lowercase hex:
+# a restored seed reproduces it, and a provider cannot map it to a node.
+lncli_getinfo() {
+  if [ -n "$LNCLI_LNDDIR" ]; then
+    timeout 30 lncli --lnddir="$LNCLI_LNDDIR" --rpcserver="$LNCLI_RPCSERVER" getinfo 2>/dev/null
+  else
+    timeout 30 lncli --rpcserver="$LNCLI_RPCSERVER" getinfo 2>/dev/null
+  fi
+}
+node_id() {
+  [ -n "$NODE_ID" ] && return 0
+  if [ -n "$NODE_PUBKEY" ]; then
+    _pubkey=$NODE_PUBKEY
+  else
+    _pubkey=$(lncli_getinfo | jq -r '.identity_pubkey // empty' 2>/dev/null) || return 1
+  fi
+  printf '%s' "$_pubkey" | grep -Eq '^0[23][0-9a-f]{64}$' || return 1
+  _id=$(printf '%s' "$_pubkey" | sha256sum | cut -c1-64) || return 1
+  printf '%s' "$_id" | grep -Eq '^[0-9a-f]{64}$' || return 1
+  NODE_ID=$_id
+}
+
+# <provider>:<folder> -> the node's folder on that target.
 target() {
   REMOTE_NAME=${1%%:*}
-  REMOTE_PATH=${1#*:}
+  REMOTE_PATH="${1#*:}/$NODE_ID"
   REMOTE_EXTRA=''
   [ "$(cfg ".$REMOTE_NAME.insecureTls // false")" = true ] && REMOTE_EXTRA='--no-check-certificate'
 }
@@ -382,7 +419,7 @@ do_backup() {
   lock
   _lock_result=$?
   [ "$_lock_result" -eq 0 ] || return "$_lock_result"
-  _attempt=$(($(state_attempt) + 1))
+  _attempt=$(($(state_number '.attempt') + 1))
   [ "$MANUAL" = 1 ] && printf '%s\n' "$_attempt"
   : > "$RCONF" || {
     record_preflight_failure 'temporary configuration could not be cleared' || :
@@ -413,6 +450,11 @@ do_backup() {
     [ "$_announce" = force ] && log "no backup target is enabled"
     return 4
   fi
+  node_id || {
+    unlock
+    [ "$_announce" = force ] && log "LND has not reported the node's identity yet"
+    return 7
+  }
   build_conf || {
     record_preflight_failure 'backup credentials could not be prepared' || :
     unlock
@@ -479,6 +521,11 @@ do_pull() {
     log "backup credentials could not be prepared"
     return 1
   }
+  node_id || {
+    unlock
+    log "LND has not reported the node's identity yet"
+    return 7
+  }
   : > "$FAILURES" || {
     unlock
     return 1
@@ -491,30 +538,41 @@ do_pull() {
     [ -n "$_provider_path" ] || _provider_path=lnd-channel-backups
     target "$_provider:$_provider_path"
     _dest="$RESTORE_DIR/$_provider"
-    rm -f "$_dest.tmp"
-    # shellcheck disable=SC2086
-    if rc --config "$RCONF" copyto "$REMOTE_NAME:$REMOTE_PATH/$OBJECT" "$_dest.tmp" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1; then
+    # The node's own folder first; the flat path only when that holds none.
+    _found=''
+    for _from in "$REMOTE_PATH/$OBJECT" "$_provider_path/$OBJECT"; do
+      rm -f "$_dest.tmp"
+      # shellcheck disable=SC2086
+      if rc --config "$RCONF" copyto "$REMOTE_NAME:$_from" "$_dest.tmp" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1; then
+        _found=$_from
+        break
+      else
+        _rc=$?
+        rm -f "$_dest.tmp"
+        # 3 and 4: nothing at that path, which a target never written to is.
+        if [ "$_rc" -ne 3 ] && [ "$_rc" -ne 4 ]; then
+          _found=-
+          break
+        fi
+      fi
+    done
+    if [ -z "$_found" ]; then
+      log "[$_provider] holds no channel.backup"
+    elif [ "$_found" = - ]; then
+      _incomplete=1
+      fail_target "$_provider" check "$(reason_file "$WORK/remote.out")" || {
+        unlock
+        return 1
+      }
+      log "[$_provider] could not be reached"
+    else
       _size=$(wc -c < "$_dest.tmp" 2>/dev/null) || _size=0
       if [ "$_size" -gt 0 ] && [ "$_size" -le "$MAX_SCB_BYTES" ] && mv -f "$_dest.tmp" "$_dest"; then
-        log "[$_provider] channel.backup retrieved"
+        log "[$_provider] channel.backup retrieved from $_from"
         _retrieved="$_retrieved $_provider"
       else
         rm -f "$_dest.tmp"
         log "[$_provider] the copy there is empty or oversized; skipped"
-      fi
-    else
-      _rc=$?
-      rm -f "$_dest.tmp"
-      # 3 and 4: nothing at that path, which a target never written to is.
-      if [ "$_rc" -eq 3 ] || [ "$_rc" -eq 4 ]; then
-        log "[$_provider] holds no channel.backup"
-      else
-        _incomplete=1
-        fail_target "$_provider" check "$(reason_file "$WORK/remote.out")" || {
-          unlock
-          return 1
-        }
-        log "[$_provider] could not be reached"
       fi
     fi
   done
@@ -542,8 +600,7 @@ watch_loop() {
   log "started"
   _last=none
   _retry_at=0
-  _last_ok=$(state_get '.lastSuccess')
-  case "$_last_ok" in '' | *[!0-9]*) _last_ok=0 ;; esac
+  _last_ok=$(state_number '.lastSuccess')
   _last_clock=$(date +%s)
   while :; do
     sleep "$POLL"
@@ -570,11 +627,10 @@ watch_loop() {
     case $_rc in
       0)
         _retry_at=0
-        _last_ok=$(state_get '.lastSuccess')
-        case "$_last_ok" in '' | *[!0-9]*) _last_ok=0 ;; esac
+        _last_ok=$(state_number '.lastSuccess')
         ;;
       3 | 4) _retry_at=0 ;;
-      6) _last=none ;;
+      6 | 7) _last=none ;;
       *) _retry_at=$((_now + RETRY_SECS)) ;;
     esac
   done

@@ -360,7 +360,7 @@ const dict = {
   // channel backup
   Backups: 309,
   'Configure Channel Backups': 310,
-  'Keep a current copy of channel.backup on a storage provider. A StartOS restore uses it to recover channels opened after the backup was taken; it does not replace StartOS backups.': 311,
+  'Keep a current copy of channel.backup on a storage provider. A StartOS restore uses it to recover channels opened after the backup was taken; it does not replace StartOS backups. Each node gets its own folder inside the one you name, so several nodes can share a target.': 311,
   'channel.backup is encrypted by LND under a key derived from your wallet seed. The storage provider can still see when it is updated. Use a target on a different machine, and prefer two independent targets. Tor .onion targets are not supported yet.': 312,
   'Send channel backups to this target.': 313,
   'Google Drive': 314,
@@ -386,8 +386,8 @@ const dict = {
   'App Secret': 334,
   'The code Dropbox displays after you approve the app.': 335,
   'Folder inside your App Folder.': 336,
-  'WebDAV URL': 337,
-  'e.g. https://your.host/remote.php/dav/files/USERNAME/': 338,
+  Address: 337,
+  'The address you open Nextcloud at, such as https://cloud.example.com. Its WebDAV address works too.': 338,
   Username: 339,
   'Your Nextcloud login.': 340,
   Password: 341,
@@ -417,7 +417,7 @@ const dict = {
   'Dropbox: App Key and App Secret are required.': 365,
   'Google Drive needs authorizing. Open this link, approve it, then paste the code back here and submit again:\n${url}': 366,
   'Dropbox needs authorizing. Open this link, approve it, then paste the code it shows back here and submit again:\n${url}': 367,
-  'Nextcloud: URL, username, and password are required.': 368,
+  'Nextcloud: address, username, and password are required.': 368,
   'SFTP: host and username are required.': 369,
   'SFTP: a password is required.': 370,
   'SFTP: a private key is required.': 371,
@@ -437,7 +437,7 @@ const dict = {
   'There is no channel.backup to copy yet. LND writes it when your first channel opens.': 429,
   'From the Dropbox App Console. Leave blank to keep the stored one.': 440,
   '${label}: line breaks and control characters are not allowed.': 441,
-  'Nextcloud: the WebDAV URL must start with https://, or the app password would travel in clear text.': 442,
+  'Nextcloud: the address must start with https://, or the app password would travel in clear text.': 442,
   'SFTP: that key is protected by a passphrase, which rclone cannot enter. Export an unencrypted key for this purpose.': 443,
   'Record a new host key': 444,
   'Turn on after the server was reinstalled and its host key changed. The key it presents now replaces the recorded one.': 445,
@@ -555,6 +555,9 @@ const dict = {
   'timed out': 583,
   'LND Is Not Seeing New Blocks': 584,
   'Bitcoin is not serving blocks to LND, so LND cannot see new blocks or respond in time to a channel breach or an expiring HTLC. Check the Bitcoin node chosen under Select Node. Last error: ${error}': 585,
+  // per-node backup folders (backup-agent.sh exit 7, utils.ts nextcloudDavUrl)
+  'Nextcloud: that is not a valid address.': 586,
+  'LND has not reported its identity yet, which names the folder on each target. Try again in a moment.': 587,
 } as const
 
 /**

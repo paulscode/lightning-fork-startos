@@ -1,4 +1,6 @@
 import { VersionInfo } from '@start9labs/start-sdk'
+import { channelBackupJson } from '../fileModels/channel-backup.json'
+import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
   version: '0.21.3-beta.13:0',
@@ -18,6 +20,23 @@ Updating from 0.21.3-beta:7 or earlier? That crosses the coordinated feature-bit
 Lightning Fork 0.21.3-beta-blake2b.13, dashboard 1.3.2-blake2b.12.`,
   },
   migrations: {
-    up: async () => {},
+    // Completes a saved Nextcloud address to the /remote.php/dav/files/USER
+    // form rclone requires, as Start9's LND package does in its :4
+    // migration. Idempotent: a complete address comes back unchanged and
+    // is not written.
+    up: async ({ effects }) => {
+      const nextcloud = (await channelBackupJson.read().once())?.nextcloud
+      if (!nextcloud?.url) return
+      let url: string
+      try {
+        url = nextcloudDavUrl(nextcloud.url, nextcloud.user)
+      } catch {
+        return
+      }
+      if (url !== nextcloud.url)
+        await channelBackupJson.merge(effects, {
+          nextcloud: { ...nextcloud, url },
+        })
+    },
   },
 })
