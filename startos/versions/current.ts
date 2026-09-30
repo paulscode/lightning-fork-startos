@@ -3,21 +3,21 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta.13:0',
+  version: '0.21.3-beta.14:0',
   releaseNotes: {
-    en_US: `From this release the version shown here matches the daemon's: this is Lightning Fork 0.21.3-beta-blake2b.13, "beta 13". The previous package, labelled 0.21.3-beta:9, carried beta 12.
+    en_US: `Watchtowers now check which chain they serve. A tower and its client used to recognise each other only by a value this chain shares with Bitcoin nodes that have not upgraded, so a client could hold sessions with a stock tower that watched the wrong chain and would never act on a breach here. From this release every tower and client of Lightning Fork says it follows the BLAKE2b rules, and refuses one that does not. If you use a watchtower, update the node running it too: a client on this release cannot use a tower on an earlier one, and shows no sessions with it until it is updated.
 
-Coins from mining now wait for the chain's relay rule. A coinbase output paid to this node's wallet, for example by a mining pool, is spendable once a spend of it will relay: 6480 confirmations, roughly 45 days, while the long coinbase maturity rule is deployed. Until then the wallet no longer offers it, so a send or channel open is refused up front instead of failing at broadcast, and it is not counted in the wallet's balance: the dashboard shows it under the Bitcoin balance as coins from mining, maturing. If you received coinbase outputs in the last 45 days, your balance drops by that amount on this update and returns as each output matures. Nothing is lost. The advice in earlier notes to keep freshly mined coins out of this wallet no longer applies.
+Public channels opened before 17 September are announced again. Their announcements were signed in a form only Lightning Fork can check, so Core Lightning nodes never learned them and answered with warnings. They are no longer passed on in that form; instead, once both ends of such a channel run this release, the two sign it again and it is announced to everyone. Nothing to do but update, and ask the peer on the other end to update too.
 
-The dashboard's Mempool app choice now checks which chain each app follows, by the hash of block 961640. An app connected to a node on the other chain is shown as such and not used, and its fee rates and links are replaced by the node's own estimate and mempool.guide. The installed Mempool package is shown under its own name, Mempool or Mempool Guide.
+A channel is only opened with a peer that says it follows the BLAKE2b rules, in either direction. Such a peer stays connected, but an open to or from it is refused with "peer does not set option_blake2b". Every Lightning Fork release and privkeyio's Core Lightning say so; this only affects clients that connect for other purposes.
 
-Channel details show whether a channel's signatures are bound to this chain, and a Connect To line with the peer's key@host:port and a copy button, for opening a channel back to it. A node holding a chain-bound channel must not go back to a version before 0.21.3-beta-blake2b.10.
+Also from the specification Lightning Fork shares with privkeyio's Core Lightning, merged on 29 September: stricter checks on the channel type a peer answers with, and on gossip about channels funded before block 961640.
 
-Also: a channel funded by a coinbase is no longer given up on by the receiving side after a restart while it matures, and this node no longer asks upgraded Core Lightning peers for the stale Bitcoin channels some of them still hold.
+Package: Cold Storage has a single Turn On / Turn Off action. Unlocking a large wallet on slow hardware, or during a restore, is no longer cut off after 30 seconds. If Bitcoin stops handing blocks to LND, Network and Graph Sync Progress says "Bitcoin is not serving blocks to LND" with the error, and you are notified if it lasts. Channel backups now keep each node's copy in a folder of its own inside the folder you named, so several nodes can share one account without overwriting each other; a restore still finds a copy an earlier release made directly in that folder. Nextcloud targets take the address you open Nextcloud at, and a saved address is completed to the form the backup tool needs. The SFTP folder path says which directory it is relative to.
 
 Updating from 0.21.3-beta:7 or earlier? That crosses the coordinated feature-bit change, whose notes still apply: channels carry over, the conversion cannot be undone, a channel stays inactive until its peer has updated too, and invoices and offers created before it can no longer be paid.
 
-Lightning Fork 0.21.3-beta-blake2b.13, dashboard 1.3.2-blake2b.12.`,
+Lightning Fork 0.21.3-beta-blake2b.14, dashboard 1.3.2-blake2b.13.`,
   },
   migrations: {
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER

@@ -5,10 +5,10 @@
 # builder runs on the build machine's own platform and cross-compiles for
 # the target, so the aarch64 image takes minutes rather than the hours an
 # emulated Go build takes.
-FROM --platform=$BUILDPLATFORM golang:1.26.6-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.26.8-alpine AS builder
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=dd659b383333986d473e430e5d60d642d9e9524c
+ARG LIGHTNING_FORK_REF=SET_TO_THE_v0.21.3-beta-blake2b.14_COMMIT
 ARG TARGETOS
 ARG TARGETARCH
 
