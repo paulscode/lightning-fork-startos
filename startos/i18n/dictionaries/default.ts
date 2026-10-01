@@ -558,6 +558,7 @@ const dict = {
   // per-node backup folders (backup-agent.sh exit 7, utils.ts nextcloudDavUrl)
   'Nextcloud: that is not a valid address.': 586,
   'LND has not reported its identity yet, which names the folder on each target. Try again in a moment.': 587,
+  "The channel backups cannot be retrieved yet: LND has not reported the node's identity, which names its folder on each backup target.": 588,
 } as const
 
 /**

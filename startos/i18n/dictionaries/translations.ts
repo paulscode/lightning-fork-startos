@@ -483,6 +483,7 @@ export default {
     585: 'Bitcoin no está sirviendo bloques a LND, así que LND no puede ver bloques nuevos ni responder a tiempo a un intento de fraude en un canal o a un HTLC que expira. Revisa el nodo Bitcoin elegido en Select Node. Último error: ${error}',
     586: 'Nextcloud: esa dirección no es válida.',
     587: 'LND aún no ha comunicado su identidad, que da nombre a la carpeta en cada destino. Inténtalo de nuevo en un momento.',
+    588: "Todavía no se pueden recuperar las copias de los canales: LND no ha comunicado la identidad del nodo, que da nombre a su carpeta en cada destino de copia.",
   },
   de_DE: {
     309: 'Backups',
@@ -966,6 +967,7 @@ export default {
     585: 'Bitcoin liefert LND keine Blöcke, daher sieht LND keine neuen Blöcke und kann nicht rechtzeitig auf einen Betrugsversuch in einem Kanal oder einen ablaufenden HTLC reagieren. Prüfe den unter Select Node gewählten Bitcoin-Knoten. Letzter Fehler: ${error}',
     586: 'Nextcloud: Das ist keine gültige Adresse.',
     587: 'LND hat seine Identität noch nicht gemeldet, die den Ordner auf jedem Ziel benennt. Versuche es gleich noch einmal.',
+    588: "Die Kanalsicherungen können noch nicht abgerufen werden: LND hat die Identität des Knotens noch nicht gemeldet, die seinen Ordner auf jedem Sicherungsziel benennt.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1449,6 +1451,7 @@ export default {
     585: 'Bitcoin nie dostarcza bloków do LND, więc LND nie widzi nowych bloków i nie może na czas zareagować na próbę oszustwa w kanale ani na wygasający HTLC. Sprawdź węzeł Bitcoin wybrany w Select Node. Ostatni błąd: ${error}',
     586: 'Nextcloud: to nie jest prawidłowy adres.',
     587: 'LND nie zgłosił jeszcze swojej tożsamości, która nadaje nazwę folderowi na każdym celu. Spróbuj ponownie za chwilę.',
+    588: "Nie można jeszcze pobrać kopii kanałów: LND nie zgłosił tożsamości węzła, która nadaje nazwę jego folderowi na każdym celu kopii.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -1932,5 +1935,6 @@ export default {
     585: 'Bitcoin ne fournit pas de blocs à LND : LND ne peut donc pas voir les nouveaux blocs ni réagir à temps à une tentative de fraude sur un canal ou à un HTLC qui expire. Vérifiez le nœud Bitcoin choisi dans Select Node. Dernière erreur : ${error}',
     586: "Nextcloud : cette adresse n'est pas valide.",
     587: "LND n'a pas encore communiqué son identité, qui donne son nom au dossier sur chaque cible. Réessayez dans un instant.",
+    588: "Les sauvegardes des canaux ne peuvent pas encore être récupérées : LND n'a pas communiqué l'identité du nœud, qui donne son nom à son dossier sur chaque cible de sauvegarde.",
   },
 } satisfies Record<string, LangDict>

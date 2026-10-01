@@ -1100,6 +1100,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                   // be the only one holding a channel opened since the StartOS
                   // backup. Clearing the target's credentials ends the wait.
                   const offered = new Set<string>()
+                  let identityMisses = 0
                   while (true) {
                     const pull = await run(
                       ['sh', backupAgentScript, '--pull'],
@@ -1110,11 +1111,24 @@ export const main = sdk.setupMain(async ({ effects }) => {
                     // now, so that is a getinfo that failed this once;
                     // ask again shortly rather than abandon the restore.
                     if (pull.exitCode === 7) {
+                      identityMisses += 1
+                      // An hour of it is not a one-off: fail as before.
+                      if (identityMisses > 120)
+                        throw new Error(
+                          `could not retrieve the channel backups: LND has not reported the node's identity for an hour: ${tail(pull.stderr)}`,
+                        )
+                      if (identityMisses === 10)
+                        await notice(
+                          `${warning} ${i18n(
+                            'The channel backups cannot be retrieved yet: LND has not reported the node\'s identity, which names its folder on each backup target.',
+                          )}`,
+                        )
                       await sleep(30_000, abort)
                       if (abort.aborted)
                         throw new Error('aborted while waiting for LND')
                       continue
                     }
+                    identityMisses = 0
                     if (pull.exitCode !== 0 && pull.exitCode !== 6) {
                       throw new Error(
                         `could not retrieve the channel backups: ${tail(pull.stderr)}`,
