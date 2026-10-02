@@ -2,6 +2,7 @@ import { lndConfFile } from '../fileModels/lnd.conf'
 import { storeJson } from '../fileModels/store.json'
 import { peerHostId, peerInterfaceId } from '../interfaces'
 import { sdk } from '../sdk'
+import { getWatchtowerAddresses, kindOf } from '../watchtowerAddress'
 
 export const watchHosts = sdk.setupOnInit(async (effects, _) => {
   const useTorOnly = await lndConfFile
@@ -69,4 +70,38 @@ export const watchHosts = sdk.setupOnInit(async (effects, _) => {
     },
     { allowWriteAfterConst: true },
   )
+
+  // The watchtower server's address follows the host the same way: the
+  // stored kind picks the current address of that kind, so a new onion or
+  // IP does not leave clients holding a stale URI.
+  const towerActive = await lndConfFile
+    .read((c) => c['watchtower.active'])
+    .const(effects)
+  if (towerActive) {
+    const towerAddrs = await getWatchtowerAddresses(effects).const()
+    const configured = await lndConfFile
+      .read((c) => c['watchtower.externalip'])
+      .once()
+    let towerKind = await storeJson
+      .read((s) => s.watchtowerAddressKind)
+      .const(effects)
+    // A tower set up before the kind was recorded: take it from the
+    // address it was given, once, if the host still offers that address.
+    if (!towerKind && towerAddrs && configured) {
+      towerKind = kindOf(towerAddrs, configured)
+      if (towerKind)
+        await storeJson.merge(
+          effects,
+          { watchtowerAddressKind: towerKind },
+          { allowWriteAfterConst: true },
+        )
+    }
+    const current = towerKind ? towerAddrs?.[towerKind][0] : undefined
+    if (current && configured !== current)
+      await lndConfFile.merge(
+        effects,
+        { 'watchtower.externalip': current },
+        { allowWriteAfterConst: true },
+      )
+  }
 })

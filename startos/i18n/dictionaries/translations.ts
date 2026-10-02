@@ -492,6 +492,9 @@ export default {
     594: "Sin sesión: esta torre no ha aceptado este nodo",
     595: "No se ha añadido ningún watchtower. Añádelos en Ajustes del cliente de Watchtower.",
     596: "Error al listar los watchtowers",
+    597: "Tor",
+    598: "Pública",
+    599: "Solo LAN",
   },
   de_DE: {
     309: 'Backups',
@@ -984,6 +987,9 @@ export default {
     594: "Keine Sitzung: Dieser Tower hat den Knoten nicht angenommen",
     595: "Es wurden keine Watchtowers hinzugefügt. Fügen Sie sie unter Watchtower-Client-Einstellungen hinzu.",
     596: "Fehler beim Auflisten der Watchtowers",
+    597: "Tor",
+    598: "Öffentlich",
+    599: "Nur LAN",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1476,6 +1482,9 @@ export default {
     594: "Brak sesji: ta wieża nie przyjęła tego węzła",
     595: "Nie dodano żadnych watchtowerów. Dodaj je w Ustawieniach klienta Watchtower.",
     596: "Błąd podczas wyświetlania watchtowerów",
+    597: "Tor",
+    598: "Publiczny",
+    599: "Tylko LAN",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -1968,5 +1977,8 @@ export default {
     594: "Aucune session : cette tour n'a pas accepté ce nœud",
     595: "Aucun watchtower n'a été ajouté. Ajoutez-les dans Paramètres du client Watchtower.",
     596: "Erreur lors de la liste des watchtowers",
+    597: "Tor",
+    598: "Publique",
+    599: "LAN uniquement",
   },
 } satisfies Record<string, LangDict>

@@ -94,8 +94,10 @@ stock LND tower, or an earlier release, refuses it. So towers are run by
 Lightning Fork users for each other.
 
 - **Run one:** **Watchtower Server** turns the tower on and picks the
-  address it is reached at. **Watchtower Server Info** then shows the URI to
-  give to others.
+  address it is reached at: its Tor onion, a public address, or a LAN address
+  for nodes on your own network. **Watchtower Server Info** then shows the URI
+  to give to others. If that address changes, the tower follows it; give the
+  new URI to anyone using it.
 - **Use others':** **Watchtower Client Settings** turns the client on and
   takes the URIs you were given. A tower removed from that list is removed
   from LND at its next start.

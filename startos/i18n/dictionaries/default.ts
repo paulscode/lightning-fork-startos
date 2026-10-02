@@ -567,6 +567,9 @@ const dict = {
   "No session: this tower has not accepted this node": 594,
   "No watchtowers have been added. Add them under Watchtower Client Settings.": 595,
   "Error listing watchtowers": 596,
+  "Tor": 597,
+  "Public": 598,
+  "LAN only": 599,
 } as const
 
 /**

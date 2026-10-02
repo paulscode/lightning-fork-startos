@@ -14,6 +14,14 @@ export const shape = z.object({
   aezeedCipherSeed: z.array(z.string()).nullable().catch(null),
   watchtowerClients: z.array(z.string()).catch([]),
   customExternalHosts: z.array(z.string()).catch([]),
+  // The kind of address the watchtower server was given (Tor, a public
+  // domain, a public IPv4 address, or the LAN); init/watchHosts.ts keeps
+  // watchtower.externalip on the current address of that kind. Null for a
+  // tower set up before this was recorded, whose address is then left alone.
+  watchtowerAddressKind: z
+    .enum(['tor', 'domain', 'ipv4', 'lan'])
+    .nullable()
+    .catch(null),
 })
 
 export const storeJson = FileHelper.json(
