@@ -1454,6 +1454,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
             MACAROON_DIR: `${dashboardDataDir}/`,
             JSON_STORE_FILE: `${dashboardDataDir}/state.json`,
             JSON_SETTINGS_FILE: `${dashboardDataDir}/settings.json`,
+            // The companion app: where it reaches the dashboard (kept current
+            // by init/dashboardEndpoints.ts), and LND's certificate chain,
+            // whose root is the server's root CA that signs the dashboard's
+            // LAN HTTPS too; the app pins that root.
+            MOBILE_ENDPOINTS_FILE: `${dashboardDataDir}/endpoints.json`,
+            MOBILE_CA_FILE: `${dashboardDataDir}/tls.cert`,
             BITCOIN_HOST: dashboardRpc.host,
             RPC_PORT: dashboardRpc.port,
             RPC_COOKIE_FILE: `${bitcoindMnt}/.cookie`,

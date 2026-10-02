@@ -75,6 +75,22 @@ hours, and **Sign out** is in the dashboard's menu. Fiat amounts are BTCB2's own
 neoxa.exchange, converted to other currencies through Coingecko's rate table;
 while a feed is unreachable the dashboard shows sats or BTC instead.
 
+## Mobile app
+
+The Lightning Fork app for Android shows your on-chain and Lightning
+balances and sends and receives from your phone. To pair a phone, open the
+dashboard's menu, choose **Mobile app**, then **Pair a phone**, and scan the
+code with the app. The code works once and for five minutes. Each phone gets
+a key of its own, listed under Mobile app with when it was last seen; remove
+a phone there and it stops working at once.
+
+At home the app reaches the dashboard on its LAN address, over HTTPS pinned
+to this server's root certificate. Anywhere else it uses the dashboard's
+onion address through its own built-in Tor, so give the **Dashboard**
+interface an onion address in StartOS (the Tor service) if you want the app
+away from home; pair again after adding one, or let a paired phone pick it
+up the next time it reaches the node on the LAN.
+
 ## Funds and replay
 
 Coins that existed before block 961640 exist for nodes that have not upgraded

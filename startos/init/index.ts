@@ -9,6 +9,7 @@ import { setupCerts } from './setupCerts'
 import { taskConfigureChannelBackup } from './taskConfigureChannelBackup'
 import { tasksOnInstall } from './tasksOnInstall'
 import { watchHosts } from './watchHosts'
+import { writeDashboardEndpoints } from './dashboardEndpoints'
 import { watchTorDns } from './watchTorDns'
 import { watchTorSocks } from './watchTorSocks'
 
@@ -21,6 +22,7 @@ export const init = sdk.setupInit(
   actions,
   setupCerts,
   watchHosts,
+  writeDashboardEndpoints,
   watchTorSocks,
   watchTorDns,
   tasksOnInstall,
