@@ -48,7 +48,7 @@ export const towerInfo = sdk.Action.withoutInput(
         version: '1',
         title: i18n('Tower Info'),
         message: i18n(
-          'Sharing this URL with other LND nodes will allow them to use your server as a watchtower.',
+          'Share this URL with other Lightning Fork nodes on 0.21.3-beta-blake2b.14 or later to let them use your server as a watchtower. A stock LND node, or an earlier release, cannot use it.',
         ),
         result: {
           type: 'single',

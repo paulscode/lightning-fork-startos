@@ -1120,7 +1120,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                       if (identityMisses === 10)
                         await notice(
                           `${warning} ${i18n(
-                            'The channel backups cannot be retrieved yet: LND has not reported the node\'s identity, which names its folder on each backup target.',
+                            "The channel backups cannot be retrieved yet: LND has not reported the node's identity, which names its folder on each backup target.",
                           )}`,
                         )
                       await sleep(30_000, abort)
@@ -1203,6 +1203,62 @@ export const main = sdk.setupMain(async ({ effects }) => {
               subcontainer: lndSub,
               exec: {
                 fn: async (subcontainer: typeof lndSub, abort) => {
+                  // The form is the list of towers: one removed from it is
+                  // removed from LND too, which otherwise keeps using it.
+                  // Only towers this package added are reachable here, since
+                  // the form is the only way to add one on StartOS.
+                  const wanted = new Set(
+                    (watchtowerClients || []).map((uri) =>
+                      uri.split('@')[0].trim().toLowerCase(),
+                    ),
+                  )
+                  const listed = await subcontainer.exec(
+                    [
+                      'lncli',
+                      `--rpcserver=${selfGrpcHost}`,
+                      'wtclient',
+                      'towers',
+                    ],
+                    undefined,
+                    undefined,
+                    { abort: abort.reason, signal: abort },
+                  )
+                  let known: string[] = []
+                  try {
+                    if (listed.exitCode === 0)
+                      known = (
+                        (
+                          JSON.parse(String(listed.stdout)) as {
+                            towers?: { pubkey: string }[]
+                          }
+                        ).towers ?? []
+                      ).map((t) => t.pubkey.toLowerCase())
+                  } catch {
+                    console.log(
+                      `Could not read the watchtower list: ${String(listed.stderr)}`,
+                    )
+                  }
+                  for (const pubkey of known) {
+                    if (abort.aborted || wanted.has(pubkey)) continue
+                    const removed = await subcontainer.exec(
+                      [
+                        'lncli',
+                        `--rpcserver=${selfGrpcHost}`,
+                        'wtclient',
+                        'remove',
+                        pubkey,
+                      ],
+                      undefined,
+                      undefined,
+                      { abort: abort.reason, signal: abort },
+                    )
+                    console.log(
+                      removed.exitCode === 0
+                        ? `Watchtower ${pubkey} removed: no longer configured`
+                        : `Error removing watchtower ${pubkey}: ${String(removed.stderr)}`,
+                    )
+                  }
+
                   // Setup watchtowers at runtime because for some reason they can't be setup in lnd.conf
                   for (const tower of watchtowerClients || []) {
                     if (abort.aborted) break

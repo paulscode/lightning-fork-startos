@@ -63,7 +63,9 @@ Lightning wallets with send and receive, channels with open and close,
 transaction history, and the node's status and sync. It is the Umbrel
 Lightning app's dashboard, forked for this chain and trimmed to what StartOS
 does not already do; wallet setup, LND settings, backups and connection
-strings stay in StartOS.
+strings stay in StartOS. **Peers**, in the menu or behind the peer count,
+lists the nodes connected to yours and connects to another by its
+`pubkey@host:port` without opening a channel, so that it can open one to you.
 
 It opens on a sign-in screen that asks for one password, generated when the
 service was installed. The **Dashboard Password** action shows it, masked,
@@ -75,13 +77,31 @@ while a feed is unreachable the dashboard shows sats or BTC instead.
 
 ## Funds and replay
 
-Coins that existed before block 961640 exist on both chains. Everything
-Lightning Fork signs on its own uses the chain's replay-protected signature
-type, so its transactions cannot be mirrored on the other chain. A channel
-funded before that protection arrived, or with a signature made elsewhere, is
-the exception; the node warns about channels funded before the fork. Prefer
-funding channels with coins you received after the split, and keep amounts
-modest: this chain is weeks old.
+Coins that existed before block 961640 exist for nodes that have not upgraded
+too. Everything Lightning Fork signs on its own, including the funding of a
+channel it opens, uses the replay-protected signature type, so its
+transactions cannot be copied to those nodes, whatever coins they spend. A
+channel funded before block 961640, or with a signature made elsewhere, is
+the exception; the node warns at start about channels funded before it. Keep
+amounts modest: this chain is weeks old.
+
+## Watchtowers
+
+A watchtower watches your channels while your node is offline and acts if a
+peer tries to cheat. From 0.21.3-beta-blake2b.14 a Lightning Fork node only
+works with towers that run Lightning Fork 0.21.3-beta-blake2b.14 or later; a
+stock LND tower, or an earlier release, refuses it. So towers are run by
+Lightning Fork users for each other.
+
+- **Run one:** **Watchtower Server** turns the tower on and picks the
+  address it is reached at. **Watchtower Server Info** then shows the URI to
+  give to others.
+- **Use others':** **Watchtower Client Settings** turns the client on and
+  takes the URIs you were given. A tower removed from that list is removed
+  from LND at its next start.
+- **Check:** **Watchtowers** lists the towers in use. Each shows how many
+  sessions it holds; one with no session has not accepted your node, which is
+  what an incompatible tower looks like.
 
 ## Backups
 

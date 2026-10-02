@@ -57,7 +57,7 @@ const dict = {
   'Get your Tower Server URL': 37,
   'Watchtower Server must be enabled': 38,
   'Tower Info': 39,
-  'Sharing this URL with other LND nodes will allow them to use your server as a watchtower.': 40,
+  "Share this URL with other Lightning Fork nodes on 0.21.3-beta-blake2b.14 or later to let them use your server as a watchtower. A stock LND node, or an earlier release, cannot use it.": 40,
   'Error fetching tower info': 41,
 
   // shared
@@ -233,7 +233,7 @@ const dict = {
   'Enable Watchtower Client': 190,
   'Enable or disable Watchtower Client': 191,
   'Add Watchtowers': 192,
-  'Add URIs of Watchtowers to connect to.': 193,
+  "URIs of watchtowers run by other Lightning Fork nodes on 0.21.3-beta-blake2b.14 or later. A stock LND watchtower, or an earlier release, refuses this node. A tower removed here is removed from LND at its next start.": 193,
 
   // actions/config/dbBolt.ts
   'DB Bolt Settings': 69,
@@ -559,6 +559,14 @@ const dict = {
   'Nextcloud: that is not a valid address.': 586,
   'LND has not reported its identity yet, which names the folder on each target. Try again in a moment.': 587,
   "The channel backups cannot be retrieved yet: LND has not reported the node's identity, which names its folder on each backup target.": 588,
+  "Watchtowers": 589,
+  "The watchtowers this node backs its channels up to, and whether each has accepted it.": 590,
+  "Watchtower Client must be enabled": 591,
+  "A tower with no session has not accepted this node: it must run Lightning Fork 0.21.3-beta-blake2b.14 or later, since a stock LND tower or an earlier release refuses it. A tower just added may need a minute.": 592,
+  "Sessions: ${count}": 593,
+  "No session: this tower has not accepted this node": 594,
+  "No watchtowers have been added. Add them under Watchtower Client Settings.": 595,
+  "Error listing watchtowers": 596,
 } as const
 
 /**

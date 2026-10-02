@@ -634,10 +634,12 @@ export const fullConfigSpec = InputSpec.of({
               {
                 name: i18n('Add Watchtowers'),
                 default: [],
-                description: i18n('Add URIs of Watchtowers to connect to.'),
+                description: i18n(
+                  'URIs of watchtowers run by other Lightning Fork nodes on 0.21.3-beta-blake2b.14 or later. A stock LND watchtower, or an earlier release, refuses this node. A tower removed here is removed from LND at its next start.',
+                ),
                 minLength: 1,
               },
-              { placeholder: 'pubkey@host:9911', patterns: [] },
+              { placeholder: 'pubkey@host:port', patterns: [] },
             ),
           ),
         }),

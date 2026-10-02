@@ -21,6 +21,7 @@ import { nodeInfo } from './nodeInfo'
 import { revokeMacaroons } from './revoke-macaroons'
 import { resetWalletTransactions } from './resetTxns'
 import { towerInfo } from './towerInfo'
+import { watchtowers } from './watchtowers'
 
 export const actions = sdk.Actions.of()
   .addAction(general)
@@ -35,6 +36,7 @@ export const actions = sdk.Actions.of()
   .addAction(wtClientConfig)
   .addAction(resetWalletTransactions)
   .addAction(towerInfo)
+  .addAction(watchtowers)
   .addAction(nodeInfo)
   .addAction(dashboardPassword)
   .addAction(setDashboardPassword)
