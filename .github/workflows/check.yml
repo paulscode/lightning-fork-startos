@@ -1,0 +1,31 @@
+name: Check
+
+# What can go wrong between releases without a device: the package must
+# typecheck, and the channel-backup agent, shared with the Umbrel dashboard,
+# must pass its tests under dash (Ubuntu's sh). Releases are made by
+# release.sh and published by hand after signing (UPDATING.md); nothing here
+# builds, tags or publishes.
+on:
+  push:
+    branches: ['master', 'next']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Backup agent tests
+        run: sh tests/backup-agent.test.sh
