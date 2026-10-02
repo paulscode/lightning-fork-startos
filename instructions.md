@@ -91,6 +91,11 @@ interface an onion address in StartOS (the Tor service) if you want the app
 away from home; pair again after adding one, or let a paired phone pick it
 up the next time it reaches the node on the LAN.
 
+Phones pin this server's root certificate. After restoring the service to
+another server (or after StartOS gives this one a new root), paired phones
+say the node's certificate changed: pair them again, and remove the old
+entries under Mobile app.
+
 ## Funds and replay
 
 Coins that existed before block 961640 exist for nodes that have not upgraded
