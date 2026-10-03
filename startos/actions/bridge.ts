@@ -281,7 +281,7 @@ export const bridgeAddParticipant = sdk.Action.withInput(
       version: '1',
       title: i18n('Bridge Code'),
       message: i18n(
-        'A credential for ${label}: send it privately, as you would a password. They add it in their dashboard under "Paying Bitcoin invoices". Remove Bridge Participant revokes it.',
+        'A credential for ${label}: send it privately, as you would a password. They add it in their dashboard under "Paying SHA256 invoices". Remove Bridge Participant revokes it.',
         { label: literal(label) },
       ),
       result: {

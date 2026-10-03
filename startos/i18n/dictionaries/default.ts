@@ -596,7 +596,7 @@ const dict = {
   "Where the participant's node reaches this node: an onion address of its REST LND Connect interface. Other addresses would also need the certificate's fingerprint, which changes when StartOS renews it, so they are not offered.": 622,
   "The label must be one line of text.": 623,
   "Bridge Code": 624,
-  "A credential for ${label}: send it privately, as you would a password. They add it in their dashboard under \"Paying Bitcoin invoices\". Remove Bridge Participant revokes it.": 625,
+  "A credential for ${label}: send it privately, as you would a password. They add it in their dashboard under \"Paying SHA256 invoices\". Remove Bridge Participant revokes it.": 625,
   "Remove Bridge Participant": 626,
   "Revoke a bridge code. Swaps it has already started still complete.": 627,
   "Participant": 628,
