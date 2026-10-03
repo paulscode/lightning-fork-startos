@@ -631,6 +631,7 @@ const dict = {
   "The smallest swap must not be larger than the largest.": 657,
   "Paste the SHA256 node's gRPC lndconnect URI to turn the bridge on.": 658,
   "The SHA256 node did not answer at ${host}: ${error}": 659,
+  "Serving ${directions}": 660,
 } as const
 
 /**

@@ -589,7 +589,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
     return error
   }
 
-  const lndChain = () =>
+  const lndChain = () => {
+    const chain =
     sdk.Daemons.of(effects)
       .addOneshot('stage-local-restore', () =>
         restore
@@ -1520,6 +1521,69 @@ export const main = sdk.setupMain(async ({ effects }) => {
         },
         requires: ['dashboard-credentials'],
       })
+    // The bridge, when it is on: what lncli bridge status says, so a stale
+    // rate, an unreachable SHA256 node or an empty side shows here rather
+    // than only as quotes refused. Absent while the bridge is off, which is
+    // nearly every node.
+    if (!conf['bridgerpc.enabled']) return chain
+    return chain.addHealthCheck('bridge', {
+      ready: {
+        display: i18n('Bridge'),
+        trigger: sdk.trigger.statusTrigger(60_000, {
+          starting: 10_000,
+          waiting: 10_000,
+          failure: 60_000,
+        }),
+        fn: async () => {
+          let res
+          try {
+            res = await lndSub.exec(
+              [
+                'timeout',
+                '25',
+                'lncli',
+                `--rpcserver=${selfGrpcHost}`,
+                'bridge',
+                'status',
+              ],
+              {},
+              30_000,
+            )
+          } catch {
+            return { result: 'starting', message: i18n('LND is starting…') }
+          }
+          if (res.exitCode !== 0 || typeof res.stdout !== 'string') {
+            return { result: 'starting', message: i18n('LND is starting…') }
+          }
+          let status: { directions?: string[]; refusals?: string[] }
+          try {
+            status = JSON.parse(res.stdout)
+          } catch {
+            return { result: 'starting', message: i18n('LND is starting…') }
+          }
+          const refusals = status.refusals ?? []
+          if (refusals.length === 0) {
+            return {
+              result: 'success',
+              message: i18n('Serving ${directions}', {
+                directions: (status.directions ?? []).join(', '),
+              }),
+            }
+          }
+          // Measuring each chain's block rate and catching up take a few
+          // minutes after every start; that is not a fault.
+          const settling = refusals.every((r) =>
+            /still measuring|not synced|has not started/.test(r),
+          )
+          return {
+            result: settling ? 'starting' : 'failure',
+            message: refusals[0],
+          }
+        },
+      },
+      requires: ['lnd'],
+    })
+  }
 
   return sdk.Daemons.dynamic(effects, async ({ effects: dynEffects }) => {
     const importPending = await startupFlagsJson

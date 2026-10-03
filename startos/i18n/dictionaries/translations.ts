@@ -555,6 +555,7 @@ export default {
     657: "El intercambio mínimo no puede ser mayor que el máximo.",
     658: "Pega la URI lndconnect gRPC del nodo SHA256 para activar el puente.",
     659: "El nodo SHA256 no respondió en ${host}: ${error}",
+    660: "Sirviendo ${directions}",
   },
   de_DE: {
     309: 'Backups',
@@ -1110,6 +1111,7 @@ export default {
     657: "Der kleinste Swap darf nicht größer als der größte sein.",
     658: "Fügen Sie die gRPC-lndconnect-URI des SHA256-Nodes ein, um die Bridge zu aktivieren.",
     659: "Der SHA256-Node hat unter ${host} nicht geantwortet: ${error}",
+    660: "Bedient ${directions}",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1665,6 +1667,7 @@ export default {
     657: "Najmniejsza wymiana nie może być większa od największej.",
     658: "Wklej URI lndconnect gRPC węzła SHA256, aby włączyć most.",
     659: "Węzeł SHA256 nie odpowiedział pod adresem ${host}: ${error}",
+    660: "Obsługuje ${directions}",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2220,5 +2223,6 @@ export default {
     657: "Le plus petit échange ne doit pas dépasser le plus grand.",
     658: "Collez l'URI lndconnect gRPC du nœud SHA256 pour activer le pont.",
     659: "Le nœud SHA256 n'a pas répondu à ${host} : ${error}",
+    660: "Sert ${directions}",
   },
 } satisfies Record<string, LangDict>
