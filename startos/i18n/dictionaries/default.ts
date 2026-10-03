@@ -633,6 +633,8 @@ const dict = {
   "The SHA256 node did not answer at ${host}: ${error}": 659,
   "Serving ${directions}": 660,
   "To use the Lightning Fork app away from home, give the Dashboard an onion address. This opens Tor with the Dashboard selected and SSL off; confirm it as it is.": 661,
+  "Swaps that need you": 662,
+  "Each needs a decision only you can make. See the bridge documentation before acting on one.": 663,
 } as const
 
 /**

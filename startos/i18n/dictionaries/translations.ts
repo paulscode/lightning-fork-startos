@@ -557,6 +557,8 @@ export default {
     659: "El nodo SHA256 no respondió en ${host}: ${error}",
     660: "Sirviendo ${directions}",
     661: "Para usar la app Lightning Fork fuera de casa, dale al Dashboard una dirección onion. Esto abre Tor con el Dashboard seleccionado y SSL desactivado; confírmalo tal cual.",
+    662: "Intercambios que te necesitan",
+    663: "Cada uno necesita una decisión que solo tú puedes tomar. Consulta la documentación del puente antes de actuar.",
   },
   de_DE: {
     309: 'Backups',
@@ -1114,6 +1116,8 @@ export default {
     659: "Der SHA256-Node hat unter ${host} nicht geantwortet: ${error}",
     660: "Bedient ${directions}",
     661: "Um die Lightning-Fork-App unterwegs zu nutzen, geben Sie dem Dashboard eine Onion-Adresse. Dies öffnet Tor mit ausgewähltem Dashboard und ausgeschaltetem SSL; bestätigen Sie es unverändert.",
+    662: "Swaps, die Sie brauchen",
+    663: "Jeder braucht eine Entscheidung, die nur Sie treffen können. Lesen Sie die Bridge-Dokumentation, bevor Sie handeln.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1671,6 +1675,8 @@ export default {
     659: "Węzeł SHA256 nie odpowiedział pod adresem ${host}: ${error}",
     660: "Obsługuje ${directions}",
     661: "Aby używać aplikacji Lightning Fork poza domem, nadaj Dashboardowi adres onion. To otwiera Tor z wybranym Dashboardem i wyłączonym SSL; zatwierdź bez zmian.",
+    662: "Wymiany, które wymagają Ciebie",
+    663: "Każda wymaga decyzji, którą możesz podjąć tylko Ty. Przed działaniem przeczytaj dokumentację mostu.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2228,5 +2234,7 @@ export default {
     659: "Le nœud SHA256 n'a pas répondu à ${host} : ${error}",
     660: "Sert ${directions}",
     661: "Pour utiliser l'application Lightning Fork hors de chez vous, donnez une adresse onion au Dashboard. Cela ouvre Tor avec le Dashboard sélectionné et SSL désactivé ; confirmez tel quel.",
+    662: "Échanges qui ont besoin de vous",
+    663: "Chacun demande une décision que vous seul pouvez prendre. Consultez la documentation du pont avant d'agir.",
   },
 } satisfies Record<string, LangDict>

@@ -19,6 +19,7 @@ type BridgeStatus = {
   rate: number
   rate_set_at: string
   rate_expires_at: string
+  needs_operator?: string[]
 }
 type BridgeInfo = {
   directions: {
@@ -68,14 +69,21 @@ export const bridgeStatus = sdk.Action.withoutInput(
 
   // the execution function
   async ({ effects }) => {
-    const [statusOut, infoOut] = await lncli(
-      effects,
-      'bridge-status',
-      ['bridge', 'status'],
-      ['bridge', 'info'],
-    )
+    // Status answers whatever the bridge's state; Info only while it is
+    // serving. Asked apart, so a bridge that cannot start still says why.
+    const [statusOut] = await lncli(effects, 'bridge-status', [
+      'bridge',
+      'status',
+    ])
     const status: BridgeStatus = JSON.parse(statusOut)
-    const info: BridgeInfo = JSON.parse(infoOut)
+    let info: BridgeInfo = { directions: [] }
+    try {
+      const [infoOut] = await lncli(effects, 'bridge-info', ['bridge', 'info'])
+      info = JSON.parse(infoOut)
+    } catch {
+      // Not serving: the refusals above say why.
+    }
+    const attention = status.needs_operator ?? []
 
     const state = !status.enabled
       ? i18n('Off')
@@ -103,6 +111,17 @@ export const bridgeStatus = sdk.Action.withoutInput(
             ),
           ),
           single(i18n('Swaps in flight'), String(status.swaps_in_flight)),
+          ...(attention.length
+            ? [
+                single(
+                  i18n('Swaps that need you'),
+                  attention.join('\n'),
+                  i18n(
+                    'Each needs a decision only you can make. See the bridge documentation before acting on one.',
+                  ),
+                ),
+              ]
+            : []),
           // The outgoing chain's sats: SHA256 for toSHA256, BLAKE2b for
           // toBLAKE2b.
           ...info.directions.map((d) =>

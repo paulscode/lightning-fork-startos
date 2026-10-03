@@ -1,6 +1,10 @@
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
-import { dashboardHostId, dashboardPort } from '../interfaces'
+import {
+  dashboardHostId,
+  dashboardInterfaceId,
+  dashboardPort,
+} from '../interfaces'
 import { sdk } from '../sdk'
 import { dashboardEndpoints, dashboardOnionTaskId } from './dashboardEndpoints'
 
@@ -40,6 +44,7 @@ export const taskDashboardOnion = sdk.setupOnInit(async (effects, kind) => {
     urlPluginMetadata: {
       packageId: 'lightning-fork',
       hostId: dashboardHostId,
+      interfaceId: dashboardInterfaceId,
       internalPort: dashboardPort,
     },
     ssl: false,
