@@ -8,6 +8,7 @@ import { seedFiles } from './seedFiles'
 import { setupCerts } from './setupCerts'
 import { taskConfigureChannelBackup } from './taskConfigureChannelBackup'
 import { tasksOnInstall } from './tasksOnInstall'
+import { taskDashboardOnion } from './taskDashboardOnion'
 import { watchHosts } from './watchHosts'
 import { writeDashboardEndpoints } from './dashboardEndpoints'
 import { watchTorDns } from './watchTorDns'
@@ -27,6 +28,7 @@ export const init = sdk.setupInit(
   watchTorDns,
   tasksOnInstall,
   taskConfigureChannelBackup,
+  taskDashboardOnion,
 )
 
 export const uninit = sdk.setupUninit(versionGraph)

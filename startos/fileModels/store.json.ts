@@ -22,6 +22,9 @@ export const shape = z.object({
     .enum(['tor', 'domain', 'ipv4', 'lan'])
     .nullable()
     .catch(null),
+  // Whether the package has asked once for an onion on the Dashboard
+  // (init/taskDashboardOnion.ts), so a dismissed request is not raised again.
+  dashboardOnionAsked: z.boolean().catch(false),
   // The SHA256 node the bridge dials, kept while the bridge is off so that
   // turning it back on needs no new connection string (the certificate and
   // macaroon stay in data/bridge).

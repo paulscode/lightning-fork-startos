@@ -2,7 +2,7 @@
 
 Lightning Fork is a Lightning Network node for the **Bitcoin BLAKE2b chain**,
 the Bitcoin Knots hard fork of 30 August 2026. It is LND with the changes needed
-to follow that chain and to stay away from the Bitcoin Lightning network. If you
+to follow that chain and to stay away from the SHA256 chain's Lightning network. If you
 have used LND on StartOS, everything below will look familiar.
 
 ## Before you start
@@ -43,15 +43,15 @@ protect your channels.
 
 Connect a wallet or dashboard with the LND Connect interfaces exactly as you
 would to LND: the API, macaroons and certificates are the same. Two things
-differ from an LND node on Bitcoin:
+differ from an LND node on the SHA256 chain:
 
 - **Invoices and offers carry a required feature bit** (`option_blake2b`,
   bit 512). They still start with `lnbc` and `lno`, but a Lightning wallet on
-  Bitcoin that follows the specification refuses them, and Lightning Fork
+  the SHA256 chain that follows the specification refuses them, and Lightning Fork
   refuses any invoice or offer without the bit. That is intended: it is the
   last line of defence against paying the wrong chain.
 - **Peers must be on the BLAKE2b chain.** Lightning Fork sets the same bit in
-  every peer handshake, and a node on Bitcoin disconnects when it sees it, so
+  every peer handshake, and a node on the SHA256 chain disconnects when it sees it, so
   an ordinary LND node will not stay connected. Open channels with other
   Lightning Fork nodes, or with privkeyio's Core Lightning from
   v26.06.8-blake2b.5.
@@ -85,11 +85,22 @@ a key of its own, listed under Mobile app with when it was last seen; remove
 a phone there and it stops working at once.
 
 At home the app reaches the dashboard on its LAN address, over HTTPS pinned
-to this server's root certificate. Anywhere else it uses the dashboard's
-onion address through its own built-in Tor, so give the **Dashboard**
-interface an onion address in StartOS (the Tor service) if you want the app
-away from home; pair again after adding one, or let a paired phone pick it
-up the next time it reaches the node on the LAN.
+to this server's root certificate. Away from home it uses the dashboard's
+onion address through its own built-in Tor, so the **Dashboard** interface
+needs one, with **SSL off** (Tor already authenticates and encrypts the
+connection). Either:
+
+- run the task Lightning Fork shows after it is installed or updated, which
+  opens Tor's **Add Onion Service** with the Dashboard selected and SSL off,
+  and confirm it as it is; or
+- open Lightning Fork's **Dashboard** interface in StartOS and add a Tor
+  (onion) address there, with SSL off.
+
+The task needs the Tor service installed, and goes away once the Dashboard
+has an onion address. The dashboard's **Mobile app** screen says whether
+away-from-home use is set up. A phone paired before the onion existed picks
+it up the next time it reaches the node at home; there is no need to pair
+again.
 
 Phones pin this server's root certificate. After restoring the service to
 another server (or after StartOS gives this one a new root), paired phones
@@ -129,7 +140,7 @@ Lightning Fork users for each other.
 ## Running a bridge
 
 A bridge lets people you choose pay Lightning invoices on the SHA256 chain
-(original Bitcoin) from their BLAKE2b funds, or the reverse, without you ever
+from their BLAKE2b funds, or the reverse, without you ever
 holding their money: they pay a hold invoice with the same payment hash, which
 you can only claim by paying their invoice. It needs a stock LND on the SHA256
 chain, reachable from this server, with outbound liquidity, and it stays off
@@ -137,9 +148,9 @@ until you turn it on.
 
 1. **Bridge:** turn it on, paste the SHA256 node's gRPC lndconnect URI (the
    form with its LAN IP address; onion addresses are not used) and set your
-   rate in SHA256 coin per BLAKE2b coin. While the bridge is on, LND does not
-   start if it cannot reach the SHA256 node; turning the bridge off here
-   fixes that.
+   rate in SHA256 coin per BLAKE2b coin. If the SHA256 node cannot be
+   reached, only the bridge waits: LND runs as usual, the bridge tries again
+   every minute, and **Bridge Status** says why it is not serving.
 2. **Set Bridge Rate:** change the rate at any time. Once it is older than the
    rate maximum age (24 hours by default) the bridge stops quoting until you
    set it again. **Bridge Status** shows whether it is serving and why not.
@@ -156,7 +167,7 @@ data, so StartOS backups include it. Back up the SHA256 node as well.
 Make a StartOS backup after every channel open or close, and consider
 **Configure Channel Backups** for a continuous off-server copy. Restoring a
 backup closes the channels it contains and returns the funds on-chain, as with
-LND. A backup taken from an LND node on Bitcoin cannot be restored here.
+LND. A backup taken from an LND node on the SHA256 chain cannot be restored here.
 
 Configure Channel Backups keeps each node's copy in a folder of its own,
 inside the folder you name: `<folder>/<node id>/channel.backup`, where the

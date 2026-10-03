@@ -8,6 +8,9 @@ import { dashboardVolumeHost } from '../utils'
 // server's root CA that the app pins. Written to the dashboard's volume and
 // read when a phone is paired, so a new address reaches the next pairing
 // (and paired phones, which ask for it) without restarting the daemons.
+// The standing request for an onion on the Dashboard (taskDashboardOnion.ts).
+export const dashboardOnionTaskId = 'tor:add-onion-service:dashboard'
+
 export const dashboardEndpointsFile = `${dashboardVolumeHost}/endpoints.json`
 
 export type DashboardEndpoints = {
@@ -45,6 +48,12 @@ export const writeDashboardEndpoints = sdk.setupOnInit(async (effects) => {
   const endpoints = await sdk.host
     .getOwn(effects, dashboardHostId, dashboardEndpoints)
     .const()
+  // An onion added by any route answers the request for one.
+  if (endpoints.onion.length > 0) {
+    await effects.action
+      .clearTasks({ only: [dashboardOnionTaskId] })
+      .catch(() => null)
+  }
   const tmp = `${dashboardEndpointsFile}.tmp`
   await writeFile(tmp, JSON.stringify(endpoints, null, 2))
   await rename(tmp, dashboardEndpointsFile)

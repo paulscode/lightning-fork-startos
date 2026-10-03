@@ -9,9 +9,9 @@ export const short = {
   fr_FR: shortEn,
 }
 
-const longEn = `Lightning Fork is a fork of LND (Lightning Network Daemon) that follows the Bitcoin BLAKE2b chain: the Bitcoin Knots hard fork that replaced SHA256d proof of work with BLAKE2b at block 961640 on 30 August 2026. It creates and closes channels, routes payments, sends and receives over the Lightning Network on that chain, and keeps a fully validated channel graph, exactly as LND does on Bitcoin.
+const longEn = `Lightning Fork is a fork of LND (Lightning Network Daemon) that follows the Bitcoin BLAKE2b chain: the Bitcoin Knots hard fork that replaced SHA256d proof of work with BLAKE2b at block 961640 on 30 August 2026. It creates and closes channels, routes payments, sends and receives over the Lightning Network on that chain, and keeps a fully validated channel graph, exactly as LND does on the SHA256 chain.
 
-The BLAKE2b chain shares its history, addresses and keys with Bitcoin, so a Lightning node cannot tell the two apart by any ordinary check. Lightning Fork therefore refuses to start against a node on the SHA256d chain, and marks its peer handshakes, invoices and offers with a required feature bit that a Lightning node or wallet on Bitcoin following the specification refuses, and refuses any invoice or offer without it. Nothing here can connect to, pay, or be paid from the Bitcoin Lightning network by accident.
+The BLAKE2b chain shares its history, addresses and keys with the SHA256 chain, so a Lightning node cannot tell the two apart by any ordinary check. Lightning Fork therefore refuses to start against a node on the SHA256d chain, and marks its peer handshakes, invoices and offers with a required feature bit that a Lightning node or wallet on the SHA256 chain following the specification refuses, and refuses any invoice or offer without it. Nothing here can connect to, pay, or be paid from the SHA256 chain's Lightning network by accident.
 
 It runs against a Bitcoin Knots node (29.4.1 or later) or the Bitcoin Knots (BLAKE2b) Companion, chosen under Select Node. The Chain Identity health check shows which chain the node is on.`
 

@@ -632,6 +632,7 @@ const dict = {
   "Paste the SHA256 node's gRPC lndconnect URI to turn the bridge on.": 658,
   "The SHA256 node did not answer at ${host}: ${error}": 659,
   "Serving ${directions}": 660,
+  "To use the Lightning Fork app away from home, give the Dashboard an onion address. This opens Tor with the Dashboard selected and SSL off; confirm it as it is.": 661,
 } as const
 
 /**

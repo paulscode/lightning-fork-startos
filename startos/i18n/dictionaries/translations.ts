@@ -556,6 +556,7 @@ export default {
     658: "Pega la URI lndconnect gRPC del nodo SHA256 para activar el puente.",
     659: "El nodo SHA256 no respondió en ${host}: ${error}",
     660: "Sirviendo ${directions}",
+    661: "Para usar la app Lightning Fork fuera de casa, dale al Dashboard una dirección onion. Esto abre Tor con el Dashboard seleccionado y SSL desactivado; confírmalo tal cual.",
   },
   de_DE: {
     309: 'Backups',
@@ -1112,6 +1113,7 @@ export default {
     658: "Fügen Sie die gRPC-lndconnect-URI des SHA256-Nodes ein, um die Bridge zu aktivieren.",
     659: "Der SHA256-Node hat unter ${host} nicht geantwortet: ${error}",
     660: "Bedient ${directions}",
+    661: "Um die Lightning-Fork-App unterwegs zu nutzen, geben Sie dem Dashboard eine Onion-Adresse. Dies öffnet Tor mit ausgewähltem Dashboard und ausgeschaltetem SSL; bestätigen Sie es unverändert.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1668,6 +1670,7 @@ export default {
     658: "Wklej URI lndconnect gRPC węzła SHA256, aby włączyć most.",
     659: "Węzeł SHA256 nie odpowiedział pod adresem ${host}: ${error}",
     660: "Obsługuje ${directions}",
+    661: "Aby używać aplikacji Lightning Fork poza domem, nadaj Dashboardowi adres onion. To otwiera Tor z wybranym Dashboardem i wyłączonym SSL; zatwierdź bez zmian.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2224,5 +2227,6 @@ export default {
     658: "Collez l'URI lndconnect gRPC du nœud SHA256 pour activer le pont.",
     659: "Le nœud SHA256 n'a pas répondu à ${host} : ${error}",
     660: "Sert ${directions}",
+    661: "Pour utiliser l'application Lightning Fork hors de chez vous, donnez une adresse onion au Dashboard. Cela ouvre Tor avec le Dashboard sélectionné et SSL désactivé ; confirmez tel quel.",
   },
 } satisfies Record<string, LangDict>

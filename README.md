@@ -110,9 +110,9 @@ this package keeps the default location because it reads the volume from the
 host side.
 
 The daemon also sets `option_blake2b` (feature bit 512, even) in `init`, in
-its invoices and in its offers, which a node on Bitcoin must refuse, and
+its invoices and in its offers, which a node on the SHA256 chain must refuse, and
 refuses invoices and offers that do not set it; the chain hash and the `lnbc`
-prefix are Bitcoin's, unchanged. See
+prefix are unchanged, the same as on the SHA256 chain. See
 [docs/blake2b.md](https://github.com/paulscode/lightning-fork/blob/blake2b/docs/blake2b.md)
 in the daemon's repository for the whole design.
 
@@ -197,6 +197,6 @@ workspace's `release.sh` stages universal builds for the registry.
   result stays `loading`, which dependents gate on. Upstream also sets
   `routing.assumechanvalid` on a pruned node; this package does not (see
   `AGENTS.md`).
-- Paying an invoice from a node on Bitcoin, or from a Lightning Fork node
+- Paying an invoice from a node on the SHA256 chain, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.
