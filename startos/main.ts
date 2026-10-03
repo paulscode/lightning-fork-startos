@@ -590,8 +590,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   }
 
   const lndChain = () => {
-    const chain =
-    sdk.Daemons.of(effects)
+    const chain = sdk.Daemons.of(effects)
       .addOneshot('stage-local-restore', () =>
         restore
           ? {
