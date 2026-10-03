@@ -208,7 +208,7 @@ export const bridgeConfig = sdk.Action.withInput(
       'Pay Lightning invoices on the SHA256 chain for people you choose, through your own LND there, without holding their funds.',
     ),
     warning: i18n(
-      'While the bridge is on, LND does not start if it cannot reach the SHA256 node. Turn the bridge off here to start LND without it.',
+      'If LND cannot reach the SHA256 node, the bridge stays down and tries again every minute; LND itself runs as usual. Bridge Status says why.',
     ),
     allowedStatuses: 'any',
     group: i18n('Bridge'),
@@ -251,7 +251,8 @@ export const bridgeConfig = sdk.Action.withInput(
     }
 
     // What LND would refuse at start, refused here instead: a bad
-    // combination keeps LND from starting at all.
+    // combination of settings keeps LND from starting at all, unlike an
+    // unreachable SHA256 node, which only keeps the bridge down.
     if (!input.tosha256 && !input.toblake2b)
       throw new Error(i18n('Choose at least one direction to serve.'))
     if (!input.rate || input.rate <= 0)

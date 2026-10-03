@@ -160,7 +160,8 @@ certificate (PEM) and macaroon to `data/bridge/` in the main volume, checks
 them with `lncli getinfo` against the node before saving, and sets the
 `bridgerpc.*` keys in `lnd.conf` (removed when turned off; the files and
 the journal under the network directory stay). The bridge dials without
-Tor, and a bridge that cannot reach the node keeps LND from starting.
+Tor. A bridge that cannot reach the node stays down and tries again every
+minute while LND runs as usual; Bridge Status says why.
 **Bridge Status**, **Set Bridge Rate** and **Add Bridge Participant** run
 `lncli bridge status|info|setrate|code` and are hidden while the bridge is
 off. Codes are offered for the REST interface's onion addresses only: any

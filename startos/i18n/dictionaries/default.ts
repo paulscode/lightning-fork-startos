@@ -624,7 +624,7 @@ const dict = {
   "The certificate in the lndconnect URI cannot be read.": 650,
   "The macaroon in the lndconnect URI cannot be read.": 651,
   "Pay Lightning invoices on the SHA256 chain for people you choose, through your own LND there, without holding their funds.": 652,
-  "While the bridge is on, LND does not start if it cannot reach the SHA256 node. Turn the bridge off here to start LND without it.": 653,
+  "If LND cannot reach the SHA256 node, the bridge stays down and tries again every minute; LND itself runs as usual. Bridge Status says why.": 653,
   "Choose at least one direction to serve.": 654,
   "Enter the rate, in SHA256 coin per BLAKE2b coin, such as 0.00483.": 655,
   "The spread must be from 0.3% to under 20%.": 656,
