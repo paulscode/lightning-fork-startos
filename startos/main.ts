@@ -242,6 +242,20 @@ export const main = sdk.setupMain(async ({ effects }) => {
     const port = colon === -1 ? '8332' : rpchost.slice(colon + 1)
     return { host: host.replace(/^\[|\]$/g, ''), port }
   })()
+  // The Tor package's SOCKS proxy (init/watchTorSocks.ts writes it to
+  // lnd.conf), for the dashboard to reach a service for paying Bitcoin
+  // invoices at an onion address. Passed as ONION_PROXY_*, which the
+  // dashboard uses for onions only: as TOR_PROXY_* it would route the price
+  // feeds through it as well, and break them on a server without Tor.
+  const onionProxy = (() => {
+    const socks = String(conf['tor.socks'] ?? '')
+    const colon = socks.lastIndexOf(':')
+    if (colon <= 0) return {}
+    return {
+      ONION_PROXY_IP: socks.slice(0, colon).replace(/^\[|\]$/g, ''),
+      ONION_PROXY_PORT: socks.slice(colon + 1),
+    }
+  })()
 
   // The Mempool apps the dashboard can reach, for fee rates and links.
   const mempoolEnv = await mempoolAppsEnv(effects)
@@ -1467,6 +1481,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             EXPLORER_PORT: '',
             EXPLORER_HIDDEN_SERVICE: '',
             ...mempoolEnv,
+            ...onionProxy,
           },
         },
         ready: {
