@@ -3,19 +3,13 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta.15:0',
+  version: '0.21.3-beta.16:0',
   releaseNotes: {
-    en_US: `Offers on mainnet: paying a BOLT 12 offer between two Lightning Fork nodes failed with "message names no chain". Fixed; both nodes need this release.
+    en_US: `Offers on mainnet: paying a BOLT 12 offer from the dashboard or the Android app fetched the invoice and then failed with "This request is for a different network". Fixed; only the paying node needs this release.
 
-Paying SHA256 invoices: the dashboard pays Lightning invoices from the SHA256 chain through a service run by someone you trust, from the code they give you (menu, Paying SHA256 invoices). You pay the service with an invoice that carries the SHA256 invoice's own payment hash, so it is paid only if it pays yours, and its price is checked against the market before anything is paid. The Android app (0.2.0) pays them too.
+The wallet cards fit every message: long descriptions show one or two lines with More, the explanations of offers open on request, and nothing is drawn over the buttons or an error any more.
 
-Running such a service: the Bridge actions pair Lightning Fork with a stock LND on the SHA256 chain and make a code for each person you serve. Off unless you turn it on; see the instructions.
-
-The mobile app away from home: this update offers a task that gives the Dashboard an onion address (SSL off), which the app needs away from your home network. The dashboard's Mobile app screen says whether it is set up.
-
-Errors on the wallet cards stay in place and can be dismissed, and offer failures are explained in words.
-
-Lightning Fork 0.21.3-beta-blake2b.15, dashboard 1.3.2-blake2b.15.`,
+Lightning Fork 0.21.3-beta-blake2b.16, dashboard 1.3.2-blake2b.16.`,
   },
   migrations: {
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER
