@@ -150,6 +150,25 @@ of earlier releases when the per-node file is absent. The identity comes from
 stub `lncli` and `rclone`. `current`'s migration completes a saved Nextcloud
 address to the `/remote.php/dav/files/USER/` form rclone requires.
 
+## Bridge
+
+The daemon's `bridgerpc` sub-server (off unless `bridgerpc.enabled`) pays
+invoices on the SHA256 chain through a stock LND there; see `docs/bridge.md`
+in the daemon's repository.
+The **Bridge** action takes that node's gRPC lndconnect URI, writes its
+certificate (PEM) and macaroon to `data/bridge/` in the main volume, checks
+them with `lncli getinfo` against the node before saving, and sets the
+`bridgerpc.*` keys in `lnd.conf` (removed when turned off; the files and
+the journal under the network directory stay). The bridge dials without
+Tor, and a bridge that cannot reach the node keeps LND from starting.
+**Bridge Status**, **Set Bridge Rate** and **Add Bridge Participant** run
+`lncli bridge status|info|setrate|code` and are hidden while the bridge is
+off. Codes are offered for the REST interface's onion addresses only: any
+other address needs the SHA-256 of the certificate StartOS presents there.
+Each code's root key id and label are kept in `store.json`
+(`bridgeParticipants`), and **Remove Bridge Participant** runs
+`lncli deletemacaroonid` on it.
+
 ## Building
 
 ```

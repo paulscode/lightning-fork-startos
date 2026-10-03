@@ -22,6 +22,21 @@ export const shape = z.object({
     .enum(['tor', 'domain', 'ipv4', 'lan'])
     .nullable()
     .catch(null),
+  // The SHA256 node the bridge dials, kept while the bridge is off so that
+  // turning it back on needs no new connection string (the certificate and
+  // macaroon stay in data/bridge).
+  bridgeSha256RpcHost: z.string().nullable().catch(null),
+  // The bridge codes issued, so that one can be revoked by its label. The
+  // root key id is a uint64, kept as a string to keep every digit.
+  bridgeParticipants: z
+    .array(
+      z.object({
+        rootKeyId: z.string(),
+        label: z.string(),
+        createdAt: z.string(),
+      }),
+    )
+    .catch([]),
 })
 
 export const storeJson = FileHelper.json(

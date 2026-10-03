@@ -22,6 +22,13 @@ import { revokeMacaroons } from './revoke-macaroons'
 import { resetWalletTransactions } from './resetTxns'
 import { towerInfo } from './towerInfo'
 import { watchtowers } from './watchtowers'
+import { bridgeConfig } from './config/bridge'
+import {
+  bridgeAddParticipant,
+  bridgeRemoveParticipant,
+  bridgeSetRate,
+  bridgeStatus,
+} from './bridge'
 
 export const actions = sdk.Actions.of()
   .addAction(general)
@@ -37,6 +44,11 @@ export const actions = sdk.Actions.of()
   .addAction(resetWalletTransactions)
   .addAction(towerInfo)
   .addAction(watchtowers)
+  .addAction(bridgeConfig)
+  .addAction(bridgeStatus)
+  .addAction(bridgeSetRate)
+  .addAction(bridgeAddParticipant)
+  .addAction(bridgeRemoveParticipant)
   .addAction(nodeInfo)
   .addAction(dashboardPassword)
   .addAction(setDashboardPassword)

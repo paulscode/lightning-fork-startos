@@ -126,6 +126,31 @@ Lightning Fork users for each other.
   sessions it holds; one with no session has not accepted your node, which is
   what an incompatible tower looks like.
 
+## Running a bridge
+
+A bridge lets people you choose pay Lightning invoices on the SHA256 chain
+(original Bitcoin) from their BLAKE2b funds, or the reverse, without you ever
+holding their money: they pay a hold invoice with the same payment hash, which
+you can only claim by paying their invoice. It needs a stock LND on the SHA256
+chain, reachable from this server, with outbound liquidity, and it stays off
+until you turn it on.
+
+1. **Bridge:** turn it on, paste the SHA256 node's gRPC lndconnect URI (the
+   form with its LAN IP address; onion addresses are not used) and set your
+   rate in SHA256 coin per BLAKE2b coin. While the bridge is on, LND does not
+   start if it cannot reach the SHA256 node; turning the bridge off here
+   fixes that.
+2. **Set Bridge Rate:** change the rate at any time. Once it is older than the
+   rate maximum age (24 hours by default) the bridge stops quoting until you
+   set it again. **Bridge Status** shows whether it is serving and why not.
+3. **Add Bridge Participant:** makes a bridge code for one person, which they
+   add in their dashboard. It needs an onion address on the REST LND Connect
+   interface. A code is a credential: send it privately.
+   **Remove Bridge Participant** revokes one.
+
+The swap journal, which records swaps in flight, is kept in this service's
+data, so StartOS backups include it. Back up the SHA256 node as well.
+
 ## Backups
 
 Make a StartOS backup after every channel open or close, and consider

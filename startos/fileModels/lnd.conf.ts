@@ -183,6 +183,22 @@ export const shape = z.object({
 
   // ──── Watchtower Client ────
   'wtclient.active': iniBoolean,
+
+  // ──── Bridge (set by the Bridge action) ────
+  // Paying invoices on the SHA256 chain for chosen participants, through a
+  // stock LND there. The journal and rate.json default to bridge/ under the
+  // network directory, inside this volume and so inside StartOS backups.
+  'bridgerpc.enabled': iniBoolean,
+  'bridgerpc.tosha256': iniBoolean,
+  'bridgerpc.toblake2b': iniBoolean,
+  'bridgerpc.sha256.rpchost': iniString,
+  'bridgerpc.sha256.tlscertpath': iniString,
+  'bridgerpc.sha256.macaroonpath': iniString,
+  'bridgerpc.fixedrate': iniNumber,
+  'bridgerpc.spread': iniNumber,
+  'bridgerpc.maxswapmsat': iniNumber,
+  'bridgerpc.minswapmsat': iniNumber,
+  'bridgerpc.ratemaxage': iniString,
 })
 
 export type LndConf = z.infer<typeof shape>
