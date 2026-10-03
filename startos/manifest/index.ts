@@ -36,7 +36,7 @@ export const manifest = setupManifest({
       // The Makefile refuses to pack while a digest placeholder is in
       // place, for a future edit that forgets this line.
       source: {
-        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.14',
+        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.15',
       },
       arch: ['aarch64', 'x86_64'],
     },

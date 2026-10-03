@@ -3,15 +3,19 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta.14:1',
+  version: '0.21.3-beta.15:0',
   releaseNotes: {
-    en_US: `Lightning Fork for Android, in testing with a small group first: pair a phone from the dashboard's menu (Mobile app) to see your on-chain and Lightning balances, and send and receive from it. At home the phone reaches the dashboard at its LAN address, pinned to this server's certificate; anywhere else over Tor, once the Dashboard interface has an onion address. Each phone gets a key of its own, listed under Mobile app, where removing it stops it at once.
+    en_US: `Offers on mainnet: paying a BOLT 12 offer between two Lightning Fork nodes failed with "message names no chain". Fixed; both nodes need this release.
 
-Peers: the dashboard connects to another node without opening a channel, from its menu or the peer count, so that it can open one to you.
+Paying SHA256 invoices: the dashboard pays Lightning invoices from the SHA256 chain through a service run by someone you trust, from the code they give you (menu, Paying SHA256 invoices). You pay the service with an invoice that carries the SHA256 invoice's own payment hash, so it is paid only if it pays yours, and its price is checked against the market before anything is paid. The Android app (0.2.0) pays them too.
 
-Watchtowers: a Watchtowers action shows which towers accepted this node (its sessions with each). Towers taken out of Watchtower Client Settings are removed from the node when it starts, rather than left in place. The watchtower server can be given a LAN or public address besides its onion, and the address it gives clients follows the interface when it changes.
+Running such a service: the Bridge actions pair Lightning Fork with a stock LND on the SHA256 chain and make a code for each person you serve. Off unless you turn it on; see the instructions.
 
-Lightning Fork 0.21.3-beta-blake2b.14 (unchanged), dashboard 1.3.2-blake2b.14.`,
+The mobile app away from home: this update offers a task that gives the Dashboard an onion address (SSL off), which the app needs away from your home network. The dashboard's Mobile app screen says whether it is set up.
+
+Errors on the wallet cards stay in place and can be dismissed, and offer failures are explained in words.
+
+Lightning Fork 0.21.3-beta-blake2b.15, dashboard 1.3.2-blake2b.15.`,
   },
   migrations: {
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER
