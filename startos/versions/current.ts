@@ -9,6 +9,8 @@ export const current = VersionInfo.of({
 
 The wallet cards fit every message: long descriptions show one or two lines with More, the explanations of offers open on request, and nothing is drawn over the buttons or an error any more.
 
+From 0.21.3-beta.15, if you are updating from an earlier version: paying SHA256 invoices through a service you trust (menu, Paying SHA256 invoices), the Bridge actions for running such a service, and a task that gives the Dashboard an onion address so the Android app works away from home.
+
 Lightning Fork 0.21.3-beta-blake2b.16, dashboard 1.3.2-blake2b.16.`,
   },
   migrations: {
