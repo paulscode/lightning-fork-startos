@@ -1554,11 +1554,21 @@ export const main = sdk.setupMain(async ({ effects }) => {
           if (res.exitCode !== 0 || typeof res.stdout !== 'string') {
             return { result: 'starting', message: i18n('LND is starting…') }
           }
-          let status: { directions?: string[]; refusals?: string[] }
+          let status: {
+            directions?: string[]
+            refusals?: string[]
+            needs_operator?: string[]
+          }
           try {
             status = JSON.parse(res.stdout)
           } catch {
             return { result: 'starting', message: i18n('LND is starting…') }
+          }
+          // A lost swap, or one the bridge stopped on, needs a person
+          // whatever else is true, so it outranks everything below.
+          const attention = status.needs_operator ?? []
+          if (attention.length > 0) {
+            return { result: 'failure', message: attention.join('; ') }
           }
           const refusals = status.refusals ?? []
           if (refusals.length === 0) {
