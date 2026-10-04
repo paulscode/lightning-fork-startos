@@ -1984,7 +1984,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           // Measuring each chain's block rate and catching up take a few
           // minutes after every start; that is not a fault.
           const settling = refusals.every((r) =>
-            /still measuring|not synced|has not started|not ready yet|still connecting/.test(
+            /still measuring|not synced|has not started|not ready yet|still connecting|reading the market/.test(
               r,
             ),
           )

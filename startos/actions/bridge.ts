@@ -19,6 +19,11 @@ type BridgeStatus = {
   rate: number
   rate_set_at: string
   rate_expires_at: string
+  rate_source?: string
+  rate_cross_check?: number
+  rate_volatility?: number
+  fee_to_sha256?: number
+  fee_to_blake2b?: number
   needs_operator?: string[]
   sha256_node?: {
     mode: string
@@ -130,20 +135,62 @@ export const bridgeStatus = sdk.Action.withoutInput(
         type: 'group',
         value: [
           single(i18n('State'), state),
-          status.rate
+          status.rate_source === 'neoxa'
             ? single(
                 i18n('Rate'),
-                String(status.rate),
+                status.rate
+                  ? i18n(
+                      '${rate} from the market (Neoxa), read ${set}; cross-check ${cross}',
+                      {
+                        rate: String(status.rate),
+                        set: when(status.rate_set_at),
+                        cross: status.rate_cross_check
+                          ? String(
+                              Math.round(status.rate_cross_check * 1e8) / 1e8,
+                            )
+                          : '—',
+                      },
+                    )
+                  : i18n('Reading the market'),
                 i18n(
-                  'SHA256 coin per BLAKE2b coin, set ${set}, used until ${expires}.',
-                  { set: when(status.rate_set_at), expires },
+                  "SHA256 coin per BLAKE2b coin: Neoxa's BTCB2_BTC price, checked against its BTCB2_USDC price. While the market cannot be read, or the two disagree, the bridge quotes nothing (State says why).",
                 ),
               )
-            : single(
-                i18n('Rate'),
-                i18n('Not set yet: the bridge quotes nothing until it is.'),
-                i18n('Set it with Set Bridge Rate.'),
-              ),
+            : status.rate
+              ? single(
+                  i18n('Rate'),
+                  String(status.rate),
+                  i18n(
+                    'SHA256 coin per BLAKE2b coin, set ${set}, used until ${expires}.',
+                    { set: when(status.rate_set_at), expires },
+                  ),
+                )
+              : single(
+                  i18n('Rate'),
+                  i18n('Not set yet: the bridge quotes nothing until it is.'),
+                  i18n('Set it with Set Bridge Rate.'),
+                ),
+          ...(status.fee_to_sha256
+            ? [
+                single(
+                  i18n('Fees'),
+                  i18n(
+                    '${toSha256}% paying SHA256 invoices, ${toBlake2b}% paying BLAKE2b invoices',
+                    {
+                      toSha256: String(
+                        Math.round(status.fee_to_sha256 * 10000) / 100,
+                      ),
+                      toBlake2b: String(
+                        Math.round((status.fee_to_blake2b ?? 0) * 10000) / 100,
+                      ),
+                    },
+                  ),
+                  i18n(
+                    "Before the market's own movement and how low the bridge is running widen them.",
+                  ),
+                ),
+              ]
+            : []),
           single(i18n('Swaps in flight'), String(status.swaps_in_flight)),
           // The SHA256 node first among the numbers: it is what a new bridge
           // is waiting on, and its detail says what to do next.
@@ -225,12 +272,18 @@ export const bridgeSetRate = sdk.Action.withInput(
   async ({ effects }) => ({
     name: i18n('Set Bridge Rate'),
     description: i18n(
-      'Change the rate the bridge trades at, at once and without a restart.',
+      'Change the rate the bridge trades at, at once and without a restart. Only with your own rate (Rate Source in the Bridge setting).',
     ),
     warning: null,
     allowedStatuses: 'only-running',
     group: i18n('Bridge'),
-    visibility: await bridgeVisibility(effects),
+    // Following the market there is nothing to set, and LND refuses.
+    visibility:
+      (await lndConfFile
+        .read((c) => c['bridgerpc.ratesource'] === 'fixed')
+        .const(effects)) && (await bridgeVisibility(effects)) === 'enabled'
+        ? ('enabled' as const)
+        : ('hidden' as const),
   }),
 
   // form input specification

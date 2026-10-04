@@ -30,12 +30,19 @@ const bridgeOff = {
   'bridgerpc.enabled': undefined,
   'bridgerpc.tosha256': undefined,
   'bridgerpc.toblake2b': undefined,
+  'bridgerpc.ratesource': undefined,
   'bridgerpc.fixedrate': undefined,
   'bridgerpc.spread': undefined,
+  'bridgerpc.fee.tosha256': undefined,
+  'bridgerpc.fee.toblake2b': undefined,
   'bridgerpc.maxswapmsat': undefined,
   'bridgerpc.minswapmsat': undefined,
   'bridgerpc.ratemaxage': undefined,
 }
+
+// A fee in percent as LND takes it, a fraction, and back.
+const fraction = (percent: number) => Number((percent / 100).toFixed(6))
+const percentOf = (f: number) => Math.round(f * 10000) / 100
 
 // A connection is configured once a URI has been saved and its files are
 // still there.
@@ -139,10 +146,21 @@ const bridgeSpec = InputSpec.of({
       },
     }),
   }),
+  rateSource: Value.select({
+    name: i18n('Rate Source'),
+    description: i18n(
+      "Where the rate comes from. The market: Neoxa's BTCB2_BTC price, read every 30 seconds and checked against its BTCB2_USDC price; while the market cannot be read, or the two disagree, the bridge quotes nothing. Your own: the rate below, which you keep current with Set Bridge Rate.",
+    ),
+    default: 'neoxa',
+    values: {
+      neoxa: i18n('The market (Neoxa), read live'),
+      fixed: i18n('My own rate'),
+    },
+  }),
   rate: Value.number({
     name: i18n('Rate'),
     description: i18n(
-      'SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one. There is no default, because a wrong rate loses money on every swap.',
+      'With your own rate only: SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one.',
     ),
     default: null,
     required: false,
@@ -151,13 +169,37 @@ const bridgeSpec = InputSpec.of({
     placeholder: '0.00483',
   }),
   spread: Value.number({
-    name: i18n('Spread'),
+    name: i18n('Fee'),
     description: i18n(
-      'What you keep on top of the rate; routing fees come out of it.',
+      'What you charge on top of the rate, in both directions unless set below; routing fees come out of it. 1.5% stays inside what payers allow by default even when the bridge runs low and charges up to three times this.',
     ),
-    default: 1,
+    default: 1.5,
     required: true,
-    min: 0.3,
+    min: 0.4,
+    max: 19.9,
+    integer: false,
+    units: '%',
+  }),
+  feeToSha256: Value.number({
+    name: i18n('Fee, Paying SHA256 Invoices'),
+    description: i18n(
+      'Your fee for swaps that pay out on the SHA256 chain, if different. Leave empty for the fee above.',
+    ),
+    default: null,
+    required: false,
+    min: 0.4,
+    max: 19.9,
+    integer: false,
+    units: '%',
+  }),
+  feeToBlake2b: Value.number({
+    name: i18n('Fee, Paying BLAKE2b Invoices'),
+    description: i18n(
+      'Your fee for swaps that pay out on this chain, if different. Leave empty for the fee above.',
+    ),
+    default: null,
+    required: false,
+    min: 0.4,
     max: 19.9,
     integer: false,
     units: '%',
@@ -187,9 +229,9 @@ const bridgeSpec = InputSpec.of({
   rateMaxAgeHours: Value.number({
     name: i18n('Rate Maximum Age'),
     description: i18n(
-      'After this long without a new rate the bridge stops quoting.',
+      'With your own rate only: after this long without a new rate the bridge stops quoting.',
     ),
-    default: 24,
+    default: 1,
     required: true,
     min: 1,
     integer: true,
@@ -350,11 +392,23 @@ export const bridgeConfig = sdk.Action.withInput(
       sha256,
       tosha256: !!c['bridgerpc.tosha256'],
       toblake2b: !!c['bridgerpc.toblake2b'],
+      rateSource:
+        c['bridgerpc.ratesource'] === 'fixed'
+          ? ('fixed' as const)
+          : ('neoxa' as const),
       rate: c['bridgerpc.fixedrate'] ?? null,
       spread:
         c['bridgerpc.spread'] !== undefined
-          ? Math.round(c['bridgerpc.spread'] * 10000) / 100
-          : 1,
+          ? percentOf(c['bridgerpc.spread'])
+          : 1.5,
+      feeToSha256:
+        c['bridgerpc.fee.tosha256'] !== undefined
+          ? percentOf(c['bridgerpc.fee.tosha256'])
+          : null,
+      feeToBlake2b:
+        c['bridgerpc.fee.toblake2b'] !== undefined
+          ? percentOf(c['bridgerpc.fee.toblake2b'])
+          : null,
       minSwapSats:
         c['bridgerpc.minswapmsat'] !== undefined
           ? Math.round(c['bridgerpc.minswapmsat'] / 1000)
@@ -363,7 +417,7 @@ export const bridgeConfig = sdk.Action.withInput(
         c['bridgerpc.maxswapmsat'] !== undefined
           ? Math.round(c['bridgerpc.maxswapmsat'] / 1000)
           : 150000,
-      rateMaxAgeHours: durationHours(c['bridgerpc.ratemaxage']) ?? 24,
+      rateMaxAgeHours: durationHours(c['bridgerpc.ratemaxage']) ?? 1,
     }
   },
 
@@ -426,8 +480,10 @@ export const bridgeConfig = sdk.Action.withInput(
           'Enter the rate, in SHA256 coin per BLAKE2b coin, such as 0.00483.',
         ),
       )
-    if (input.spread < 0.3 || input.spread >= 20)
-      throw new Error(i18n('The spread must be from 0.3% to under 20%.'))
+    // Over the 0.3% the bridge budgets for routing, which a fee must cover.
+    for (const fee of [input.spread, input.feeToSha256, input.feeToBlake2b])
+      if (fee !== null && fee !== undefined && (fee <= 0.3 || fee >= 20))
+        throw new Error(i18n('A fee must be over 0.3% and under 20%.'))
     if (input.minSwapSats > input.maxSwapSats)
       throw new Error(
         i18n('The smallest swap must not be larger than the largest.'),
@@ -437,11 +493,20 @@ export const bridgeConfig = sdk.Action.withInput(
       'bridgerpc.enabled': true,
       'bridgerpc.tosha256': input.tosha256,
       'bridgerpc.toblake2b': input.toblake2b,
-      'bridgerpc.fixedrate': input.rate ?? undefined,
-      'bridgerpc.spread': Number((input.spread / 100).toFixed(6)),
+      'bridgerpc.ratesource': input.rateSource,
+      // Only with the operator's own rate: beside the market's, LND would
+      // say it is not used.
+      'bridgerpc.fixedrate':
+        input.rateSource === 'fixed' ? (input.rate ?? undefined) : undefined,
+      'bridgerpc.spread': fraction(input.spread),
+      'bridgerpc.fee.tosha256':
+        input.feeToSha256 != null ? fraction(input.feeToSha256) : undefined,
+      'bridgerpc.fee.toblake2b':
+        input.feeToBlake2b != null ? fraction(input.feeToBlake2b) : undefined,
       'bridgerpc.minswapmsat': input.minSwapSats * 1000,
       'bridgerpc.maxswapmsat': input.maxSwapSats * 1000,
-      'bridgerpc.ratemaxage': `${input.rateMaxAgeHours}h`,
+      'bridgerpc.ratemaxage':
+        input.rateSource === 'fixed' ? `${input.rateMaxAgeHours}h` : undefined,
     }
 
     // Lightning Fork runs the SHA256 node: nothing to dial or check here.
