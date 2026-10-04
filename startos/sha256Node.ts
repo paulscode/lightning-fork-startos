@@ -71,7 +71,9 @@ export const sha256Backends: Record<
     healthChecks: ['bitcoind', 'sync-progress'],
   },
   bitcoind: {
-    title: 'Bitcoin Knots (pre-RDTS flavor)',
+    // As Select Node names it; the form says which chain the installed one
+    // is on.
+    title: 'Bitcoin Knots',
     // Any version: a range cannot name a flavor, and the chain the node
     // follows is what matters, which lnd itself finds out.
     versionRange: '*',

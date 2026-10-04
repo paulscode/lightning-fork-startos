@@ -12,6 +12,8 @@ import { lndConfFile } from '../../fileModels/lnd.conf'
 import { storeJson } from '../../fileModels/store.json'
 import { defaultBackend, Sha256BackendId } from '../../backends'
 import { sha256BackendChoices, sha256Backends } from '../../sha256Node'
+import { nodeLabel, surveyNodes } from '../../nodes'
+import { suggestNode } from '../../nodeChain'
 import { i18n } from '../../i18n'
 import { sdk } from '../../sdk'
 import { literal } from '../../utils'
@@ -78,18 +80,28 @@ const bridgeSpec = InputSpec.of({
       supervised: {
         name: i18n('Lightning Fork runs one'),
         spec: InputSpec.of({
-          bitcoin: Value.dynamicSelect(async () => {
-            const lf =
-              (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
+          bitcoin: Value.dynamicSelect(async ({ effects }) => {
+            const store = await storeJson.read().once()
+            const lf = store?.backend ?? defaultBackend
             const choices = sha256BackendChoices(lf)
+            const nodes = await surveyNodes(effects)
             return {
               name: i18n('SHA256 Chain Node'),
               description: i18n(
                 'The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.',
               ),
-              default: choices[0],
+              default: suggestNode(
+                choices,
+                nodes,
+                'sha256',
+                (store?.bridgeSha256Backend as Sha256BackendId | null) ?? null,
+                lf,
+              ),
               values: Object.fromEntries(
-                choices.map((id) => [id, sha256Backends[id].title]),
+                choices.map((id) => [
+                  id,
+                  nodeLabel(sha256Backends[id].title, nodes[id]),
+                ]),
               ),
             }
           }),
@@ -269,10 +281,13 @@ export const bridgeConfig = sdk.Action.withInput(
         : {
             selection: 'supervised' as const,
             value: {
-              bitcoin:
-                saved && sha256BackendChoices(lf).includes(saved)
-                  ? saved
-                  : sha256BackendChoices(lf)[0],
+              bitcoin: suggestNode(
+                sha256BackendChoices(lf),
+                await surveyNodes(effects),
+                'sha256',
+                saved,
+                lf,
+              ),
             },
           }
     if (!c?.['bridgerpc.enabled']) return { enabled: false, sha256 }
@@ -363,6 +378,22 @@ export const bridgeConfig = sdk.Action.withInput(
         throw new Error(
           i18n(
             'That Bitcoin node is the one this node reads, on the BLAKE2b chain. Choose one on the SHA256 chain.',
+          ),
+        )
+      const node = (await surveyNodes(effects))[bitcoin]
+      const name = literal(sha256Backends[bitcoin].title)
+      if (!node.installed)
+        throw new Error(
+          i18n(
+            '${name} is not installed. Install it first (it must be on the SHA256 chain), or choose another.',
+            { name },
+          ),
+        )
+      if (node.chain === 'blake2b')
+        throw new Error(
+          i18n(
+            "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.",
+            { name, version: literal(node.version ?? '') },
           ),
         )
       await storeJson.merge(effects, {

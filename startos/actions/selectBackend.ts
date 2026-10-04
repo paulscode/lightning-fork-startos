@@ -1,4 +1,7 @@
-import { backends, defaultBackend } from '../backends'
+import { BackendId, backendIds, backends, defaultBackend } from '../backends'
+import { nodeLabel, surveyNodes } from '../nodes'
+import { suggestNode } from '../nodeChain'
+import { literal } from '../utils'
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
@@ -15,15 +18,20 @@ const { InputSpec, Value } = sdk
  * package at start, by getBackendBundle, so nothing here can go stale.
  */
 const backendInputSpec = InputSpec.of({
-  backend: Value.select({
-    name: i18n('Select Node'),
-    description: i18n(
-      'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.',
-    ),
-    values: Object.fromEntries(
-      Object.entries(backends).map(([id, b]) => [id, b.title]),
-    ) as Record<string, string>,
-    default: defaultBackend,
+  backend: Value.dynamicSelect(async ({ effects }) => {
+    const nodes = await surveyNodes(effects)
+    const current =
+      (await storeJson.read((s) => s?.backend).once()) ?? defaultBackend
+    return {
+      name: i18n('Select Node'),
+      description: i18n(
+        'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.',
+      ),
+      values: Object.fromEntries(
+        backendIds.map((id) => [id, nodeLabel(backends[id].title, nodes[id])]),
+      ) as Record<string, string>,
+      default: suggestNode(backendIds, nodes, 'blake2b', current),
+    }
   }),
 })
 
@@ -49,6 +57,22 @@ export const selectBackend = sdk.Action.withInput(
   }),
 
   async ({ effects, input }) => {
+    // A node that plainly follows the other chain is refused here, where
+    // the person choosing it is, rather than at the next start. (One whose
+    // chain is not known is checked then.)
+    const chosen = input.backend as BackendId
+    const node = (await surveyNodes(effects))[chosen]
+    if (node.installed && node.chain === 'sha256')
+      throw new Error(
+        i18n(
+          '${name} here follows the SHA256 chain (version ${version}). Lightning Fork needs a node on the BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the Bitcoin Knots (BLAKE2b) Companion.',
+          {
+            name: literal(backends[chosen].title),
+            version: literal(node.version ?? ''),
+          },
+        ),
+      )
+
     // The package the bridge's SHA256 node reads is on the SHA256 chain;
     // Lightning Fork cannot read it too.
     const store = await storeJson.read().once()

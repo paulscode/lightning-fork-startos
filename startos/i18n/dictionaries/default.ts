@@ -683,6 +683,13 @@ const dict = {
   "Running, watching its channels": 709,
   "${count} payments through the bridge are not finished. Wait until Bridge Status shows none in flight and none needing you, then turn it off or change its node: a payment cut off halfway can cost you what the bridge has already paid.": 710,
   "Restored from a backup, with channels to recover. Turn the bridge on in Bridge, with \"Lightning Fork runs one\", and its channels are restored.": 711,
+  "${name}: not installed": 712,
+  "${name}: installed, on the BLAKE2b chain": 713,
+  "${name}: installed, on the SHA256 chain": 714,
+  "${name}: installed": 715,
+  "${name} here follows the SHA256 chain (version ${version}). Lightning Fork needs a node on the BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the Bitcoin Knots (BLAKE2b) Companion.": 716,
+  "${name} is not installed. Install it first (it must be on the SHA256 chain), or choose another.": 717,
+  "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.": 718,
 } as const
 
 /**

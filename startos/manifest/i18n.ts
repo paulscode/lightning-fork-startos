@@ -57,7 +57,7 @@ export const alertRestore = {
 }
 
 const depBitcoindEn =
-  'The official Bitcoin package in its Knots flavor, 29.4.1 or later, following the BLAKE2b chain. Used to read blocks and transactions and to subscribe to new block events.'
+  "The official Bitcoin package, in one of two roles. As the node Lightning Fork reads (Select Node), it must follow the BLAKE2b chain: Bitcoin Knots 29.4.1 or later. As the node the bridge's own Lightning node reads, it must follow the SHA256 chain: Bitcoin Core, or a Knots build for that chain; the bridge's node is then read over RPC and holds none of the bridge's coins."
 
 export const depBitcoindDescription = {
   en_US: depBitcoindEn,
