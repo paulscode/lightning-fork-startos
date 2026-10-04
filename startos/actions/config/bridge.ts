@@ -9,11 +9,13 @@ import {
 } from '../../bridge'
 import { lndConfFile } from '../../fileModels/lnd.conf'
 import { storeJson } from '../../fileModels/store.json'
+import { defaultBackend, Sha256BackendId } from '../../backends'
+import { sha256BackendChoices, sha256Backends } from '../../sha256Node'
 import { i18n } from '../../i18n'
 import { sdk } from '../../sdk'
 import { literal } from '../../utils'
 
-const { InputSpec, Value } = sdk
+const { InputSpec, Value, Variants } = sdk
 
 // Every key this action writes, so that turning the bridge off leaves none
 // behind. The certificate, macaroon and journal stay on disk.
@@ -24,6 +26,7 @@ const bridgeOff = {
   'bridgerpc.sha256.rpchost': undefined,
   'bridgerpc.sha256.tlscertpath': undefined,
   'bridgerpc.sha256.macaroonpath': undefined,
+  'bridgerpc.sha256.supervised': undefined,
   'bridgerpc.fixedrate': undefined,
   'bridgerpc.spread': undefined,
   'bridgerpc.maxswapmsat': undefined,
@@ -64,27 +67,61 @@ const bridgeSpec = InputSpec.of({
     ),
     default: false,
   }),
-  connection: Value.dynamicText(async () => {
-    const configured = await connectionConfigured()
-    return {
-      name: i18n('SHA256 Node Connection'),
-      description: i18n(
-        "The gRPC lndconnect URI of a stock LND on the SHA256 chain, with its admin macaroon. This server dials that address directly, never through Tor: use the form with the node's LAN IP address, not .local or .onion.",
-      ),
-      default: null,
-      required: false,
-      masked: true,
-      placeholder: configured
-        ? i18n('Configured for ${host}. Leave empty to keep it.', {
-            host: literal(configured),
-          })
-        : 'lndconnect://192.168.1.10:10009?cert=…&macaroon=…',
-    }
+  sha256: Value.union({
+    name: i18n('SHA256 Lightning Node'),
+    description: i18n(
+      'The LND on the SHA256 chain the bridge pays through. Lightning Fork can run one for you: its seed comes from this wallet, so there is nothing new to write down; it takes about 1-3 GB (a Lightning node, not a second chain node); and it starts empty, so fund it and open a channel from it before the bridge can pay. Or use an LND you already run.',
+    ),
+    default: 'supervised',
+    variants: Variants.of({
+      supervised: {
+        name: i18n('Lightning Fork runs one'),
+        spec: InputSpec.of({
+          bitcoin: Value.dynamicSelect(async () => {
+            const lf =
+              (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
+            const choices = sha256BackendChoices(lf)
+            return {
+              name: i18n('SHA256 Bitcoin Node'),
+              description: i18n(
+                'The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.',
+              ),
+              default: choices[0],
+              values: Object.fromEntries(
+                choices.map((id) => [id, sha256Backends[id].title]),
+              ),
+            }
+          }),
+        }),
+      },
+      existing: {
+        name: i18n('An LND I already run'),
+        spec: InputSpec.of({
+          connection: Value.dynamicText(async () => {
+            const configured = await connectionConfigured()
+            return {
+              name: i18n('SHA256 Node Connection'),
+              description: i18n(
+                "The gRPC lndconnect URI of a stock LND on the SHA256 chain, with its admin macaroon. This server dials that address directly, never through Tor: use the form with the node's LAN IP address, not .local or .onion.",
+              ),
+              default: null,
+              required: false,
+              masked: true,
+              placeholder: configured
+                ? i18n('Configured for ${host}. Leave empty to keep it.', {
+                    host: literal(configured),
+                  })
+                : 'lndconnect://192.168.1.10:10009?cert=…&macaroon=…',
+            }
+          }),
+        }),
+      },
+    }),
   }),
   rate: Value.number({
     name: i18n('Rate'),
     description: i18n(
-      'SHA256 coin per BLAKE2b coin, such as 0.00483. There is no default: a wrong rate loses money on every swap. Change it later with Set Bridge Rate.',
+      'SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one. There is no default, because a wrong rate loses money on every swap.',
     ),
     default: null,
     required: false,
@@ -205,7 +242,7 @@ export const bridgeConfig = sdk.Action.withInput(
   async ({ effects }) => ({
     name: i18n('Bridge'),
     description: i18n(
-      'Pay Lightning invoices on the SHA256 chain for people you choose, through your own LND there, without holding their funds.',
+      'Pay Lightning invoices on the SHA256 chain for people you choose, through a Lightning node there that Lightning Fork runs for you or one you already run, without holding their funds.',
     ),
     warning: i18n(
       'If LND cannot reach the SHA256 node, the bridge stays down and tries again every minute; LND itself runs as usual. Bridge Status says why.',
@@ -221,9 +258,26 @@ export const bridgeConfig = sdk.Action.withInput(
   // optionally pre-fill the input form; never the connection, a secret
   async ({ effects }) => {
     const c = await lndConfFile.read().once()
-    if (!c?.['bridgerpc.enabled']) return { enabled: false }
+    const store = await storeJson.read().once()
+    const lf = store?.backend ?? defaultBackend
+    const saved = store?.bridgeSha256Backend as Sha256BackendId | null
+    const sha256 =
+      store?.bridgeMode === 'external' ||
+      (store?.bridgeMode === null && store?.bridgeSha256RpcHost)
+        ? { selection: 'existing' as const, value: { connection: null } }
+        : {
+            selection: 'supervised' as const,
+            value: {
+              bitcoin:
+                saved && sha256BackendChoices(lf).includes(saved)
+                  ? saved
+                  : sha256BackendChoices(lf)[0],
+            },
+          }
+    if (!c?.['bridgerpc.enabled']) return { enabled: false, sha256 }
     return {
       enabled: true,
+      sha256,
       tosha256: !!c['bridgerpc.tosha256'],
       toblake2b: !!c['bridgerpc.toblake2b'],
       rate: c['bridgerpc.fixedrate'] ?? null,
@@ -255,7 +309,7 @@ export const bridgeConfig = sdk.Action.withInput(
     // unreachable SHA256 node, which only keeps the bridge down.
     if (!input.tosha256 && !input.toblake2b)
       throw new Error(i18n('Choose at least one direction to serve.'))
-    if (!input.rate || input.rate <= 0)
+    if (input.rate !== null && input.rate !== undefined && input.rate <= 0)
       throw new Error(
         i18n(
           'Enter the rate, in SHA256 coin per BLAKE2b coin, such as 0.00483.',
@@ -268,12 +322,51 @@ export const bridgeConfig = sdk.Action.withInput(
         i18n('The smallest swap must not be larger than the largest.'),
       )
 
+    const common = {
+      'bridgerpc.enabled': true,
+      'bridgerpc.tosha256': input.tosha256,
+      'bridgerpc.toblake2b': input.toblake2b,
+      'bridgerpc.fixedrate': input.rate ?? undefined,
+      'bridgerpc.spread': Number((input.spread / 100).toFixed(6)),
+      'bridgerpc.minswapmsat': input.minSwapSats * 1000,
+      'bridgerpc.maxswapmsat': input.maxSwapSats * 1000,
+      'bridgerpc.ratemaxage': `${input.rateMaxAgeHours}h`,
+    }
+
+    // Lightning Fork runs the SHA256 node: nothing to dial or check here.
+    // The node is started once the bridge has made its wallet password,
+    // and Bridge Status follows it from there.
+    if (input.sha256.selection === 'supervised') {
+      const lf =
+        (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
+      const bitcoin = input.sha256.value.bitcoin as Sha256BackendId
+      if (!sha256BackendChoices(lf).includes(bitcoin))
+        throw new Error(
+          i18n(
+            'That Bitcoin node is the one this node reads, on the BLAKE2b chain. Choose one on the SHA256 chain.',
+          ),
+        )
+      await storeJson.merge(effects, {
+        bridgeMode: 'supervised',
+        bridgeSha256Backend: bitcoin,
+      })
+      await lndConfFile.merge(effects, {
+        ...common,
+        'bridgerpc.sha256.supervised': true,
+        'bridgerpc.sha256.rpchost': undefined,
+        'bridgerpc.sha256.tlscertpath': undefined,
+        'bridgerpc.sha256.macaroonpath': undefined,
+      })
+      return
+    }
+
     // A new URI is written beside the saved one and replaces it only once
     // the SHA256 node has answered with it.
+    const connection = input.sha256.value.connection
     let host = await connectionConfigured()
     let suffix = ''
-    if (input.connection?.trim()) {
-      const parsed = parseLndConnect(input.connection)
+    if (connection?.trim()) {
+      const parsed = parseLndConnect(connection)
       host = parsed.host
       suffix = '.new'
       await mkdir(bridgeDirHost, { recursive: true, mode: 0o700 })
@@ -325,18 +418,13 @@ export const bridgeConfig = sdk.Action.withInput(
       await storeJson.merge(effects, { bridgeSha256RpcHost: host })
     }
 
+    await storeJson.merge(effects, { bridgeMode: 'external' })
     await lndConfFile.merge(effects, {
-      'bridgerpc.enabled': true,
-      'bridgerpc.tosha256': input.tosha256,
-      'bridgerpc.toblake2b': input.toblake2b,
+      ...common,
+      'bridgerpc.sha256.supervised': undefined,
       'bridgerpc.sha256.rpchost': host,
       'bridgerpc.sha256.tlscertpath': `${bridgeDirLnd}/${bridgeCertFile}`,
       'bridgerpc.sha256.macaroonpath': `${bridgeDirLnd}/${bridgeMacaroonFile}`,
-      'bridgerpc.fixedrate': input.rate,
-      'bridgerpc.spread': Number((input.spread / 100).toFixed(6)),
-      'bridgerpc.minswapmsat': input.minSwapSats * 1000,
-      'bridgerpc.maxswapmsat': input.maxSwapSats * 1000,
-      'bridgerpc.ratemaxage': `${input.rateMaxAgeHours}h`,
     })
   },
 )

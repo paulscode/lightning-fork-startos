@@ -194,6 +194,7 @@ export const shape = z.object({
   'bridgerpc.sha256.rpchost': iniString,
   'bridgerpc.sha256.tlscertpath': iniString,
   'bridgerpc.sha256.macaroonpath': iniString,
+  'bridgerpc.sha256.supervised': iniBoolean,
   'bridgerpc.fixedrate': iniNumber,
   'bridgerpc.spread': iniNumber,
   'bridgerpc.maxswapmsat': iniNumber,

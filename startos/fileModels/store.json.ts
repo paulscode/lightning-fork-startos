@@ -1,5 +1,10 @@
 import { FileHelper, z } from '@start9labs/start-sdk'
-import { BackendId, backendIds, defaultBackend } from '../backends'
+import {
+  BackendId,
+  backendIds,
+  defaultBackend,
+  sha256BackendIds,
+} from '../backends'
 import { sdk } from '../sdk'
 
 export const shape = z.object({
@@ -29,6 +34,16 @@ export const shape = z.object({
   // turning it back on needs no new connection string (the certificate and
   // macaroon stay in data/bridge).
   bridgeSha256RpcHost: z.string().nullable().catch(null),
+  // Whose LND the bridge pays through on the SHA256 chain: one Lightning
+  // Fork runs for it (supervised, the default), or one the operator already
+  // ran (external, through bridgeSha256RpcHost). Null until the bridge is
+  // first configured.
+  bridgeMode: z.enum(['supervised', 'external']).nullable().catch(null),
+  // For a supervised node, the SHA256 Bitcoin node it reads.
+  bridgeSha256Backend: z
+    .enum(sha256BackendIds as unknown as [string, ...string[]])
+    .nullable()
+    .catch(null),
   // The bridge codes issued, so that one can be revoked by its label. The
   // root key id is a uint64, kept as a string to keep every digit.
   bridgeParticipants: z

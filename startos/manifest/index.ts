@@ -2,6 +2,7 @@ import { setupManifest } from '@start9labs/start-sdk'
 import {
   depBitcoindDescription,
   depCompanionDescription,
+  depSha256Description,
   depMempoolDescription,
   depMempoolPrunedDescription,
   depTorDescription,
@@ -40,6 +41,18 @@ export const manifest = setupManifest({
       },
       arch: ['aarch64', 'x86_64'],
     },
+    // The bridge's own SHA256 Lightning node: the official lnd image,
+    // unmodified, pinned by tag (see the dashboard image above for why not
+    // by digest). Every change this fork makes is one that must not apply
+    // on the SHA256 chain, so that node runs upstream's binary. What the tag
+    // resolved to when this version was released:
+    //   index sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d
+    lndSha256: {
+      source: {
+        dockerTag: 'lightninglabs/lnd:v0.21.4-beta',
+      },
+      arch: ['aarch64', 'x86_64'],
+    },
     lnd: {
       // Built from ./Dockerfile: Lightning Fork from a pinned commit of
       // github.com/paulscode/lightning-fork, plus lndinit and the sqlite3 CLI
@@ -61,6 +74,16 @@ export const manifest = setupManifest({
       metadata: {
         title: 'Bitcoin Knots',
         icon: 'https://raw.githubusercontent.com/Start9Labs/bitcoin-core-startos/feec0b1dae42961a257948fe39b40caf8672fce1/dep-icon.svg',
+      },
+    },
+    // The SHA256 chain, for the Lightning node the bridge runs there (see
+    // sha256Node.ts). Only ever required while that node runs.
+    'knots-prerdts': {
+      description: depSha256Description,
+      optional: true,
+      metadata: {
+        title: 'Bitcoin Knots (SHA256) Companion',
+        icon: 'https://raw.githubusercontent.com/paulscode/knots-prerdts-startos/main/icon.png',
       },
     },
     'knots-blake2b': {

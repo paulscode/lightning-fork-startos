@@ -49,9 +49,17 @@ import {
   sleep,
   mempoolAppsEnv,
 } from './utils'
-import { readFile, rename, rm, writeFile } from 'fs/promises'
+import { readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { get as httpGet } from 'http'
 import { dashboardPort, gRPCPort, restPort } from './interfaces'
+import { Sha256BackendId } from './backends'
+import {
+  sha256BitcoindMnt,
+  sha256GrpcPort,
+  sha256NodeCommand,
+  sha256PasswordFile,
+  sha256RpcHost,
+} from './sha256Node'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
@@ -146,6 +154,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       walletPassword: s.walletPassword,
       watchtowerClients: s.watchtowerClients,
       backend: s.backend,
+      bridgeSha256Backend: s.bridgeSha256Backend,
     }))
     .const(effects)
   if (!store) {
@@ -587,6 +596,68 @@ export const main = sdk.setupMain(async ({ effects }) => {
       )
     }
     return error
+  }
+
+  // The bridge's own SHA256 Lightning node, when Lightning Fork runs one
+  // (sha256Node.ts): a stock lnd that starts once Lightning Fork has written
+  // its wallet password, reading the SHA256 Bitcoin node chosen in the Bridge
+  // action. Absent unless the bridge is on in that mode, so nothing about it
+  // shows on a node that does not bridge, or bridges through its own LND.
+  const sha256Backend = store.bridgeSha256Backend as Sha256BackendId | null
+  const sha256Rpc =
+    conf['bridgerpc.enabled'] &&
+    conf['bridgerpc.sha256.supervised'] &&
+    sha256Backend &&
+    sha256Backend !== backend
+      ? await sha256RpcHost(effects, sha256Backend)
+      : null
+  const withSha256Node = <C extends { addDaemon: any }>(chain: C): C => {
+    // No address: the chosen Bitcoin node is not installed or not running,
+    // which the dependency on it already shows. Nothing to start yet.
+    if (!sha256Rpc || !sha256Backend) return chain
+    const sub = sdk.SubContainer.of(
+      effects,
+      { imageId: 'lndSha256' },
+      mainMounts.mountDependency<typeof bitcoinManifest>({
+        dependencyId: sha256Backend as 'bitcoind',
+        volumeId: 'main',
+        mountpoint: sha256BitcoindMnt,
+        subpath: null,
+        readonly: true,
+      }),
+      'sha256-lnd-sub',
+    )
+    return chain.addDaemon('sha256-lnd', {
+      subcontainer: sub,
+      exec: { command: sha256NodeCommand(sha256Rpc) },
+      ready: {
+        display: i18n('SHA256 Lightning Node'),
+        fn: async () => {
+          const listening = await sdk.healthCheck.checkPortListening(
+            effects,
+            sha256GrpcPort,
+            {
+              successMessage: i18n('Running for the bridge'),
+              errorMessage: '',
+            },
+          )
+          if (listening.result === 'success') return listening
+          const waiting = await stat(
+            `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
+          ).then(
+            () => false,
+            () => true,
+          )
+          return {
+            result: 'starting',
+            message: waiting
+              ? i18n('Waiting for Lightning Fork to create it')
+              : i18n('Starting'),
+          }
+        },
+      },
+      requires: ['lnd'],
+    }) as C
   }
 
   const lndChain = () => {
@@ -1525,7 +1596,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // than only as quotes refused. Absent while the bridge is off, which is
     // nearly every node.
     if (!conf['bridgerpc.enabled']) return chain
-    return chain.addHealthCheck('bridge', {
+    return withSha256Node(chain).addHealthCheck('bridge', {
       ready: {
         display: i18n('Bridge'),
         trigger: sdk.trigger.statusTrigger(60_000, {
@@ -1582,7 +1653,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
           // Measuring each chain's block rate and catching up take a few
           // minutes after every start; that is not a fault.
           const settling = refusals.every((r) =>
-            /still measuring|not synced|has not started/.test(r),
+            /still measuring|not synced|has not started|not ready yet|still connecting/.test(
+              r,
+            ),
           )
           return {
             result: settling ? 'starting' : 'failure',

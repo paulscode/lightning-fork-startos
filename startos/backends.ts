@@ -110,3 +110,11 @@ export const backends = {
 export type BackendId = keyof typeof backends
 export const backendIds = Object.keys(backends) as BackendId[]
 export const defaultBackend: BackendId = 'bitcoind'
+
+/**
+ * The packages that can be the SHA256 Bitcoin node the bridge's own Lightning
+ * node reads (see sha256Node.ts). Here rather than there so the store can name
+ * them without importing the daemon's code.
+ */
+export const sha256BackendIds = ['knots-prerdts', 'bitcoind'] as const
+export type Sha256BackendId = (typeof sha256BackendIds)[number]

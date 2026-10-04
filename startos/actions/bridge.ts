@@ -20,6 +20,18 @@ type BridgeStatus = {
   rate_set_at: string
   rate_expires_at: string
   needs_operator?: string[]
+  sha256_node?: {
+    mode: string
+    state: string
+    detail: string
+    synced_to_chain?: boolean
+    onchain_confirmed_sat?: string
+    onchain_unconfirmed_sat?: string
+    active_channels?: number
+    pending_channels?: number
+    outbound_msat?: string
+    inbound_msat?: string
+  }
 }
 type BridgeInfo = {
   directions: {
@@ -102,15 +114,59 @@ export const bridgeStatus = sdk.Action.withoutInput(
         type: 'group',
         value: [
           single(i18n('State'), state),
-          single(
-            i18n('Rate'),
-            String(status.rate),
-            i18n(
-              'SHA256 coin per BLAKE2b coin, set ${set}, used until ${expires}.',
-              { set: when(status.rate_set_at), expires },
-            ),
-          ),
+          status.rate
+            ? single(
+                i18n('Rate'),
+                String(status.rate),
+                i18n(
+                  'SHA256 coin per BLAKE2b coin, set ${set}, used until ${expires}.',
+                  { set: when(status.rate_set_at), expires },
+                ),
+              )
+            : single(
+                i18n('Rate'),
+                i18n('Not set yet: the bridge quotes nothing until it is.'),
+                i18n('Set it with Set Bridge Rate.'),
+              ),
           single(i18n('Swaps in flight'), String(status.swaps_in_flight)),
+          // The SHA256 node first among the numbers: it is what a new bridge
+          // is waiting on, and its detail says what to do next.
+          ...(status.sha256_node
+            ? [
+                single(
+                  i18n('SHA256 Lightning Node'),
+                  status.sha256_node.detail,
+                  status.sha256_node.mode === 'supervised'
+                    ? i18n(
+                        'Run by Lightning Fork for the bridge. Fund the SHA256 Node and Open SHA256 Channel set it up.',
+                      )
+                    : undefined,
+                ),
+                single(
+                  i18n('SHA256 node balances'),
+                  i18n(
+                    '${outbound} sats it can send, ${inbound} it can receive, ${onchain} on chain; ${channels} channels open, ${pending} opening',
+                    {
+                      outbound: String(
+                        Math.floor(
+                          Number(status.sha256_node.outbound_msat ?? 0) / 1000,
+                        ),
+                      ),
+                      inbound: String(
+                        Math.floor(
+                          Number(status.sha256_node.inbound_msat ?? 0) / 1000,
+                        ),
+                      ),
+                      onchain: String(
+                        Number(status.sha256_node.onchain_confirmed_sat ?? 0),
+                      ),
+                      channels: String(status.sha256_node.active_channels ?? 0),
+                      pending: String(status.sha256_node.pending_channels ?? 0),
+                    },
+                  ),
+                ),
+              ]
+            : []),
           ...(attention.length
             ? [
                 single(

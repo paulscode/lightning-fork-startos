@@ -1,7 +1,13 @@
 import { T } from '@start9labs/start-sdk'
 import { autoconfig as bitcoindAutoconfig } from 'bitcoin-core-startos/startos/actions/config/autoconfig'
 import { autoconfig as companionAutoconfig } from 'knots-blake2b-startos/startos/actions/config/autoconfig'
-import { backendIds, backends, defaultBackend } from './backends'
+import {
+  backendIds,
+  backends,
+  defaultBackend,
+  Sha256BackendId,
+} from './backends'
+import { sha256Backends } from './sha256Node'
 import { lndConfFile } from './fileModels/lnd.conf'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
@@ -50,6 +56,24 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
       reason: i18n('Lightning Fork requires ZMQ enabled in the Bitcoin node'),
       when: { condition: 'input-not-matches', once: false },
     })
+  }
+
+  // The bridge's own SHA256 Lightning node reads a Bitcoin node on the SHA256
+  // chain, which is required only while that node runs: a bridge that is off,
+  // or that pays through an LND the operator already runs, needs none. It is
+  // polled over RPC (sha256Node.ts), so it needs no ZMQ task.
+  const supervised = await lndConfFile
+    .read((l) => !!l['bridgerpc.enabled'] && !!l['bridgerpc.sha256.supervised'])
+    .const(effects)
+  const sha256Backend = (await storeJson
+    .read((s) => s?.bridgeSha256Backend)
+    .const(effects)) as Sha256BackendId | null | undefined
+  if (supervised && sha256Backend && sha256Backend !== backend) {
+    deps[sha256Backend] = {
+      kind: 'running',
+      versionRange: sha256Backends[sha256Backend].versionRange,
+      healthChecks: [...sha256Backends[sha256Backend].healthChecks],
+    }
   }
 
   // Exactly one node, chosen by the user. Return ONLY the selected one: a

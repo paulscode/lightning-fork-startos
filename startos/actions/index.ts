@@ -29,6 +29,11 @@ import {
   bridgeSetRate,
   bridgeStatus,
 } from './bridge'
+import {
+  bridgeSha256Fund,
+  bridgeSha256OpenChannel,
+  bridgeSha256Seed,
+} from './bridgeSha256'
 
 export const actions = sdk.Actions.of()
   .addAction(general)
@@ -46,6 +51,9 @@ export const actions = sdk.Actions.of()
   .addAction(watchtowers)
   .addAction(bridgeConfig)
   .addAction(bridgeStatus)
+  .addAction(bridgeSha256Fund)
+  .addAction(bridgeSha256OpenChannel)
+  .addAction(bridgeSha256Seed)
   .addAction(bridgeSetRate)
   .addAction(bridgeAddParticipant)
   .addAction(bridgeRemoveParticipant)
