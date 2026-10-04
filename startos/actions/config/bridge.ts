@@ -82,7 +82,7 @@ const bridgeSpec = InputSpec.of({
               (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
             const choices = sha256BackendChoices(lf)
             return {
-              name: i18n('SHA256 Bitcoin Node'),
+              name: i18n('SHA256 Chain Node'),
               description: i18n(
                 'The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.',
               ),

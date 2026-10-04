@@ -638,7 +638,7 @@ const dict = {
   "SHA256 Lightning Node": 664,
   "The LND on the SHA256 chain the bridge pays through. Lightning Fork can run one for you: its seed comes from this wallet, so there is nothing new to write down; it takes about 1-3 GB (a Lightning node, not a second chain node); and it starts empty, so fund it and open a channel from it before the bridge can pay. Or use an LND you already run.": 665,
   "Lightning Fork runs one": 666,
-  "SHA256 Bitcoin Node": 667,
+  "SHA256 Chain Node": 667,
   "The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.": 668,
   "An LND I already run": 669,
   "SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one. There is no default, because a wrong rate loses money on every swap.": 670,
