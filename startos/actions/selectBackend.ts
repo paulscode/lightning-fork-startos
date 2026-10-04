@@ -53,7 +53,7 @@ export const selectBackend = sdk.Action.withInput(
     // Lightning Fork cannot read it too.
     const store = await storeJson.read().once()
     if (
-      store?.bridgeMode === 'supervised' &&
+      (store?.bridgeMode === 'supervised' || store?.bridgeSha256Ever) &&
       store.bridgeSha256Backend === input.backend
     )
       throw new Error(

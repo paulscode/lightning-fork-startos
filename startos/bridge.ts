@@ -57,6 +57,33 @@ export async function lncli(
   )
 }
 
+/**
+ * Payments through the bridge that are not finished: in flight, or stopped
+ * for the operator. Null when the bridge cannot be asked (LND down or the
+ * bridge off), which is no reason to refuse anything.
+ *
+ * While any exists the bridge must not be turned off or moved to another
+ * SHA256 node: its journal finishes each payment through the node it started
+ * on, and only while it runs. Cut off after paying the SHA256 invoice and
+ * before claiming the payer's HTLC, a payment costs the operator what the
+ * bridge already paid.
+ */
+export async function bridgeUnfinished(
+  effects: T.Effects,
+): Promise<number | null> {
+  try {
+    const [out] = await lncli(effects, 'bridge-unfinished', [
+      'bridge',
+      'status',
+    ])
+    const s = JSON.parse(out)
+    if (!s.enabled) return null
+    return Number(s.swaps_in_flight ?? 0) + (s.needs_operator ?? []).length
+  } catch {
+    return null
+  }
+}
+
 // The onion addresses of the REST LND Connect interface, as the
 // https://host:port a participant's node calls. Onions only: Tor
 // authenticates them, while any other address would also need the SHA-256

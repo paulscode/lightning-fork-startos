@@ -62,6 +62,7 @@ import {
   sha256PasswordFile,
   sha256RpcHost,
   sha256WalletExists,
+  sha256ChannelsToRestore,
 } from './sha256Node'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
@@ -612,6 +613,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // Running for the bridge, or still running after it, once it has a wallet
   // (sha256WalletExists says why).
   const sha256Wanted = sha256Supervised || (await sha256WalletExists())
+  // Restored from a backup with the bridge not running it: its channels wait
+  // until it is, and the health check says so.
+  const sha256Restore = !sha256Wanted && (await sha256ChannelsToRestore())
   // Select Node refuses this, but a store from before that check, or one
   // edited by hand, can still name the same package for both chains.
   const sha256Conflict =
@@ -639,6 +643,19 @@ export const main = sdk.setupMain(async ({ effects }) => {
             result: 'failure' as const,
             message: i18n(
               'The Bitcoin node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.',
+            ),
+          }),
+        },
+        requires: [],
+      }) as C
+    if (sha256Restore)
+      return chain.addHealthCheck('sha256-lnd', {
+        ready: {
+          display: i18n('SHA256 Lightning Node'),
+          fn: () => ({
+            result: 'failure' as const,
+            message: i18n(
+              'Restored from a backup, with channels to recover. Turn the bridge on in Bridge, with "Lightning Fork runs one", and its channels are restored.',
             ),
           }),
         },
@@ -678,9 +695,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             {
               successMessage: sha256Supervised
                 ? i18n('Running for the bridge')
-                : i18n(
-                    'Running while the bridge is off, to keep watching its channels',
-                  ),
+                : i18n('Running, watching its channels'),
               errorMessage: '',
             },
           )
@@ -699,7 +714,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
           }
         },
       },
-      requires: ['lnd'],
+      // Not lnd: this node watches its own channels, and must go on doing
+      // so while Lightning Fork restarts or is unhealthy.
+      requires: [],
     }) as C
   }
 
@@ -1589,7 +1606,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             // The bridge's SHA256 node, when Lightning Fork runs it: copies
             // of its credentials its daemon keeps current (sha256Node.ts).
             // It listens on the loopback this daemon shares.
-            ...(sha256Supervised
+            ...(sha256Wanted
               ? {
                   SHA256_TLS_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/tls.cert`,
                   SHA256_MACAROON_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/admin.macaroon`,

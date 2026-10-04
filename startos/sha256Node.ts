@@ -101,6 +101,21 @@ export async function sha256WalletExists(): Promise<boolean> {
   )
 }
 
+/**
+ * Whether the node has a channel backup and no wallet: what a backup restore
+ * leaves (backups.ts). Its wallet is created again, with that backup, only by
+ * Lightning Fork, so only while the bridge is on in that mode.
+ */
+export async function sha256ChannelsToRestore(): Promise<boolean> {
+  if (await sha256WalletExists()) return false
+  return stat(
+    `${sha256NodeDirHost}/data/chain/bitcoin/mainnet/channel.backup`,
+  ).then(
+    (s) => s.size > 0,
+    () => false,
+  )
+}
+
 /** The SHA256 Bitcoin node's RPC bridge address, or null if absent. */
 export async function sha256RpcHost(
   effects: T.Effects,

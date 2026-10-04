@@ -5,6 +5,7 @@ import {
   bridgeDirHost,
   bridgeDirLnd,
   bridgeMacaroonFile,
+  bridgeUnfinished,
   lncli,
 } from '../../bridge'
 import { lndConfFile } from '../../fileModels/lnd.conf'
@@ -299,6 +300,24 @@ export const bridgeConfig = sdk.Action.withInput(
 
   // the execution function
   async ({ effects, input }) => {
+    // Off, or onto another SHA256 node, only once nothing is half done
+    // (bridgeUnfinished says why).
+    const current = await lndConfFile.read().once()
+    const switchingNode =
+      !!current?.['bridgerpc.enabled'] &&
+      !!current?.['bridgerpc.sha256.supervised'] !==
+        (input.sha256.selection === 'supervised')
+    if (!input.enabled || switchingNode) {
+      const unfinished = await bridgeUnfinished(effects)
+      if (unfinished)
+        throw new Error(
+          i18n(
+            '${count} payments through the bridge are not finished. Wait until Bridge Status shows none in flight and none needing you, then turn it off or change its node: a payment cut off halfway can cost you what the bridge has already paid.',
+            { count: String(unfinished) },
+          ),
+        )
+    }
+
     if (!input.enabled) {
       await lndConfFile.merge(effects, bridgeOff)
       return

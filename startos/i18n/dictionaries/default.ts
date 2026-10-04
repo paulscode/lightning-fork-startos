@@ -680,7 +680,9 @@ const dict = {
   "Starting": 706,
   "The Bitcoin node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.": 707,
   "That node is the one the bridge's SHA256 Lightning node reads, on the SHA256 chain. Lightning Fork needs a node on the BLAKE2b chain; choose another, or change the bridge's node in Bridge first.": 708,
-  "Running while the bridge is off, to keep watching its channels": 709,
+  "Running, watching its channels": 709,
+  "${count} payments through the bridge are not finished. Wait until Bridge Status shows none in flight and none needing you, then turn it off or change its node: a payment cut off halfway can cost you what the bridge has already paid.": 710,
+  "Restored from a backup, with channels to recover. Turn the bridge on in Bridge, with \"Lightning Fork runs one\", and its channels are restored.": 711,
 } as const
 
 /**
