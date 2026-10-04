@@ -6,6 +6,7 @@ import {
 import { BackendId, Sha256BackendId, sha256BackendIds } from './backends'
 import { sdk } from './sdk'
 import { lndDataDir } from './utils'
+import { stat } from 'fs/promises'
 
 /**
  * The SHA256 Lightning node Lightning Fork runs for the bridge
@@ -84,6 +85,20 @@ export const sha256Backends: Record<
  */
 export function sha256BackendChoices(lfBackend: BackendId): Sha256BackendId[] {
   return sha256BackendIds.filter((id) => id !== lfBackend)
+}
+
+/**
+ * Whether Lightning Fork has created the SHA256 node's wallet. From then on
+ * the node runs whether or not the bridge is on, and whichever LND the bridge
+ * pays through: it may hold channels, and a node that is not watching its
+ * channels can be cheated out of them. Only a node that never had a wallet
+ * stays stopped.
+ */
+export async function sha256WalletExists(): Promise<boolean> {
+  return stat(`${sha256NodeDirHost}/data/chain/bitcoin/mainnet/wallet.db`).then(
+    () => true,
+    () => false,
+  )
 }
 
 /** The SHA256 Bitcoin node's RPC bridge address, or null if absent. */

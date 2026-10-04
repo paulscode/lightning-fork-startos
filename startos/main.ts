@@ -61,6 +61,7 @@ import {
   sha256NodeCommand,
   sha256PasswordFile,
   sha256RpcHost,
+  sha256WalletExists,
 } from './sha256Node'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
@@ -608,15 +609,15 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const sha256Backend = store.bridgeSha256Backend as Sha256BackendId | null
   const sha256Supervised =
     !!conf['bridgerpc.enabled'] && !!conf['bridgerpc.sha256.supervised']
+  // Running for the bridge, or still running after it, once it has a wallet
+  // (sha256WalletExists says why).
+  const sha256Wanted = sha256Supervised || (await sha256WalletExists())
   // Select Node refuses this, but a store from before that check, or one
   // edited by hand, can still name the same package for both chains.
   const sha256Conflict =
-    sha256Supervised && !!sha256Backend && sha256Backend === backend
+    sha256Wanted && !!sha256Backend && sha256Backend === backend
   const sha256Rpc =
-    conf['bridgerpc.enabled'] &&
-    conf['bridgerpc.sha256.supervised'] &&
-    sha256Backend &&
-    sha256Backend !== backend
+    sha256Wanted && sha256Backend && sha256Backend !== backend
       ? await sha256RpcHost(effects, sha256Backend)
       : null
   // Where that node's daemon leaves its credentials for the dashboard; a
@@ -675,7 +676,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
             effects,
             sha256GrpcPort,
             {
-              successMessage: i18n('Running for the bridge'),
+              successMessage: sha256Supervised
+                ? i18n('Running for the bridge')
+                : i18n(
+                    'Running while the bridge is off, to keep watching its channels',
+                  ),
               errorMessage: '',
             },
           )
@@ -1642,7 +1647,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // rate, an unreachable SHA256 node or an empty side shows here rather
     // than only as quotes refused. Absent while the bridge is off, which is
     // nearly every node.
-    if (!conf['bridgerpc.enabled']) return chain
+    if (!conf['bridgerpc.enabled']) return withSha256Node(chain)
     return withSha256Node(chain).addHealthCheck('bridge', {
       ready: {
         display: i18n('Bridge'),

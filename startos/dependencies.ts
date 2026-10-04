@@ -7,7 +7,7 @@ import {
   defaultBackend,
   Sha256BackendId,
 } from './backends'
-import { sha256Backends } from './sha256Node'
+import { sha256Backends, sha256WalletExists } from './sha256Node'
 import { lndConfFile } from './fileModels/lnd.conf'
 import { storeJson } from './fileModels/store.json'
 import { i18n } from './i18n'
@@ -68,7 +68,11 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
   const sha256Backend = (await storeJson
     .read((s) => s?.bridgeSha256Backend)
     .const(effects)) as Sha256BackendId | null | undefined
-  if (supervised && sha256Backend && sha256Backend !== backend) {
+  if (
+    (supervised || (await sha256WalletExists())) &&
+    sha256Backend &&
+    sha256Backend !== backend
+  ) {
     deps[sha256Backend] = {
       kind: 'running',
       versionRange: sha256Backends[sha256Backend].versionRange,

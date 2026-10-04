@@ -604,6 +604,7 @@ export default {
     706: "Iniciando",
     707: "El nodo Bitcoin elegido para él en Puente es el que lee Lightning Fork, en la cadena BLAKE2b. Elige un nodo de la cadena SHA256 en Puente, u otro nodo en Select Node.",
     708: "Ese nodo es el que lee el nodo Lightning SHA256 del puente, en la cadena SHA256. Lightning Fork necesita un nodo de la cadena BLAKE2b; elige otro, o cambia antes el nodo del puente en Puente.",
+    709: "En marcha con el puente apagado, para seguir vigilando sus canales",
   },
   de_DE: {
     309: 'Backups',
@@ -1208,6 +1209,7 @@ export default {
     706: "Startet",
     707: "Der dafür unter Bridge gewählte Bitcoin-Knoten ist der, den Lightning Fork liest, auf der BLAKE2b-Chain. Wähle unter Bridge einen Knoten auf der SHA256-Chain oder unter Select Node einen anderen Knoten.",
     708: "Diesen Knoten liest der SHA256-Lightning-Knoten der Bridge, auf der SHA256-Chain. Lightning Fork braucht einen Knoten auf der BLAKE2b-Chain; wähle einen anderen oder ändere zuerst den Knoten der Bridge unter Bridge.",
+    709: "Läuft bei ausgeschalteter Bridge weiter, um seine Kanäle zu überwachen",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1812,6 +1814,7 @@ export default {
     706: "Uruchamianie",
     707: "Węzeł Bitcoin wybrany dla niego w sekcji Most to ten, który czyta Lightning Fork, na łańcuchu BLAKE2b. Wybierz węzeł na łańcuchu SHA256 w sekcji Most albo inny węzeł w Select Node.",
     708: "Ten węzeł czyta węzeł Lightning SHA256 mostu, na łańcuchu SHA256. Lightning Fork potrzebuje węzła na łańcuchu BLAKE2b; wybierz inny albo najpierw zmień węzeł mostu w sekcji Most.",
+    709: "Działa przy wyłączonym moście, aby dalej pilnować swoich kanałów",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2416,5 +2419,6 @@ export default {
     706: "Démarrage",
     707: "Le nœud Bitcoin choisi pour lui dans Pont est celui que lit Lightning Fork, sur la chaîne BLAKE2b. Choisissez un nœud de la chaîne SHA256 dans Pont, ou un autre nœud dans Select Node.",
     708: "Ce nœud est celui que lit le nœud Lightning SHA256 du pont, sur la chaîne SHA256. Lightning Fork a besoin d'un nœud de la chaîne BLAKE2b ; choisissez-en un autre, ou changez d'abord le nœud du pont dans Pont.",
+    709: "En marche pont éteint, pour continuer à surveiller ses canaux",
   },
 } satisfies Record<string, LangDict>
