@@ -48,6 +48,19 @@ export const selectBackend = sdk.Action.withInput(
       defaultBackend) as any,
   }),
 
-  async ({ effects, input }) =>
-    storeJson.merge(effects, { backend: input.backend as any }),
+  async ({ effects, input }) => {
+    // The package the bridge's SHA256 node reads is on the SHA256 chain;
+    // Lightning Fork cannot read it too.
+    const store = await storeJson.read().once()
+    if (
+      store?.bridgeMode === 'supervised' &&
+      store.bridgeSha256Backend === input.backend
+    )
+      throw new Error(
+        i18n(
+          "That node is the one the bridge's SHA256 Lightning node reads, on the SHA256 chain. Lightning Fork needs a node on the BLAKE2b chain; choose another, or change the bridge's node in Bridge first.",
+        ),
+      )
+    await storeJson.merge(effects, { backend: input.backend as any })
+  },
 )

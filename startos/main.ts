@@ -49,12 +49,14 @@ import {
   sleep,
   mempoolAppsEnv,
 } from './utils'
-import { readFile, rename, rm, stat, writeFile } from 'fs/promises'
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { get as httpGet } from 'http'
 import { dashboardPort, gRPCPort, restPort } from './interfaces'
 import { Sha256BackendId } from './backends'
 import {
   sha256BitcoindMnt,
+  sha256DashboardMnt,
+  sha256DashboardSubpath,
   sha256GrpcPort,
   sha256NodeCommand,
   sha256PasswordFile,
@@ -604,6 +606,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
   // action. Absent unless the bridge is on in that mode, so nothing about it
   // shows on a node that does not bridge, or bridges through its own LND.
   const sha256Backend = store.bridgeSha256Backend as Sha256BackendId | null
+  const sha256Supervised =
+    !!conf['bridgerpc.enabled'] && !!conf['bridgerpc.sha256.supervised']
+  // Select Node refuses this, but a store from before that check, or one
+  // edited by hand, can still name the same package for both chains.
+  const sha256Conflict =
+    sha256Supervised && !!sha256Backend && sha256Backend === backend
   const sha256Rpc =
     conf['bridgerpc.enabled'] &&
     conf['bridgerpc.sha256.supervised'] &&
@@ -611,20 +619,50 @@ export const main = sdk.setupMain(async ({ effects }) => {
     sha256Backend !== backend
       ? await sha256RpcHost(effects, sha256Backend)
       : null
-  const withSha256Node = <C extends { addDaemon: any }>(chain: C): C => {
+  // Where that node's daemon leaves its credentials for the dashboard; a
+  // subpath mount needs the directory to exist.
+  if (sha256Rpc)
+    await mkdir(`${dashboardVolumeHost}/${sha256DashboardSubpath}`, {
+      recursive: true,
+    })
+  const withSha256Node = <C extends { addDaemon: any; addHealthCheck: any }>(
+    chain: C,
+  ): C => {
+    // Said rather than left blank: without it the bridge only reports that
+    // its node is not ready, which reads as starting for ever.
+    if (sha256Conflict)
+      return chain.addHealthCheck('sha256-lnd', {
+        ready: {
+          display: i18n('SHA256 Lightning Node'),
+          fn: () => ({
+            result: 'failure' as const,
+            message: i18n(
+              'The Bitcoin node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.',
+            ),
+          }),
+        },
+        requires: [],
+      }) as C
     // No address: the chosen Bitcoin node is not installed or not running,
     // which the dependency on it already shows. Nothing to start yet.
     if (!sha256Rpc || !sha256Backend) return chain
     const sub = sdk.SubContainer.of(
       effects,
       { imageId: 'lndSha256' },
-      mainMounts.mountDependency<typeof bitcoinManifest>({
-        dependencyId: sha256Backend as 'bitcoind',
-        volumeId: 'main',
-        mountpoint: sha256BitcoindMnt,
-        subpath: null,
-        readonly: true,
-      }),
+      mainMounts
+        .mountDependency<typeof bitcoinManifest>({
+          dependencyId: sha256Backend as 'bitcoind',
+          volumeId: 'main',
+          mountpoint: sha256BitcoindMnt,
+          subpath: null,
+          readonly: true,
+        })
+        .mountVolume({
+          volumeId: 'dashboard',
+          subpath: sha256DashboardSubpath,
+          mountpoint: sha256DashboardMnt,
+          readonly: false,
+        }),
       'sha256-lnd-sub',
     )
     return chain.addDaemon('sha256-lnd', {
@@ -651,7 +689,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           return {
             result: 'starting',
             message: waiting
-              ? i18n('Waiting for Lightning Fork to create it')
+              ? i18n('Waiting for the bridge to set it up')
               : i18n('Starting'),
           }
         },
@@ -1543,6 +1581,15 @@ export const main = sdk.setupMain(async ({ effects }) => {
             // by init/dashboardEndpoints.ts), and LND's certificate chain,
             // whose root is the server's root CA that signs the dashboard's
             // LAN HTTPS too; the app pins that root.
+            // The bridge's SHA256 node, when Lightning Fork runs it: copies
+            // of its credentials its daemon keeps current (sha256Node.ts).
+            // It listens on the loopback this daemon shares.
+            ...(sha256Supervised
+              ? {
+                  SHA256_TLS_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/tls.cert`,
+                  SHA256_MACAROON_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/admin.macaroon`,
+                }
+              : {}),
             MOBILE_ENDPOINTS_FILE: `${dashboardDataDir}/endpoints.json`,
             MOBILE_CA_FILE: `${dashboardDataDir}/tls.cert`,
             BITCOIN_HOST: dashboardRpc.host,

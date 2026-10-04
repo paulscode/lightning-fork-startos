@@ -34,7 +34,9 @@ const runningVisibility = async (effects: T.Effects) =>
     : ('hidden' as const)
 
 const everVisibility = async (effects: T.Effects) =>
-  (await storeJson.read((s) => s.bridgeMode).const(effects)) === 'supervised'
+  (await storeJson
+    .read((s) => s.bridgeSha256Ever || s.bridgeMode === 'supervised')
+    .const(effects))
     ? ('enabled' as const)
     : ('hidden' as const)
 
@@ -241,7 +243,7 @@ export const bridgeSha256Seed = sdk.Action.withoutInput(
       version: '1',
       title: i18n('SHA256 Node Recovery Phrase'),
       message: i18n(
-        'Type the phrase into a stock LND at "lncli create" (no passphrase), with this node\'s channel backup to recover its channels. Either form restores the same node; check that it reports the identity below.',
+        'Type the phrase into a stock LND at "lncli create" (no passphrase), then recover its channels from the SHA256 node\'s own channel backup, which the dashboard\'s Bridge page downloads. Either form restores the same node; check that it reports the identity below.',
       ),
       result: {
         type: 'group',

@@ -39,6 +39,10 @@ export const shape = z.object({
   // ran (external, through bridgeSha256RpcHost). Null until the bridge is
   // first configured.
   bridgeMode: z.enum(['supervised', 'external']).nullable().catch(null),
+  // Whether Lightning Fork has ever run a SHA256 node here. That node keeps
+  // whatever it holds after the bridge is turned off or switched to another
+  // LND, so its recovery phrase stays on offer.
+  bridgeSha256Ever: z.boolean().catch(false),
   // For a supervised node, the SHA256 Bitcoin node it reads.
   bridgeSha256Backend: z
     .enum(sha256BackendIds as unknown as [string, ...string[]])

@@ -102,12 +102,31 @@ export async function sha256RpcHost(
 }
 
 /**
+ * Where the stock node's daemon puts copies of its certificate and admin
+ * macaroon for the dashboard (the dashboard volume's sha256/), so the
+ * dashboard, which mounts nothing of this package's main volume, can fund the
+ * node and open its channels. Mounted at sha256DashboardMnt in the node's
+ * subcontainer and read at sha256DashboardDir by the dashboard.
+ */
+export const sha256DashboardSubpath = 'sha256'
+export const sha256DashboardMnt = '/mnt/dashboard-sha256'
+
+/**
  * The stock lnd's command line. Polling rather than ZMQ, so nothing has to be
  * switched on in the SHA256 Bitcoin node for this, and a block is noticed
  * within ten seconds, which a bridge node can live with.
  *
  * The shell waits for the password file: lnd exits without it, and a
- * restarting daemon would read as broken while the bridge is simply off.
+ * restarting daemon would read as broken while the bridge is simply off. It
+ * leaves at once when stopped while it waits, rather than at the kill.
+ *
+ * gRPC and REST listen on the loopback the package's subcontainers share:
+ * Lightning Fork, the dashboard and the actions are all there. Only the peer
+ * port is for other nodes.
+ *
+ * Beside lnd runs a copier that keeps the dashboard's copies of its
+ * certificate and admin macaroon current, checking every thirty seconds; the
+ * macaroon appears only once Lightning Fork has created the wallet.
  */
 export function sha256NodeCommand(rpchost: string): string[] {
   const args = [
@@ -119,18 +138,38 @@ export function sha256NodeCommand(rpchost: string): string[] {
     '--bitcoind.rpcpolling',
     '--bitcoind.blockpollinginterval=10s',
     '--bitcoind.txpollinginterval=10s',
-    `--rpclisten=0.0.0.0:${sha256GrpcPort}`,
-    `--restlisten=0.0.0.0:${sha256RestPort}`,
+    `--rpclisten=127.0.0.1:${sha256GrpcPort}`,
+    `--restlisten=127.0.0.1:${sha256RestPort}`,
     `--listen=0.0.0.0:${sha256P2pPort}`,
     '--alias=Lightning Fork bridge (SHA256)',
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
   ]
-  const quoted = args.map((a) => `'${a.replace(/'/g, `'\\''`)}'`).join(' ')
+  const q = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`
+  const copies: Array<[string, string]> = [
+    [`${sha256NodeDir}/tls.cert`, `${sha256DashboardMnt}/tls.cert`],
+    [sha256AdminMacaroon, `${sha256DashboardMnt}/admin.macaroon`],
+  ]
+  const copy = copies
+    .map(
+      ([from, to]) =>
+        `if [ -s ${q(from)} ] && ! cmp -s ${q(from)} ${q(to)}; then ` +
+        `cp ${q(from)} ${q(to + '.tmp')} && chmod 600 ${q(to + '.tmp')} && ` +
+        `mv -f ${q(to + '.tmp')} ${q(to)}; fi`,
+    )
+    .join('; ')
 
   return [
     'sh',
     '-c',
-    `until [ -s '${sha256PasswordFile}' ]; do sleep 2; done; exec lnd ${quoted}`,
+    [
+      `trap 'exit 0' TERM INT`,
+      `until [ -s ${q(sha256PasswordFile)} ]; do sleep 2 & wait $!; done`,
+      `trap - TERM INT`,
+      `(while :; do ${copy}; sleep 30; done) &`,
+      `exec lnd ${args.map(q).join(' ')}`,
+      // Lines, not "; ": the copier's line ends in "&", after which a ";"
+      // is a syntax error.
+    ].join('\n'),
   ]
 }

@@ -665,7 +665,7 @@ const dict = {
   "SHA256 Node Recovery Phrase": 691,
   "The 24 words that restore the bridge's SHA256 Lightning node in a stock LND, without Lightning Fork. They are derived from this node's own phrase, so there is nothing new to keep; this is for restoring that node somewhere else.": 692,
   "Anyone who sees these words can spend what the SHA256 node holds.": 693,
-  "Type the phrase into a stock LND at \"lncli create\" (no passphrase), with this node's channel backup to recover its channels. Either form restores the same node; check that it reports the identity below.": 694,
+  "Type the phrase into a stock LND at \"lncli create\" (no passphrase), then recover its channels from the SHA256 node's own channel backup, which the dashboard's Bridge page downloads. Either form restores the same node; check that it reports the identity below.": 694,
   "Recovery phrase": 695,
   "BIP32 root key": 696,
   "Identity it will have": 697,
@@ -676,8 +676,10 @@ const dict = {
   "SHA256 node balances": 702,
   "${outbound} sats it can send, ${inbound} it can receive, ${onchain} on chain; ${channels} channels open, ${pending} opening": 703,
   "Running for the bridge": 704,
-  "Waiting for Lightning Fork to create it": 705,
+  "Waiting for the bridge to set it up": 705,
   "Starting": 706,
+  "The Bitcoin node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.": 707,
+  "That node is the one the bridge's SHA256 Lightning node reads, on the SHA256 chain. Lightning Fork needs a node on the BLAKE2b chain; choose another, or change the bridge's node in Bridge first.": 708,
 } as const
 
 /**

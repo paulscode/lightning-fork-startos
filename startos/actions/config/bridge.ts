@@ -349,6 +349,7 @@ export const bridgeConfig = sdk.Action.withInput(
       await storeJson.merge(effects, {
         bridgeMode: 'supervised',
         bridgeSha256Backend: bitcoin,
+        bridgeSha256Ever: true,
       })
       await lndConfFile.merge(effects, {
         ...common,

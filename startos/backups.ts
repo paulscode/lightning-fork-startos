@@ -8,7 +8,12 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
       // dashboard are remade at every start; the main volume carries the
       // originals.
       .addVolume('dashboard', {
-        options: { delete: true, exclude: ['tls.cert', 'admin.macaroon'] },
+        options: {
+          delete: true,
+          // sha256/ holds the same copies of the bridge's SHA256 node's,
+          // remade by that node's daemon.
+          exclude: ['tls.cert', 'admin.macaroon', '/sha256'],
+        },
       })
       .addVolume('main', {
         options: {
@@ -35,6 +40,19 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             'channel.backup.startos-restore.tmp',
             '.channel-backup-restore',
             'unlock-status.json',
+            // The bridge's SHA256 node (sha256Node.ts) keeps its channel
+            // backup and loses its wallet, macaroons and (with data/graph
+            // above) its channel database: a channel database from the past
+            // can broadcast an old state and lose that channel's funds. On a
+            // restore Lightning Fork creates the wallet again from the
+            // derived seed and hands it the channel backup, as lnd restores
+            // any node from one. The bridge's own macaroon for it goes too,
+            // and is baked again.
+            '/sha256-node/data/chain/bitcoin/mainnet/wallet.db',
+            '/sha256-node/data/chain/bitcoin/mainnet/macaroons.db',
+            '/sha256-node/data/chain/bitcoin/mainnet/*.macaroon',
+            '/data/chain/bitcoin/mainnet/bridge/sha256/bridge.macaroon',
+            '/data/chain/bitcoin/mainnet/bridge/sha256/bridge.macaroon.perms',
           ],
         },
       })
