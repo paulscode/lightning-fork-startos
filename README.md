@@ -146,7 +146,12 @@ identity is known. `--pull` falls back to the flat `<folder>/channel.backup`
 of earlier releases when the per-node file is absent. The identity comes from
 `NODE_PUBKEY` when set (the Umbrel dashboard has no lncli), otherwise from
 `lncli getinfo` on `LNCLI_RPCSERVER` (default `127.0.0.1:10009`) with
-`LNCLI_LNDDIR` when set. `sh tests/backup-agent.test.sh` exercises it with
+`LNCLI_LNDDIR` when set. The bridge's SHA256 node, when there is one, gets a
+second instance (`sha256-channel-backup-agent`, health check **Bridge Node
+Channel Backup**) with that node's `CHANNEL_BACKUP_FILE` and lncli, and its
+own `BACKUP_STATE_FILE`, `BACKUP_LOCK_FILE`, `BACKUP_WORK_DIR` and
+`BACKUP_RESTORE_DIR`; the targets are the same, and its identity names its own
+folder. `sh tests/backup-agent.test.sh` exercises it with
 stub `lncli` and `rclone`. `current`'s migration completes a saved Nextcloud
 address to the `/remote.php/dav/files/USER/` form rclone requires.
 

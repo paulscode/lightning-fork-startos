@@ -620,6 +620,8 @@ export default {
     722: "Donde los nodos de la cadena SHA256 alcanzan el nodo Lightning SHA256 del puente. Añade una dirección onion para que puedan abrirle canales.",
     723: "No responde desde hace varios minutos. Comprueba que su nodo de la cadena SHA256 está en marcha, y los registros de este servicio.",
     724: "Cómo lo alcanzan los nodos de la cadena SHA256, para conectarse o abrirle un canal.",
+    725: "Copia de canales del nodo del puente",
+    726: "Aún no hay channel.backup: el nodo SHA256 del puente lo escribe cuando se abre su primer canal.",
   },
   de_DE: {
     309: 'Backups',
@@ -1240,6 +1242,8 @@ export default {
     722: "Wo Knoten auf der SHA256-Chain den SHA256-Lightning-Knoten der Bridge erreichen. Füge eine Onion-Adresse hinzu, damit sie Kanäle zu ihm öffnen können.",
     723: "Antwortet seit mehreren Minuten nicht. Prüfe, ob sein Knoten auf der SHA256-Chain läuft, und die Logs dieses Dienstes.",
     724: "Wie Knoten auf der SHA256-Chain ihn erreichen, um sich zu verbinden oder einen Kanal zu ihm zu öffnen.",
+    725: "Kanal-Backup des Brückenknotens",
+    726: "Noch kein channel.backup: Der SHA256-Knoten der Brücke schreibt es, wenn sich sein erster Kanal öffnet.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1860,6 +1864,8 @@ export default {
     722: "Gdzie węzły na łańcuchu SHA256 docierają do węzła Lightning SHA256 mostu. Dodaj adres onion, aby mogły otwierać do niego kanały.",
     723: "Nie odpowiada od kilku minut. Sprawdź, czy jego węzeł na łańcuchu SHA256 działa, oraz logi tej usługi.",
     724: "Jak docierają do niego węzły na łańcuchu SHA256, aby się połączyć lub otworzyć do niego kanał.",
+    725: "Kopia kanałów węzła mostu",
+    726: "Nie ma jeszcze channel.backup: węzeł SHA256 mostu zapisuje go, gdy otworzy się jego pierwszy kanał.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2480,5 +2486,7 @@ export default {
     722: "Là où les nœuds de la chaîne SHA256 joignent le nœud Lightning SHA256 du pont. Ajoutez une adresse onion pour qu'ils puissent lui ouvrir des canaux.",
     723: "Ne répond plus depuis plusieurs minutes. Vérifiez que son nœud de la chaîne SHA256 tourne, et les journaux de ce service.",
     724: "Comment les nœuds de la chaîne SHA256 le joignent, pour s'y connecter ou lui ouvrir un canal.",
+    725: "Sauvegarde des canaux du nœud du pont",
+    726: "Pas encore de channel.backup : le nœud SHA256 du pont l'écrit à l'ouverture de son premier canal.",
   },
 } satisfies Record<string, LangDict>

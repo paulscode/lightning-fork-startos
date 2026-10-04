@@ -696,6 +696,8 @@ const dict = {
   "Where nodes on the SHA256 chain reach the bridge's SHA256 Lightning node. Add an onion address to let them open channels to it.": 722,
   "Not answering for several minutes. Check its node on the SHA256 chain is running, and this service's logs.": 723,
   "How nodes on the SHA256 chain reach it, to connect or open a channel to it.": 724,
+  "Bridge Node Channel Backup": 725,
+  "No channel.backup yet: the bridge's SHA256 node writes it when its first channel opens.": 726,
 } as const
 
 /**

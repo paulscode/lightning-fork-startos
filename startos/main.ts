@@ -25,6 +25,7 @@ import { describeFailures } from './channelBackupStatus'
 import {
   backupFailureShape,
   channelBackupStateJson,
+  sha256ChannelBackupStateJson,
 } from './fileModels/channel-backup-state.json'
 import { channelBackupJson } from './fileModels/channel-backup.json'
 import {
@@ -768,79 +769,160 @@ export const main = sdk.setupMain(async ({ effects }) => {
       'sha256-lnd-sub',
     )
     let sha256DownSince: number | null = null
-    return chain.addDaemon('sha256-lnd', {
-      subcontainer: sub,
-      exec: { command: sha256NodeCommand(sha256Rpc, sha256Extra) },
-      ready: {
-        display: i18n('SHA256 Lightning Node'),
-        // Its wallet's state, which it answers without a macaroon: a port
-        // that listens says only that lnd is up, which it is long before it
-        // has a wallet.
-        fn: async () => {
-          const res = await sub
-            .exec(
-              [
-                'lncli',
-                `--rpcserver=127.0.0.1:${sha256GrpcPort}`,
-                `--tlscertpath=${sha256NodeDir}/tls.cert`,
-                `--macaroonpath=${sha256AdminMacaroon}`,
-                'state',
-              ],
-              {},
-              15_000,
-            )
-            .catch(() => null)
-          let state = ''
-          try {
-            state =
-              res && res.exitCode === 0
-                ? JSON.parse(String(res.stdout)).state
-                : ''
-          } catch {
-            state = ''
-          }
-          if (state === 'SERVER_ACTIVE') {
-            sha256DownSince = null
-            return {
-              result: 'success' as const,
-              message: sha256Supervised
-                ? i18n('Running for the bridge')
-                : i18n('Running, watching its channels'),
-            }
-          }
-          const waiting =
-            state === 'NON_EXISTING' ||
-            (await stat(
-              `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
-            ).then(
-              () => false,
-              () => true,
-            ))
-          // Not answering for minutes once it has its password is not starting:
-          // a wrong cookie, its chain node down, a crash loop. Said, with
-          // where to look, rather than "Starting" for ever.
-          if (!waiting) {
-            sha256DownSince ??= Date.now()
-            if (Date.now() - sha256DownSince > 5 * 60_000)
+    return (
+      chain
+        .addDaemon('sha256-lnd', {
+          subcontainer: sub,
+          exec: { command: sha256NodeCommand(sha256Rpc, sha256Extra) },
+          ready: {
+            display: i18n('SHA256 Lightning Node'),
+            // Its wallet's state, which it answers without a macaroon: a port
+            // that listens says only that lnd is up, which it is long before it
+            // has a wallet.
+            fn: async () => {
+              const res = await sub
+                .exec(
+                  [
+                    'lncli',
+                    `--rpcserver=127.0.0.1:${sha256GrpcPort}`,
+                    `--tlscertpath=${sha256NodeDir}/tls.cert`,
+                    `--macaroonpath=${sha256AdminMacaroon}`,
+                    'state',
+                  ],
+                  {},
+                  15_000,
+                )
+                .catch(() => null)
+              let state = ''
+              try {
+                state =
+                  res && res.exitCode === 0
+                    ? JSON.parse(String(res.stdout)).state
+                    : ''
+              } catch {
+                state = ''
+              }
+              if (state === 'SERVER_ACTIVE') {
+                sha256DownSince = null
+                return {
+                  result: 'success' as const,
+                  message: sha256Supervised
+                    ? i18n('Running for the bridge')
+                    : i18n('Running, watching its channels'),
+                }
+              }
+              const waiting =
+                state === 'NON_EXISTING' ||
+                (await stat(
+                  `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
+                ).then(
+                  () => false,
+                  () => true,
+                ))
+              // Not answering for minutes once it has its password is not starting:
+              // a wrong cookie, its chain node down, a crash loop. Said, with
+              // where to look, rather than "Starting" for ever.
+              if (!waiting) {
+                sha256DownSince ??= Date.now()
+                if (Date.now() - sha256DownSince > 5 * 60_000)
+                  return {
+                    result: 'failure' as const,
+                    message: i18n(
+                      "Not answering for several minutes. Check its node on the SHA256 chain is running, and this service's logs.",
+                    ),
+                  }
+              }
               return {
-                result: 'failure' as const,
+                result: 'starting',
+                message: waiting
+                  ? i18n('Waiting for the bridge to set it up')
+                  : i18n('Starting'),
+              }
+            },
+          },
+          // Not lnd: this node watches its own channels, and must go on doing
+          // so while Lightning Fork restarts or is unhealthy.
+          requires: [],
+        })
+        // Its channel.backup off the server too, to the targets set up for
+        // Lightning Fork's (Back Up Channels), in this node's own folder: a
+        // second agent with this node's file and identity, and its own state.
+        .addDaemon('sha256-channel-backup-agent', {
+          subcontainer: sdk.SubContainer.of(
+            effects,
+            { imageId: 'lnd' },
+            mainMounts,
+            'sha256-channel-backup-sub',
+          ),
+          exec: {
+            command: ['sh', backupAgentScript],
+            env: {
+              CHANNEL_BACKUP_FILE: `${sha256NodeDir}/data/chain/bitcoin/mainnet/channel.backup`,
+              LNCLI_RPCSERVER: `127.0.0.1:${sha256GrpcPort}`,
+              LNCLI_LNDDIR: sha256NodeDir,
+              BACKUP_STATE_FILE: `${lndDataDir}/.channel-backup-sha256-state.json`,
+              BACKUP_LOCK_FILE: `${lndDataDir}/.channel-backup-sha256.lock`,
+              BACKUP_RESTORE_DIR: `${lndDataDir}/.channel-backup-sha256-restore`,
+              BACKUP_WORK_DIR: '/tmp/lnd-channel-backup-sha256',
+              BACKUP_LOG_TAG: 'sha256-channel-backup',
+            },
+          },
+          ready: {
+            display: null,
+            fn: async () => ({ result: 'success', message: null }),
+          },
+          requires: ['sha256-lnd'],
+        })
+        .addHealthCheck('sha256-channel-backup', {
+          ready: {
+            display: i18n('Bridge Node Channel Backup'),
+            trigger: sdk.trigger.statusTrigger(30_000, {
+              starting: 5_000,
+              waiting: 5_000,
+              failure: 300_000,
+            }),
+            fn: async () => {
+              const cfg = await channelBackupJson.read().once()
+              if (
+                ![cfg?.gdrive, cfg?.dropbox, cfg?.nextcloud, cfg?.sftp].some(
+                  (t) => t?.enabled,
+                )
+              )
+                return {
+                  result: 'disabled' as const,
+                  message: i18n(
+                    'No off-server target. channel.backup travels only inside the StartOS backups you take yourself, so channels opened since your last one are not covered.',
+                  ),
+                }
+              const state = await sha256ChannelBackupStateJson.read().once()
+              if (state?.failures.length)
+                return {
+                  result: 'failure' as const,
+                  message: describeFailures(state.failures),
+                }
+              if (state?.lastSuccess)
+                return {
+                  result: 'success' as const,
+                  message: i18n('Copied to every enabled target ${ago} ago', {
+                    ago: ago(
+                      Math.max(
+                        0,
+                        Math.floor(Date.now() / 1000) - state.lastSuccess,
+                      ),
+                    ),
+                  }),
+                }
+              return {
+                result: 'starting' as const,
                 message: i18n(
-                  "Not answering for several minutes. Check its node on the SHA256 chain is running, and this service's logs.",
+                  "No channel.backup yet: the bridge's SHA256 node writes it when its first channel opens.",
                 ),
               }
-          }
-          return {
-            result: 'starting',
-            message: waiting
-              ? i18n('Waiting for the bridge to set it up')
-              : i18n('Starting'),
-          }
-        },
-      },
-      // Not lnd: this node watches its own channels, and must go on doing
-      // so while Lightning Fork restarts or is unhealthy.
-      requires: [],
-    }) as C
+            },
+          },
+          requires: ['sha256-channel-backup-agent'],
+        }) as C
+    )
   }
 
   const lndChain = () => {

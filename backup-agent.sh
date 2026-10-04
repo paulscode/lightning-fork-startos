@@ -17,6 +17,12 @@
 # Umbrel dashboard, which has no lncli), otherwise from `lncli getinfo`
 # against LNCLI_RPCSERVER, with LNCLI_LNDDIR when set; the defaults are the
 # StartOS package's.
+#
+# A second node's backup (the bridge's SHA256 node) is copied by a second
+# instance with that node's CHANNEL_BACKUP_FILE and identity, and its own
+# BACKUP_STATE_FILE, BACKUP_LOCK_FILE, BACKUP_WORK_DIR and BACKUP_RESTORE_DIR;
+# the targets (channel-backup.json) are shared. Its identity names its own
+# folder on each target.
 # shellcheck disable=SC2016
 set -u
 umask 077
@@ -24,14 +30,14 @@ umask 077
 LND_DIR=${LND_DIR:-/root/.lnd}
 BACKUP="${CHANNEL_BACKUP_FILE:-$LND_DIR/data/chain/bitcoin/mainnet/channel.backup}"
 CONFIG="$LND_DIR/channel-backup.json"
-STATE="$LND_DIR/.channel-backup-state.json"
-LOCK="$LND_DIR/.channel-backup.lock"
-RESTORE_DIR="$LND_DIR/.channel-backup-restore"
+STATE="${BACKUP_STATE_FILE:-$LND_DIR/.channel-backup-state.json}"
+LOCK="${BACKUP_LOCK_FILE:-$LND_DIR/.channel-backup.lock}"
+RESTORE_DIR="${BACKUP_RESTORE_DIR:-$LND_DIR/.channel-backup-restore}"
 LNCLI_RPCSERVER=${LNCLI_RPCSERVER:-127.0.0.1:10009}
 LNCLI_LNDDIR=${LNCLI_LNDDIR:-}
 NODE_PUBKEY=${NODE_PUBKEY:-}
 
-WORK=/tmp/lnd-channel-backup
+WORK=${BACKUP_WORK_DIR:-/tmp/lnd-channel-backup}
 RCONF="$WORK/rclone.conf"
 KNOWN_HOSTS="$WORK/known_hosts"
 CONFIG_SNAP="$WORK/config.json"
@@ -65,7 +71,7 @@ REMOTE_NAME=''
 REMOTE_PATH=''
 REMOTE_EXTRA=''
 
-log() { echo "[channel-backup] $*" >&2; }
+log() { echo "[${BACKUP_LOG_TAG:-channel-backup}] $*" >&2; }
 
 reason() {
   tr -d '\000-\010\013\014\016-\037\177' \

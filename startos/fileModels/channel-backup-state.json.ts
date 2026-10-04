@@ -19,3 +19,10 @@ export const channelBackupStateJson = FileHelper.json(
   { base: sdk.volumes.main, subpath: '/.channel-backup-state.json' },
   channelBackupStateShape,
 )
+
+// The same, for the bridge's SHA256 node: a second agent copies its
+// channel.backup to the same targets, into that node's own folder.
+export const sha256ChannelBackupStateJson = FileHelper.json(
+  { base: sdk.volumes.main, subpath: '/.channel-backup-sha256-state.json' },
+  channelBackupStateShape,
+)

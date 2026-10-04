@@ -169,6 +169,38 @@ run_agent --once
 rc=$?
 check "with no channel.backup yet, exit 3 comes before the identity" '[ $rc -eq 3 ]'
 
+# ---- a second node's backup: its own file, identity, state and lock
+SHA_PUBKEY=03b1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f91
+SHA_ID=$(printf '%s' "$SHA_PUBKEY" | sha256sum | cut -c1-64)
+setup
+mkdir -p "$T/lnd/sha256-node/data/chain/bitcoin/mainnet"
+printf 'scb-sha256' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+run_agent --once
+second() {
+  NODE_PUBKEY=$SHA_PUBKEY CHANNEL_BACKUP_FILE="$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup" \
+    BACKUP_STATE_FILE="$T/lnd/.channel-backup-sha256-state.json" BACKUP_LOCK_FILE="$T/lnd/.channel-backup-sha256.lock" \
+    BACKUP_WORK_DIR="$T/work-sha256" BACKUP_LOG_TAG=sha256-channel-backup "$@"
+}
+second run_agent --once
+rc=$?
+check "a second instance copies its node's backup into that node's folder" \
+  '[ $rc -eq 0 ] && [ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup")" = scb-sha256 ] &&
+   [ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$NODE_ID/channel.backup")" = scb-current ]'
+check "with its own state, leaving the first one's alone" \
+  '[ -n "$(jq -r .lastSuccess "$T/lnd/.channel-backup-sha256-state.json")" ] &&
+   [ -f "$T/lnd/.channel-backup-sha256.lock" ] && [ -f "$T/lnd/.channel-backup-state.json" ]'
+rm -f "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+second run_agent --once
+rc=$?
+check "and with no backup of its own yet it says so (exit 3)" '[ $rc -eq 3 ]'
+STUB_DOWN=dropbox second run_agent --once
+printf 'scb-sha256' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+STUB_DOWN=dropbox second run_agent --once
+check "its failures are its own" \
+  '[ "$(jq -r ".failures[0].target" "$T/lnd/.channel-backup-sha256-state.json")" = dropbox ] &&
+   [ "$(jq -r ".failures | length" "$T/lnd/.channel-backup-state.json")" = 0 ] &&
+   grep -q "^\[sha256-channel-backup\]" "$T/err"'
+
 # ---- restore: the node's folder first, the flat path as a fallback
 put() { mkdir -p "$(dirname "$T/remotes/$1")" && printf '%s' "$2" > "$T/remotes/$1"; }
 retrieved() { jq -r '.retrieved | join(",")' "$T/out" 2>/dev/null; }
