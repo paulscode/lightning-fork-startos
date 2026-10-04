@@ -33,9 +33,13 @@ FROM alpine:3.21
 # scrubs the migrated database; openssh-client and sshpass import remote
 # wallets; rclone copies channel.backup to configured providers; flock
 # serializes copies. bash, jq, ca-certificates, gnupg and wget match
-# upstream's image.
+# upstream's image. coreutils replaces BusyBox's timeout, which the health
+# checks run lncli under: BusyBox's forks a watchdog and execs the command in
+# its place, so the watchdog outlives it, is handed to the subcontainer's
+# init, which never reaps, and stays a zombie, three a minute for as long as
+# the service runs. GNU timeout waits for its own child.
 RUN apk add --no-cache bash jq ca-certificates gnupg wget \
-        curl sqlite openssh-client sshpass rclone flock
+        curl sqlite openssh-client sshpass rclone flock coreutils
 
 COPY --from=builder /go/bin/lnd /go/bin/lncli /bin/
 COPY --from=builder /lightning-fork-commit /etc/lightning-fork-commit
