@@ -47,7 +47,7 @@ export const manifest = setupManifest({
     // on the SHA256 chain, so that node runs upstream's binary. What the tag
     // resolved to when this version was released:
     //   index sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d
-    lndSha256: {
+    'sha256-lnd': {
       source: {
         dockerTag: 'lightninglabs/lnd:v0.21.4-beta',
       },

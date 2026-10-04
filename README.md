@@ -169,7 +169,7 @@ and `docs/bridge-sha256-node.md` in the daemon's repository. The **Bridge**
 action chooses how that LND is provided:
 
 - **Lightning Fork runs one** (`bridgerpc.sha256.supervised`, the default):
-  daemon `sha256-lnd` runs the stock `lightninglabs/lnd` image (`lndSha256`)
+  daemon `sha256-lnd` runs the stock `lightninglabs/lnd` image (`sha256-lnd`)
   from `sha256Node.ts`, with its lnd directory at `sha256-node/` in the main
   volume. Its shell waits for Lightning Fork to write the wallet password
   (`data/chain/bitcoin/mainnet/bridge/sha256/wallet.password`); Lightning

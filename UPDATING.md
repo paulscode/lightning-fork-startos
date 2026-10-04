@@ -40,7 +40,7 @@ either.
 `lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta`);
 move it together with the LND base version the daemon is rebased on.
 
-The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`lndSha256`
+The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`sha256-lnd`
 in `startos/manifest/index.ts`, now `v0.21.4-beta`, index digest in the
 comment beside it). Move it when upstream LND releases, after checking that
 `lncli state`, `--wallet-unlock-password-file` with

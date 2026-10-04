@@ -741,7 +741,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // Lightning Fork's wallet. (Both exist: mkdir below.)
     const sub = sdk.SubContainer.of(
       effects,
-      { imageId: 'lndSha256' },
+      { imageId: 'sha256-lnd' },
       sdk.Mounts.of()
         .mountVolume({
           volumeId: 'main',
