@@ -224,6 +224,14 @@ printf 'scb-after-restore' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/chan
 /bin/sleep 1
 BACKUP_KEEP_FIRST=1 second run_agent --once
 check "and again after a restore, which does not bring the record back" '[ "$(kept)" = 2 ]'
+# A target's folder changed, onto one holding an earlier copy: kept there too.
+mkdir -p "$T/remotes/dropbox/elsewhere/$SHA_ID"
+printf 'scb-elsewhere' > "$T/remotes/dropbox/elsewhere/$SHA_ID/channel.backup"
+jq '.dropbox.path = "elsewhere"' "$T/lnd/channel-backup.json" > "$T/cfg.json" && mv "$T/cfg.json" "$T/lnd/channel-backup.json"
+/bin/sleep 1
+BACKUP_KEEP_FIRST=1 second run_agent --once
+check "and in a target's new folder" \
+  '[ "$(cat "$T/remotes/dropbox/elsewhere/$SHA_ID/"channel.backup.before-*)" = scb-elsewhere ]'
 setup
 mkdir -p "$T/lnd/sha256-node/data/chain/bitcoin/mainnet" "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID"
 printf 'scb-new-node' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"

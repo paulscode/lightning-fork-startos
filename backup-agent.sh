@@ -377,7 +377,9 @@ fail_target() {
 # is kept beside it. rclone exits 3 or 4 when there is nothing to keep.
 keep_existing() {
   [ "$KEEP_FIRST" = 1 ] || return 0
-  grep -qx "$REMOTE_NAME" "$KEPT" 2> /dev/null && return 0
+  # By target and folder: a folder changed, or an account swapped under the
+  # same target, may hold an earlier copy of its own.
+  grep -qxF "$REMOTE_NAME:$REMOTE_PATH" "$KEPT" 2> /dev/null && return 0
   _kept="$OBJECT.before-$(date +%s)"
   # shellcheck disable=SC2086
   rc --config "$RCONF" copyto "$REMOTE_NAME:$REMOTE_PATH/$OBJECT" "$REMOTE_NAME:$REMOTE_PATH/$_kept" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1
@@ -390,7 +392,7 @@ keep_existing() {
       return 1
       ;;
   esac
-  printf '%s\n' "$REMOTE_NAME" >> "$KEPT" || {
+  printf '%s\n' "$REMOTE_NAME:$REMOTE_PATH" >> "$KEPT" || {
     fail_target "$REMOTE_NAME" local 'could not record the kept copy'
     return 1
   }
