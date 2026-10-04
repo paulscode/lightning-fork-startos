@@ -63,6 +63,9 @@ import {
   sha256RpcHost,
   sha256WalletExists,
   sha256ChannelsToRestore,
+  sha256NodeDir,
+  sha256AdminMacaroon,
+  sha256Backends,
 } from './sha256Node'
 
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
@@ -604,9 +607,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   // The bridge's own SHA256 Lightning node, when Lightning Fork runs one
   // (sha256Node.ts): a stock lnd that starts once Lightning Fork has written
-  // its wallet password, reading the SHA256 Bitcoin node chosen in the Bridge
-  // action. Absent unless the bridge is on in that mode, so nothing about it
-  // shows on a node that does not bridge, or bridges through its own LND.
+  // its wallet password, reading the node on the SHA256 chain chosen in the
+  // Bridge action. Present while the bridge is on in that mode, and after,
+  // while that node has a wallet (it may hold channels); nothing about it
+  // shows on a node that never ran one.
   const sha256Backend = store.bridgeSha256Backend as Sha256BackendId | null
   const sha256Supervised =
     !!conf['bridgerpc.enabled'] && !!conf['bridgerpc.sha256.supervised']
@@ -642,7 +646,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           fn: () => ({
             result: 'failure' as const,
             message: i18n(
-              'The Bitcoin node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.',
+              'The node chosen for it in Bridge is the one Lightning Fork reads, on the BLAKE2b chain. Choose a node on the SHA256 chain in Bridge, or another node in Select Node.',
             ),
           }),
         },
@@ -652,18 +656,36 @@ export const main = sdk.setupMain(async ({ effects }) => {
       return chain.addHealthCheck('sha256-lnd', {
         ready: {
           display: i18n('SHA256 Lightning Node'),
+          // Not red: there may be no channels at all (lnd writes a
+          // channel backup even with none), and nothing is wrong yet.
           fn: () => ({
-            result: 'failure' as const,
+            result: 'disabled' as const,
             message: i18n(
-              'Restored from a backup, with channels to recover. Turn the bridge on in Bridge, with "Lightning Fork runs one", and its channels are restored.',
+              'Restored from a backup. Turn the bridge on in Bridge, with "Lightning Fork runs one", to bring this node back and recover any channels it had.',
             ),
           }),
         },
         requires: [],
       }) as C
-    // No address: the chosen Bitcoin node is not installed or not running,
-    // which the dependency on it already shows. Nothing to start yet.
-    if (!sha256Rpc || !sha256Backend) return chain
+    // No address: the chosen node is not installed or not running. The
+    // dependency shows it too; said here so the bridge's own check is not
+    // left to read as starting for ever.
+    if (!sha256Rpc || !sha256Backend)
+      return sha256Wanted && sha256Backend
+        ? (chain.addHealthCheck('sha256-lnd', {
+            ready: {
+              display: i18n('SHA256 Lightning Node'),
+              fn: () => ({
+                result: 'waiting' as const,
+                message: i18n(
+                  'Waiting for its node on the SHA256 chain, ${name}: install or start it.',
+                  { name: literal(sha256Backends[sha256Backend].title) },
+                ),
+              }),
+            },
+            requires: [],
+          }) as C)
+        : chain
     const sub = sdk.SubContainer.of(
       effects,
       { imageId: 'lndSha256' },
@@ -688,19 +710,37 @@ export const main = sdk.setupMain(async ({ effects }) => {
       exec: { command: sha256NodeCommand(sha256Rpc) },
       ready: {
         display: i18n('SHA256 Lightning Node'),
+        // Its wallet's state, which it answers without a macaroon: a port
+        // that listens says only that lnd is up, which it is long before it
+        // has a wallet.
         fn: async () => {
-          const listening = await sdk.healthCheck.checkPortListening(
-            effects,
-            sha256GrpcPort,
-            {
-              successMessage: sha256Supervised
+          const res = await sub
+            .exec(
+              [
+                'lncli',
+                `--rpcserver=127.0.0.1:${sha256GrpcPort}`,
+                `--tlscertpath=${sha256NodeDir}/tls.cert`,
+                `--macaroonpath=${sha256AdminMacaroon}`,
+                'state',
+              ],
+              {},
+              15_000,
+            )
+            .catch(() => null)
+          let state = ''
+          try {
+            state = res && res.exitCode === 0 ? JSON.parse(String(res.stdout)).state : ''
+          } catch {
+            state = ''
+          }
+          if (state === 'SERVER_ACTIVE')
+            return {
+              result: 'success' as const,
+              message: sha256Supervised
                 ? i18n('Running for the bridge')
                 : i18n('Running, watching its channels'),
-              errorMessage: '',
-            },
-          )
-          if (listening.result === 'success') return listening
-          const waiting = await stat(
+            }
+          const waiting = state === 'NON_EXISTING' || await stat(
             `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
           ).then(
             () => false,

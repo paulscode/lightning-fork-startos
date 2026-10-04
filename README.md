@@ -154,19 +154,44 @@ address to the `/remote.php/dav/files/USER/` form rclone requires.
 
 The daemon's `bridgerpc` sub-server (off unless `bridgerpc.enabled`) pays
 invoices on the SHA256 chain through a stock LND there; see `docs/bridge.md`
-in the daemon's repository.
-The **Bridge** action takes that node's gRPC lndconnect URI, writes its
-certificate (PEM) and macaroon to `data/bridge/` in the main volume, checks
-them with `lncli getinfo` against the node before saving, and sets the
-`bridgerpc.*` keys in `lnd.conf` (removed when turned off; the files and
-the journal under the network directory stay). The bridge dials without
-Tor. A bridge that cannot reach the node stays down and tries again every
-minute while LND runs as usual; Bridge Status says why.
-**Bridge Status**, **Set Bridge Rate** and **Add Bridge Participant** run
+and `docs/bridge-sha256-node.md` in the daemon's repository. The **Bridge**
+action chooses how that LND is provided:
+
+- **Lightning Fork runs one** (`bridgerpc.sha256.supervised`, the default):
+  daemon `sha256-lnd` runs the stock `lightninglabs/lnd` image (`lndSha256`)
+  from `sha256Node.ts`, with its lnd directory at `sha256-node/` in the main
+  volume. Its shell waits for Lightning Fork to write the wallet password
+  (`data/chain/bitcoin/mainnet/bridge/sha256/wallet.password`); Lightning
+  Fork creates its wallet from a derived seed, bakes the bridge's macaroon
+  and checks its identity and chain. It reads the chosen node on the SHA256
+  chain (`knots-prerdts` or `bitcoind`, store `bridgeSha256Backend`) by RPC
+  polling with that package's cookie, and listens on 127.0.0.1 for gRPC
+  (10019, Lightning Fork's default address) and REST (8089), 9739 for peers
+  (not exposed). A copier in the same shell keeps its `tls.cert` and
+  `admin.macaroon` in the dashboard volume's `sha256/`. The daemon and the
+  dependency on its chain node exist while the bridge is on in this mode and
+  after, while the node has a wallet (`sha256WalletExists`); its health check
+  is `lncli state` without a macaroon. `nodeChain.ts` tells each installed node
+  package's chain from its version for the forms, which label, suggest and
+  refuse accordingly. Backups keep its `channel.backup` and leave out its
+  wallet, macaroons and channel database (`backups.ts`); after a restore with
+  the bridge off a health check says to turn it on.
+- **An LND I already run:** takes that node's gRPC lndconnect URI, writes its
+  certificate (PEM) and macaroon to `data/bridge/` in the main volume, checks
+  them with `lncli getinfo` before saving, and sets `bridgerpc.sha256.*`.
+
+`bridgerpc.*` keys are removed when the bridge is turned off; the files, the
+journal and a supervised node stay. Turning it off, or moving it to another
+node, is refused while `lncli bridge status` shows swaps in flight or needing
+the operator. The bridge dials without Tor. A bridge that cannot reach its
+node stays down and tries again while LND runs as usual; Bridge Status says
+why. **Bridge Status**, **Set Bridge Rate** and **Add Bridge Participant** run
 `lncli bridge status|info|setrate|code` and are hidden while the bridge is
-off. Codes are offered for the REST interface's onion addresses only: any
-other address needs the SHA-256 of the certificate StartOS presents there.
-Each code's root key id and label are kept in `store.json`
+off; **Fund the SHA256 Node**, **Open SHA256 Channel** and **SHA256 Node
+Recovery Phrase** (`lncli bridge sha256seed`) are shown once a supervised node
+has existed. Codes are offered for the REST interface's onion addresses only:
+any other address needs the SHA-256 of the certificate StartOS presents
+there. Each code's root key id and label are kept in `store.json`
 (`bridgeParticipants`), and **Remove Bridge Participant** runs
 `lncli deletemacaroonid` on it.
 

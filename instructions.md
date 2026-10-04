@@ -142,25 +142,43 @@ Lightning Fork users for each other.
 A bridge lets people you choose pay Lightning invoices on the SHA256 chain
 from their BLAKE2b funds, or the reverse, without you ever
 holding their money: they pay a hold invoice with the same payment hash, which
-you can only claim by paying their invoice. It needs a stock LND on the SHA256
-chain, reachable from this server, with outbound liquidity, and it stays off
-until you turn it on.
+you can only claim by paying their invoice. It needs a Lightning node on the
+SHA256 chain with outbound liquidity, and it stays off until you turn it on.
 
-1. **Bridge:** turn it on, paste the SHA256 node's gRPC lndconnect URI (the
-   form with its LAN IP address; onion addresses are not used) and set your
-   rate in SHA256 coin per BLAKE2b coin. If the SHA256 node cannot be
-   reached, only the bridge waits: LND runs as usual, the bridge tries again
-   every minute, and **Bridge Status** says why it is not serving.
-2. **Set Bridge Rate:** change the rate at any time. Once it is older than the
-   rate maximum age (24 hours by default) the bridge stops quoting until you
-   set it again. **Bridge Status** shows whether it is serving and why not.
-3. **Add Bridge Participant:** makes a bridge code for one person, which they
+1. **Bridge:** turn it on. By default Lightning Fork runs that Lightning
+   node for you (**Lightning Fork runs one**): a stock LND, created from a
+   seed derived from this node's own, so there is nothing new to write down.
+   Choose the node on the SHA256 chain it reads: the form lists your node
+   packages and the chain each one is on. Run both chains however suits you:
+   your main node on one chain and a companion on the other, either way
+   round, or two companions. Or choose **An LND I already run** and paste
+   its gRPC lndconnect URI (the form with its LAN IP address).
+2. **Fund the SHA256 Node** and **Open SHA256 Channel:** the node starts
+   empty. Send it coins on the SHA256 chain, then open a channel from it to a
+   well-connected node there. It takes no incoming connections, so open
+   channels from it. The dashboard's **Run a bridge** window does the same and
+   walks you through the rest.
+3. **Set Bridge Rate:** set your rate in SHA256 coin per BLAKE2b coin, and
+   renew it before it expires (24 hours by default): until there is one, and
+   once it expires, the bridge quotes nothing. **Bridge Status** shows whether
+   it is serving and why not.
+4. **Add Bridge Participant:** makes a bridge code for one person, which they
    add in their dashboard. It needs an onion address on the REST LND Connect
    interface. A code is a credential: send it privately.
    **Remove Bridge Participant** revokes one.
 
+The bridge cannot be turned off, or moved to another node, while payments
+through it are unfinished. Once Lightning Fork has run a node for the bridge,
+that node keeps running, bridge on or off: it may hold channels, and a node
+must watch its channels. **SHA256 Node Recovery Phrase** shows the words that
+restore it in another LND; your Lightning Fork phrase already recreates it
+here.
+
 The swap journal, which records swaps in flight, is kept in this service's
-data, so StartOS backups include it. Back up the SHA256 node as well.
+data, so StartOS backups include it. A backup also keeps the bridge node's
+channel backup and leaves out its wallet: after a restore, turning the bridge
+on recreates the node and restores its channels. Keep a recent copy of that
+node's channel backup too (the dashboard downloads it), as for this node's.
 
 ## Backups
 

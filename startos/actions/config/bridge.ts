@@ -1,3 +1,4 @@
+import { T } from '@start9labs/start-sdk'
 import { X509Certificate } from 'crypto'
 import { access, mkdir, rename, rm, writeFile } from 'fs/promises'
 import {
@@ -90,7 +91,7 @@ const bridgeSpec = InputSpec.of({
               warning:
                 lfNode.installed && lfNode.chain === 'sha256'
                   ? i18n(
-                      "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; ${name} can then be the bridge's node.",
+                      "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; this one can then be the bridge's node.",
                       { name: literal(nodeTitle(backends[lf].title, lfNode)) },
                     )
                   : null,
@@ -196,6 +197,52 @@ const bridgeSpec = InputSpec.of({
     units: i18n('hours'),
   }),
 })
+
+/**
+ * The node on the SHA256 chain chosen for the bridge's own node, checked:
+ * not the node Lightning Fork reads, installed, and not plainly on the
+ * BLAKE2b chain. Setup 1 before Select Node has been changed (Lightning Fork
+ * still on its default, the main node, which is on the SHA256 chain and so is
+ * the node the bridge should read) is said as such.
+ */
+async function checkSha256Choice(
+  effects: T.Effects,
+  bitcoin: Sha256BackendId,
+): Promise<Sha256BackendId> {
+  const lf = (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
+  if (!sha256BackendChoices(lf).includes(bitcoin))
+    throw new Error(
+      i18n(
+        'That node is the one Lightning Fork reads, on the BLAKE2b chain. Choose one on the SHA256 chain.',
+      ),
+    )
+  const nodes = await surveyNodes(effects)
+  const lfNode = nodes[lf]
+  if (lfNode.installed && lfNode.chain === 'sha256')
+    throw new Error(
+      i18n(
+        "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; this one can then be the bridge's node.",
+        { name: literal(nodeTitle(backends[lf].title, lfNode)) },
+      ),
+    )
+  const node = nodes[bitcoin]
+  const name = literal(nodeTitle(sha256Backends[bitcoin].title, node))
+  if (!node.installed)
+    throw new Error(
+      i18n(
+        '${name} is not installed. Install it first (it must be on the SHA256 chain), or choose another.',
+        { name },
+      ),
+    )
+  if (node.chain === 'blake2b')
+    throw new Error(
+      i18n(
+        "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.",
+        { name, version: literal(node.version ?? '') },
+      ),
+    )
+  return bitcoin
+}
 
 // A Go duration as whole hours, for the prefill: what this action writes
 // (`24h`) and what LND accepts by hand (`36h0m0s`, `90m`).
@@ -324,12 +371,20 @@ export const bridgeConfig = sdk.Action.withInput(
   // the execution function
   async ({ effects, input }) => {
     // Off, or onto another SHA256 node, only once nothing is half done
-    // (bridgeUnfinished says why).
+    // (bridgeUnfinished says why): from one mode to the other, or to an LND
+    // at another address.
     const current = await lndConfFile.read().once()
+    const newConnection =
+      input.sha256.selection === 'existing' &&
+      input.sha256.value.connection?.trim()
+        ? parseLndConnect(input.sha256.value.connection).host
+        : null
     const switchingNode =
       !!current?.['bridgerpc.enabled'] &&
-      !!current?.['bridgerpc.sha256.supervised'] !==
-        (input.sha256.selection === 'supervised')
+      (!!current?.['bridgerpc.sha256.supervised'] !==
+        (input.sha256.selection === 'supervised') ||
+        (!!newConnection &&
+          newConnection !== current?.['bridgerpc.sha256.rpchost']))
     if (!input.enabled || switchingNode) {
       const unfinished = await bridgeUnfinished(effects)
       if (unfinished)
@@ -342,6 +397,21 @@ export const bridgeConfig = sdk.Action.withInput(
     }
 
     if (!input.enabled) {
+      // The node on the SHA256 chain the bridge's own node reads is kept,
+      // and can be changed, while the bridge is off: that node goes on
+      // running once it exists (it may hold channels).
+      const store = await storeJson.read().once()
+      if (
+        input.sha256.selection === 'supervised' &&
+        store?.bridgeSha256Ever &&
+        input.sha256.value.bitcoin !== store.bridgeSha256Backend
+      )
+        await storeJson.merge(effects, {
+          bridgeSha256Backend: await checkSha256Choice(
+            effects,
+            input.sha256.value.bitcoin as Sha256BackendId,
+          ),
+        })
       await lndConfFile.merge(effects, bridgeOff)
       return
     }
@@ -379,43 +449,10 @@ export const bridgeConfig = sdk.Action.withInput(
     // The node is started once the bridge has made its wallet password,
     // and Bridge Status follows it from there.
     if (input.sha256.selection === 'supervised') {
-      const lf =
-        (await storeJson.read((s) => s.backend).once()) ?? defaultBackend
-      const bitcoin = input.sha256.value.bitcoin as Sha256BackendId
-      if (!sha256BackendChoices(lf).includes(bitcoin))
-        throw new Error(
-          i18n(
-            'That Bitcoin node is the one this node reads, on the BLAKE2b chain. Choose one on the SHA256 chain.',
-          ),
-        )
-      const nodes = await surveyNodes(effects)
-      // Setup 1 before Select Node has been changed: Lightning Fork is
-      // still on its default, the main node, which is on the SHA256 chain
-      // and so is the node the bridge should read.
-      const lfNode = nodes[lf]
-      if (lfNode.installed && lfNode.chain === 'sha256')
-        throw new Error(
-          i18n(
-            "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; ${name} can then be the bridge's node.",
-            { name: literal(nodeTitle(backends[lf].title, lfNode)) },
-          ),
-        )
-      const node = nodes[bitcoin]
-      const name = literal(nodeTitle(sha256Backends[bitcoin].title, node))
-      if (!node.installed)
-        throw new Error(
-          i18n(
-            '${name} is not installed. Install it first (it must be on the SHA256 chain), or choose another.',
-            { name },
-          ),
-        )
-      if (node.chain === 'blake2b')
-        throw new Error(
-          i18n(
-            "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.",
-            { name, version: literal(node.version ?? '') },
-          ),
-        )
+      const bitcoin = await checkSha256Choice(
+        effects,
+        input.sha256.value.bitcoin as Sha256BackendId,
+      )
       await storeJson.merge(effects, {
         bridgeMode: 'supervised',
         bridgeSha256Backend: bitcoin,

@@ -1,6 +1,5 @@
 import { T } from '@start9labs/start-sdk'
 import { lncli } from '../bridge'
-import { lndConfFile } from '../fileModels/lnd.conf'
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
@@ -23,15 +22,9 @@ const sha256Node = [
   `--macaroonpath=${sha256AdminMacaroon}`,
 ]
 
-// While the bridge runs its own node. The recovery phrase stays available
-// after the bridge is turned off, since whatever that node holds is still
-// there; the funding actions are only for a node that is running.
-const runningVisibility = async (effects: T.Effects) =>
-  (await lndConfFile
-    .read((c) => !!c['bridgerpc.enabled'] && !!c['bridgerpc.sha256.supervised'])
-    .const(effects))
-    ? ('enabled' as const)
-    : ('hidden' as const)
+// Once Lightning Fork has run a node for the bridge: that node goes on
+// running, bridge on or off, so its funds and channels stay the operator's to
+// manage (only-running, so the service is up to answer).
 
 const everVisibility = async (effects: T.Effects) =>
   (await storeJson
@@ -72,7 +65,7 @@ export const bridgeSha256Fund = sdk.Action.withoutInput(
     warning: null,
     allowedStatuses: 'only-running',
     group: i18n('Bridge'),
-    visibility: await runningVisibility(effects),
+    visibility: await everVisibility(effects),
   }),
 
   // the execution function
@@ -115,7 +108,7 @@ export const bridgeSha256Fund = sdk.Action.withoutInput(
             {
               copyable: true,
               description: i18n(
-                'How another node on the SHA256 chain opens a channel to this one.',
+                'Its identity on the SHA256 chain. It takes no incoming connections, so open channels from it.',
               ),
             },
           ),
@@ -138,7 +131,7 @@ export const bridgeSha256OpenChannel = sdk.Action.withInput(
     warning: null,
     allowedStatuses: 'only-running',
     group: i18n('Bridge'),
-    visibility: await runningVisibility(effects),
+    visibility: await everVisibility(effects),
   }),
 
   InputSpec.of({
@@ -221,7 +214,7 @@ export const bridgeSha256Seed = sdk.Action.withoutInput(
   async ({ effects }) => ({
     name: i18n('SHA256 Node Recovery Phrase'),
     description: i18n(
-      "The 24 words that restore the bridge's SHA256 Lightning node in a stock LND, without Lightning Fork. They are derived from this node's own phrase, so there is nothing new to keep; this is for restoring that node somewhere else.",
+      "The 24 words that restore the bridge's SHA256 Lightning node in a stock LND, without Lightning Fork. They are derived from this node's own phrase, so there is nothing new to keep; this is for restoring that node somewhere else, once it no longer runs here: two copies of one node with channels can lose them.",
     ),
     warning: i18n(
       'Anyone who sees these words can spend what the SHA256 node holds.',

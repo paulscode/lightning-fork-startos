@@ -79,7 +79,7 @@ export const depCompanionDescription = {
 }
 
 const depSha256En =
-  "A Bitcoin Knots node on the SHA256 chain, for the Lightning node the bridge runs there. Needed only when the bridge runs its own: it is read over RPC, and holds none of the bridge's coins."
+  "A Bitcoin Knots node on the SHA256 chain, for the Lightning node the bridge runs there. Needed while the bridge runs its own, and after, while that node exists: it is read over RPC, and holds none of the bridge's coins."
 
 export const depSha256Description = {
   en_US: depSha256En,

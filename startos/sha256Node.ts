@@ -24,8 +24,9 @@ import { stat } from 'fs/promises'
  *   bridge uses, and refuses the node if it is not the one it created.
  *
  * The paths are where Lightning Fork looks by default
- * (lnrpc/bridgerpc/config_active.go). Both live in the main volume, so a
- * StartOS backup carries this node with the other.
+ * (lnrpc/bridgerpc/config_active.go). Both live in the main volume; a StartOS
+ * backup carries this node's channel backup and leaves out its wallet, which
+ * Lightning Fork recreates from the derived seed (backups.ts).
  */
 
 /** The stock node's lnd directory. */
@@ -53,10 +54,9 @@ export const sha256RestPort = 8089
 export const sha256BitcoindMnt = '/mnt/sha256-bitcoin'
 
 /**
- * The Bitcoin Knots packages that can follow the SHA256 chain. The official
- * one does in its pre-RDTS flavor (installed as `bitcoind`); the SHA256
- * Companion always does. Both are forks of the official package and share its
- * endpoints, volume layout and health checks.
+ * The packages that can be the node on the SHA256 chain the bridge's node
+ * reads: Bitcoin Knots (SHA256) Companion, or the official package when it is
+ * Bitcoin Core or a Knots build for that chain (nodeChain.ts tells which).
  */
 export { sha256BackendIds } from './backends'
 export type { Sha256BackendId } from './backends'
@@ -67,7 +67,10 @@ export const sha256Backends: Record<
 > = {
   'knots-prerdts': {
     title: 'Bitcoin Knots (SHA256) Companion',
-    versionRange: '>=29.3:25',
+    // Any version: an unflavored range never matches its #knotsprerdts
+    // versions except through the package's own satisfies list. It follows
+    // the SHA256 chain whatever its version, and the bridge checks that.
+    versionRange: '*',
     healthChecks: ['bitcoind', 'sync-progress'],
   },
   bitcoind: {
@@ -158,7 +161,8 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
  *
  * Beside lnd runs a copier that keeps the dashboard's copies of its
  * certificate and admin macaroon current, checking every thirty seconds; the
- * macaroon appears only once Lightning Fork has created the wallet.
+ * macaroon appears only once Lightning Fork has created the wallet. It stops
+ * with lnd.
  */
 export function sha256NodeCommand(rpchost: string): string[] {
   const args = [
@@ -191,17 +195,24 @@ export function sha256NodeCommand(rpchost: string): string[] {
     )
     .join('; ')
 
+  // lnd is not exec'd: the shell stays to stop the copier with it. Left
+  // running behind an exec'd lnd, each restart of the daemon in the same
+  // subcontainer would add another.
   return [
     'sh',
     '-c',
     [
       `trap 'exit 0' TERM INT`,
       `until [ -s ${q(sha256PasswordFile)} ]; do sleep 2 & wait $!; done`,
-      `trap - TERM INT`,
       `(while :; do ${copy}; sleep 30; done) &`,
-      `exec lnd ${args.map(q).join(' ')}`,
-      // Lines, not "; ": the copier's line ends in "&", after which a ";"
-      // is a syntax error.
+      `copier=$!`,
+      `lnd ${args.map(q).join(' ')} &`,
+      `lnd=$!`,
+      `trap 'kill -TERM $lnd 2>/dev/null; wait $lnd; kill $copier 2>/dev/null; exit 0' TERM INT`,
+      `wait $lnd`,
+      `rc=$?`,
+      `kill $copier 2>/dev/null`,
+      `exit $rc`,
     ].join('\n'),
   ]
 }

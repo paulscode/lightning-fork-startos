@@ -40,6 +40,14 @@ either.
 `lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta`);
 move it together with the LND base version the daemon is rebased on.
 
+The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`lndSha256`
+in `startos/manifest/index.ts`, now `v0.21.4-beta`, index digest in the
+comment beside it). Move it when upstream LND releases, after checking that
+`lncli state`, `--wallet-unlock-password-file` with
+`--wallet-unlock-allow-create`, and the REST routes the dashboard uses still
+behave as `sha256Node.ts` and the daemon's `bridgerpc` expect; keep the Umbrel
+app's pin (`docker-compose.yml`, `sha256-lnd`) on the same version.
+
 ## Start9's LND package
 
 This package tracks `Start9Labs/lnd-startos` (`upstream` remote). To pull

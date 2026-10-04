@@ -58,10 +58,11 @@ export const setDependencies = sdk.setupDependencies(async ({ effects }) => {
     })
   }
 
-  // The bridge's own SHA256 Lightning node reads a Bitcoin node on the SHA256
-  // chain, which is required only while that node runs: a bridge that is off,
-  // or that pays through an LND the operator already runs, needs none. It is
-  // polled over RPC (sha256Node.ts), so it needs no ZMQ task.
+  // The bridge's own SHA256 Lightning node reads a node on the SHA256 chain,
+  // which is required while that node runs: while the bridge is on in that
+  // mode, and after, while the node has a wallet (it may hold channels). A
+  // server that never ran one needs none. It is polled over RPC
+  // (sha256Node.ts), so it needs no ZMQ task.
   const supervised = await lndConfFile
     .read((l) => !!l['bridgerpc.enabled'] && !!l['bridgerpc.sha256.supervised'])
     .const(effects)
