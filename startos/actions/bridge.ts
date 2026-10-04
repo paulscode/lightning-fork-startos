@@ -123,9 +123,6 @@ export const bridgeStatus = sdk.Action.withoutInput(
       : refusals.length
         ? refusals.join('\n')
         : i18n('Serving swaps')
-    const expires = Number(status.rate_expires_at)
-      ? when(status.rate_expires_at)
-      : i18n('never')
 
     return {
       version: '1',
@@ -135,41 +132,26 @@ export const bridgeStatus = sdk.Action.withoutInput(
         type: 'group',
         value: [
           single(i18n('State'), state),
-          status.rate_source === 'neoxa'
-            ? single(
-                i18n('Rate'),
-                status.rate
-                  ? i18n(
-                      '${rate} from the market (Neoxa), read ${set}; cross-check ${cross}',
-                      {
-                        rate: String(status.rate),
-                        set: when(status.rate_set_at),
-                        cross: status.rate_cross_check
-                          ? String(
-                              Math.round(status.rate_cross_check * 1e8) / 1e8,
-                            )
-                          : '—',
-                      },
-                    )
-                  : i18n('Reading the market'),
-                i18n(
-                  "SHA256 coin per BLAKE2b coin: Neoxa's BTCB2_BTC price, checked against its BTCB2_USDC price. While the market cannot be read, or the two disagree, the bridge quotes nothing (State says why).",
-                ),
-              )
-            : status.rate
-              ? single(
-                  i18n('Rate'),
-                  String(status.rate),
-                  i18n(
-                    'SHA256 coin per BLAKE2b coin, set ${set}, used until ${expires}.',
-                    { set: when(status.rate_set_at), expires },
-                  ),
+          // The market's rate: a fixed one is for test networks, and LND
+          // refuses it on mainnet.
+          single(
+            i18n('Rate'),
+            status.rate
+              ? i18n(
+                  '${rate} from the market (Neoxa), read ${set}; cross-check ${cross}',
+                  {
+                    rate: String(status.rate),
+                    set: when(status.rate_set_at),
+                    cross: status.rate_cross_check
+                      ? String(Math.round(status.rate_cross_check * 1e8) / 1e8)
+                      : '—',
+                  },
                 )
-              : single(
-                  i18n('Rate'),
-                  i18n('Not set yet: the bridge quotes nothing until it is.'),
-                  i18n('Set it with Set Bridge Rate.'),
-                ),
+              : i18n('Reading the market'),
+            i18n(
+              "SHA256 coin per BLAKE2b coin: Neoxa's BTCB2_BTC price, checked against its BTCB2_USDC price. While the market cannot be read, or the two disagree, the bridge quotes nothing (State says why).",
+            ),
+          ),
           ...(status.fee_to_sha256
             ? [
                 single(
@@ -260,77 +242,6 @@ export const bridgeStatus = sdk.Action.withoutInput(
           ),
         ],
       },
-    }
-  },
-)
-
-export const bridgeSetRate = sdk.Action.withInput(
-  // id
-  'bridge-set-rate',
-
-  // metadata
-  async ({ effects }) => ({
-    name: i18n('Set Bridge Rate'),
-    description: i18n(
-      'Change the rate the bridge trades at, at once and without a restart. Only with your own rate (Rate Source in the Bridge setting).',
-    ),
-    warning: null,
-    allowedStatuses: 'only-running',
-    group: i18n('Bridge'),
-    // Following the market there is nothing to set, and LND refuses.
-    visibility:
-      (await lndConfFile
-        .read((c) => c['bridgerpc.ratesource'] === 'fixed')
-        .const(effects)) && (await bridgeVisibility(effects)) === 'enabled'
-        ? ('enabled' as const)
-        : ('hidden' as const),
-  }),
-
-  // form input specification
-  InputSpec.of({
-    rate: Value.number({
-      name: i18n('Rate'),
-      description: i18n(
-        'SHA256 coin per BLAKE2b coin, such as 0.00483. It must be set again before the rate maximum age passes, or the bridge stops quoting.',
-      ),
-      default: null,
-      required: true,
-      min: 0,
-      integer: false,
-      placeholder: '0.00483',
-    }),
-  }),
-
-  // the rate in force, or the configured one if LND does not answer
-  async ({ effects }) => {
-    try {
-      const [out] = await lncli(effects, 'bridge-rate', ['bridge', 'status'])
-      const rate = (JSON.parse(out) as BridgeStatus).rate
-      if (rate > 0) return { rate }
-    } catch {}
-    return {
-      rate:
-        (await lndConfFile.read((c) => c['bridgerpc.fixedrate']).once()) ??
-        undefined,
-    }
-  },
-
-  // the execution function
-  async ({ effects, input }) => {
-    const [out] = await lncli(effects, 'bridge-set-rate', [
-      'bridge',
-      'setrate',
-      String(input.rate),
-    ])
-    const { rate } = JSON.parse(out) as { rate: number }
-    return {
-      version: '1',
-      title: i18n('Set Bridge Rate'),
-      message: i18n(
-        'The bridge now trades at ${rate} SHA256 coin per BLAKE2b coin.',
-        { rate: String(rate) },
-      ),
-      result: null,
     }
   },
 )

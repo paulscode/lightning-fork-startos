@@ -146,28 +146,6 @@ const bridgeSpec = InputSpec.of({
       },
     }),
   }),
-  rateSource: Value.select({
-    name: i18n('Rate Source'),
-    description: i18n(
-      "Where the rate comes from. The market: Neoxa's BTCB2_BTC price, read every 30 seconds and checked against its BTCB2_USDC price; while the market cannot be read, or the two disagree, the bridge quotes nothing. Your own: the rate below, which you keep current with Set Bridge Rate.",
-    ),
-    default: 'neoxa',
-    values: {
-      neoxa: i18n('The market (Neoxa), read live'),
-      fixed: i18n('My own rate'),
-    },
-  }),
-  rate: Value.number({
-    name: i18n('Rate'),
-    description: i18n(
-      'With your own rate only: SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one.',
-    ),
-    default: null,
-    required: false,
-    min: 0,
-    integer: false,
-    placeholder: '0.00483',
-  }),
   spread: Value.number({
     name: i18n('Fee'),
     description: i18n(
@@ -226,17 +204,6 @@ const bridgeSpec = InputSpec.of({
     integer: true,
     units: 'sats',
   }),
-  rateMaxAgeHours: Value.number({
-    name: i18n('Rate Maximum Age'),
-    description: i18n(
-      'With your own rate only: after this long without a new rate the bridge stops quoting.',
-    ),
-    default: 1,
-    required: true,
-    min: 1,
-    integer: true,
-    units: i18n('hours'),
-  }),
 })
 
 /**
@@ -283,16 +250,6 @@ async function checkSha256Choice(
       ),
     )
   return bitcoin
-}
-
-// A Go duration as whole hours, for the prefill: what this action writes
-// (`24h`) and what LND accepts by hand (`36h0m0s`, `90m`).
-function durationHours(d?: string): number | undefined {
-  const m = d?.match(/^(?:([\d.]+)h)?(?:([\d.]+)m)?(?:([\d.]+)s)?$/)
-  if (!m) return undefined
-  const hours =
-    Number(m[1] ?? 0) + Number(m[2] ?? 0) / 60 + Number(m[3] ?? 0) / 3600
-  return hours >= 1 ? Math.round(hours) : undefined
 }
 
 // lndconnect://host:port?cert=<base64url DER>&macaroon=<base64url>. The
@@ -392,11 +349,6 @@ export const bridgeConfig = sdk.Action.withInput(
       sha256,
       tosha256: !!c['bridgerpc.tosha256'],
       toblake2b: !!c['bridgerpc.toblake2b'],
-      rateSource:
-        c['bridgerpc.ratesource'] === 'fixed'
-          ? ('fixed' as const)
-          : ('neoxa' as const),
-      rate: c['bridgerpc.fixedrate'] ?? null,
       spread:
         c['bridgerpc.spread'] !== undefined
           ? percentOf(c['bridgerpc.spread'])
@@ -417,7 +369,6 @@ export const bridgeConfig = sdk.Action.withInput(
         c['bridgerpc.maxswapmsat'] !== undefined
           ? Math.round(c['bridgerpc.maxswapmsat'] / 1000)
           : 150000,
-      rateMaxAgeHours: durationHours(c['bridgerpc.ratemaxage']) ?? 1,
     }
   },
 
@@ -474,12 +425,6 @@ export const bridgeConfig = sdk.Action.withInput(
     // unreachable SHA256 node, which only keeps the bridge down.
     if (!input.tosha256 && !input.toblake2b)
       throw new Error(i18n('Choose at least one direction to serve.'))
-    if (input.rate !== null && input.rate !== undefined && input.rate <= 0)
-      throw new Error(
-        i18n(
-          'Enter the rate, in SHA256 coin per BLAKE2b coin, such as 0.00483.',
-        ),
-      )
     // Over the 0.3% the bridge budgets for routing, which a fee must cover.
     for (const fee of [input.spread, input.feeToSha256, input.feeToBlake2b])
       if (fee !== null && fee !== undefined && (fee <= 0.3 || fee >= 20))
@@ -493,11 +438,11 @@ export const bridgeConfig = sdk.Action.withInput(
       'bridgerpc.enabled': true,
       'bridgerpc.tosha256': input.tosha256,
       'bridgerpc.toblake2b': input.toblake2b,
-      'bridgerpc.ratesource': input.rateSource,
-      // Only with the operator's own rate: beside the market's, LND would
-      // say it is not used.
-      'bridgerpc.fixedrate':
-        input.rateSource === 'fixed' ? (input.rate ?? undefined) : undefined,
+      // The bridge trades at the market's rate: a fixed one is for test
+      // networks, and LND refuses it on mainnet. Cleared, with its
+      // expiry, from what an earlier version wrote.
+      'bridgerpc.ratesource': undefined,
+      'bridgerpc.fixedrate': undefined,
       'bridgerpc.spread': fraction(input.spread),
       'bridgerpc.fee.tosha256':
         input.feeToSha256 != null ? fraction(input.feeToSha256) : undefined,
@@ -505,8 +450,7 @@ export const bridgeConfig = sdk.Action.withInput(
         input.feeToBlake2b != null ? fraction(input.feeToBlake2b) : undefined,
       'bridgerpc.minswapmsat': input.minSwapSats * 1000,
       'bridgerpc.maxswapmsat': input.maxSwapSats * 1000,
-      'bridgerpc.ratemaxage':
-        input.rateSource === 'fixed' ? `${input.rateMaxAgeHours}h` : undefined,
+      'bridgerpc.ratemaxage': undefined,
     }
 
     // Lightning Fork runs the SHA256 node: nothing to dial or check here.
