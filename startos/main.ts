@@ -51,7 +51,13 @@ import {
 } from './utils'
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { get as httpGet } from 'http'
-import { dashboardPort, gRPCPort, restPort } from './interfaces'
+import {
+  dashboardPort,
+  gRPCPort,
+  restPort,
+  sha256PeerHostId,
+  sha256PeerInterfaceId,
+} from './interfaces'
 import { Sha256BackendId } from './backends'
 import {
   sha256BitcoindMnt,
@@ -65,6 +71,7 @@ import {
   sha256ChannelsToRestore,
   sha256NodeDir,
   sha256AdminMacaroon,
+  sha256SecretsDir,
   sha256Backends,
 } from './sha256Node'
 
@@ -630,10 +637,50 @@ export const main = sdk.setupMain(async ({ effects }) => {
       : null
   // Where that node's daemon leaves its credentials for the dashboard; a
   // subpath mount needs the directory to exist.
-  if (sha256Rpc)
+  if (sha256Rpc) {
     await mkdir(`${dashboardVolumeHost}/${sha256DashboardSubpath}`, {
       recursive: true,
     })
+    for (const dir of [sha256NodeDir, sha256SecretsDir])
+      await mkdir(`${mainVolumeHost}${dir.slice(lndDataDir.length)}`, {
+        recursive: true,
+        mode: 0o700,
+      })
+  }
+  // Its onion, when the operator added one to its peer interface: the only
+  // address it advertises, so the server's own is never handed out. Its
+  // peers through the same Tor as Lightning Fork's, onions only; others
+  // directly.
+  const sha256Extra: string[] = []
+  if (sha256Rpc) {
+    const onions =
+      (await sdk.host
+        .getOwn(effects, sha256PeerHostId, (host) => {
+          const iface =
+            host &&
+            Object.values(host.bindings)
+              .flatMap((b) => Object.values(b.interfaces))
+              .find((i) => i.id === sha256PeerInterfaceId)
+          if (!iface) return [] as string[]
+          return iface.addressInfo.public
+            .filter({
+              predicate: ({ metadata }) =>
+                metadata.kind === 'plugin' && metadata.packageId === 'tor',
+            })
+            .format() as string[]
+        })
+        .const()) ?? []
+    for (const onion of onions)
+      sha256Extra.push(
+        `--externalip=${onion.replace(/^[a-z]+:\/\//, '').replace(/\/$/, '')}`,
+      )
+    if (conf['tor.socks'])
+      sha256Extra.push(
+        '--tor.active',
+        `--tor.socks=${conf['tor.socks']}`,
+        '--tor.skip-proxy-for-clearnet-targets',
+      )
+  }
   const withSha256Node = <C extends { addDaemon: any; addHealthCheck: any }>(
     chain: C,
   ): C => {
@@ -686,10 +733,25 @@ export const main = sdk.setupMain(async ({ effects }) => {
             requires: [],
           }) as C)
         : chain
+    // Only its own directory and the one Lightning Fork keeps its
+    // password and macaroons in, not the main volume, which also holds
+    // Lightning Fork's wallet. (Both exist: mkdir below.)
     const sub = sdk.SubContainer.of(
       effects,
       { imageId: 'lndSha256' },
-      mainMounts
+      sdk.Mounts.of()
+        .mountVolume({
+          volumeId: 'main',
+          subpath: 'sha256-node',
+          mountpoint: sha256NodeDir,
+          readonly: false,
+        })
+        .mountVolume({
+          volumeId: 'main',
+          subpath: sha256SecretsDir.slice(lndDataDir.length + 1),
+          mountpoint: sha256SecretsDir,
+          readonly: false,
+        })
         .mountDependency<typeof bitcoinManifest>({
           dependencyId: sha256Backend as 'bitcoind',
           volumeId: 'main',
@@ -705,9 +767,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
         }),
       'sha256-lnd-sub',
     )
+    let sha256DownSince: number | null = null
     return chain.addDaemon('sha256-lnd', {
       subcontainer: sub,
-      exec: { command: sha256NodeCommand(sha256Rpc) },
+      exec: { command: sha256NodeCommand(sha256Rpc, sha256Extra) },
       ready: {
         display: i18n('SHA256 Lightning Node'),
         // Its wallet's state, which it answers without a macaroon: a port
@@ -729,23 +792,43 @@ export const main = sdk.setupMain(async ({ effects }) => {
             .catch(() => null)
           let state = ''
           try {
-            state = res && res.exitCode === 0 ? JSON.parse(String(res.stdout)).state : ''
+            state =
+              res && res.exitCode === 0
+                ? JSON.parse(String(res.stdout)).state
+                : ''
           } catch {
             state = ''
           }
-          if (state === 'SERVER_ACTIVE')
+          if (state === 'SERVER_ACTIVE') {
+            sha256DownSince = null
             return {
               result: 'success' as const,
               message: sha256Supervised
                 ? i18n('Running for the bridge')
                 : i18n('Running, watching its channels'),
             }
-          const waiting = state === 'NON_EXISTING' || await stat(
-            `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
-          ).then(
-            () => false,
-            () => true,
-          )
+          }
+          const waiting =
+            state === 'NON_EXISTING' ||
+            (await stat(
+              `${mainVolumeHost}${sha256PasswordFile.slice(lndDataDir.length)}`,
+            ).then(
+              () => false,
+              () => true,
+            ))
+          // Not answering for minutes once it has its password is not starting:
+          // a wrong cookie, its chain node down, a crash loop. Said, with
+          // where to look, rather than "Starting" for ever.
+          if (!waiting) {
+            sha256DownSince ??= Date.now()
+            if (Date.now() - sha256DownSince > 5 * 60_000)
+              return {
+                result: 'failure' as const,
+                message: i18n(
+                  "Not answering for several minutes. Check its node on the SHA256 chain is running, and this service's logs.",
+                ),
+              }
+          }
           return {
             result: 'starting',
             message: waiting
@@ -1575,7 +1658,15 @@ export const main = sdk.setupMain(async ({ effects }) => {
               try {
                 for (const [from, to] of copies) {
                   const bytes = await readFile(from)
-                  await writeFile(`${to}.tmp`, bytes, { mode: 0o600 })
+                  // Never through whatever is at the .tmp path: the
+                  // dashboard can write its volume, and a link it left
+                  // there would aim this copy anywhere. Removed, then
+                  // created afresh (wx fails rather than follow one).
+                  await rm(`${to}.tmp`, { force: true })
+                  await writeFile(`${to}.tmp`, bytes, {
+                    mode: 0o600,
+                    flag: 'wx',
+                  })
                   await rename(`${to}.tmp`, to)
                 }
                 return null
@@ -1649,7 +1740,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             ...(sha256Wanted
               ? {
                   SHA256_TLS_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/tls.cert`,
-                  SHA256_MACAROON_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/admin.macaroon`,
+                  SHA256_MACAROON_FILE: `${dashboardDataDir}/${sha256DashboardSubpath}/operator.macaroon`,
                 }
               : {}),
             MOBILE_ENDPOINTS_FILE: `${dashboardDataDir}/endpoints.json`,
@@ -1789,8 +1880,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // Order is load-bearing: LND must never open an un-imported or un-converted
     // data directory, so each preparatory phase holds the chain until the flag
     // or the on-disk state that selected it is gone.
-    if (importPending) return importChain(importPending.source)
-    if (await needsSqliteMigration()) return conversionChain()
+    // The bridge's SHA256 node runs through these too: it watches its own
+    // channels, whatever Lightning Fork is doing to its own data.
+    if (importPending) return withSha256Node(importChain(importPending.source))
+    if (await needsSqliteMigration()) return withSha256Node(conversionChain())
     return lndChain()
   })
 })

@@ -168,7 +168,10 @@ SHA256 chain with outbound liquidity, and it stays off until you turn it on.
    **Remove Bridge Participant** revokes one.
 
 The bridge cannot be turned off, or moved to another node, while payments
-through it are unfinished. Once Lightning Fork has run a node for the bridge,
+through it are unfinished; one that slips through all the same is finished
+before the bridge stops. To let other nodes on the SHA256 chain open channels
+to the bridge's node, add an onion address to its **SHA256 Lightning Peer**
+interface. Once Lightning Fork has run a node for the bridge,
 that node keeps running, bridge on or off: it may hold channels, and a node
 must watch its channels. **SHA256 Node Recovery Phrase** shows the words that
 restore it in another LND; your Lightning Fork phrase already recreates it

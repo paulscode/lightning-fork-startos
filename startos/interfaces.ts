@@ -2,6 +2,8 @@ import { FileHelper } from '@start9labs/start-sdk'
 import { readFile } from 'fs/promises'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
+import { storeJson } from './fileModels/store.json'
+import { sha256P2pPort } from './sha256Node'
 
 // Internal ports are lnd's defaults, so lnd.conf and every tool that reads
 // it stay stock. The preferred external ports differ from the official LND
@@ -31,6 +33,8 @@ export const dashboardHostId = 'dashboard'
 
 // Interface ids (the exported service interfaces on the hosts above).
 export const peerInterfaceId = 'peer'
+export const sha256PeerHostId = 'sha256-peer'
+export const sha256PeerInterfaceId = 'sha256-peer'
 export const gRPCInterfaceId = 'grpc'
 export const controlInterfaceId = 'control'
 export const lndconnectRestId = 'lnd-connect-rest'
@@ -204,6 +208,33 @@ export const setInterfaces = sdk.setupInterfaces(async ({ effects }) => {
     query: {},
   })
   receipts.push(await watchtowerMultiOrigin.export([watchtower]))
+
+  // The bridge's SHA256 Lightning node, once Lightning Fork has run one: its
+  // peer port, for nodes on the SHA256 chain to reach it (open a channel to
+  // it, which gives it room to receive). Only its onion is advertised.
+  if (await storeJson.read((s) => s.bridgeSha256Ever).const(effects)) {
+    const sha256Multi = sdk.MultiHost.of(effects, sha256PeerHostId)
+    const sha256Origin = await sha256Multi.bindPort(sha256P2pPort, {
+      protocol: null,
+      addSsl: null,
+      preferredExternalPort: sha256P2pPort,
+      secure: { ssl: false },
+    })
+    const sha256Peer = sdk.createInterface(effects, {
+      name: i18n('SHA256 Lightning Peer'),
+      id: sha256PeerInterfaceId,
+      description: i18n(
+        "Where nodes on the SHA256 chain reach the bridge's SHA256 Lightning node. Add an onion address to let them open channels to it.",
+      ),
+      type: 'p2p',
+      masked: false,
+      schemeOverride: null,
+      username: null,
+      path: '',
+      query: {},
+    })
+    receipts.push(await sha256Origin.export([sha256Peer]))
+  }
 
   return receipts
 })

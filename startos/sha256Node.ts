@@ -36,6 +36,10 @@ export const sha256NodeDirHost = '/media/startos/volumes/main/sha256-node'
 /** The wallet password Lightning Fork writes, beside the bridge's journal. */
 export const sha256PasswordFile = `${lndDataDir}/data/chain/bitcoin/mainnet/bridge/sha256/wallet.password`
 
+/** The console's narrow macaroon, baked by Lightning Fork beside the password. */
+export const sha256SecretsDir = `${lndDataDir}/data/chain/bitcoin/mainnet/bridge/sha256`
+export const sha256OperatorMacaroon = `${sha256SecretsDir}/operator.macaroon`
+
 /** Its admin macaroon, for the operator's own tools, never the bridge's. */
 export const sha256AdminMacaroon = `${sha256NodeDir}/data/chain/bitcoin/mainnet/admin.macaroon`
 export const sha256AdminMacaroonHost = `${sha256NodeDirHost}/data/chain/bitcoin/mainnet/admin.macaroon`
@@ -164,7 +168,10 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
  * macaroon appears only once Lightning Fork has created the wallet. It stops
  * with lnd.
  */
-export function sha256NodeCommand(rpchost: string): string[] {
+export function sha256NodeCommand(
+  rpchost: string,
+  extra: string[] = [],
+): string[] {
   const args = [
     `--lnddir=${sha256NodeDir}`,
     '--bitcoin.mainnet',
@@ -180,11 +187,14 @@ export function sha256NodeCommand(rpchost: string): string[] {
     '--alias=Lightning Fork bridge (SHA256)',
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
+    ...extra,
   ]
   const q = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`
   const copies: Array<[string, string]> = [
     [`${sha256NodeDir}/tls.cert`, `${sha256DashboardMnt}/tls.cert`],
-    [sha256AdminMacaroon, `${sha256DashboardMnt}/admin.macaroon`],
+    // The console's own narrow macaroon, which Lightning Fork bakes once
+    // the wallet exists; never the admin one.
+    [sha256OperatorMacaroon, `${sha256DashboardMnt}/operator.macaroon`],
   ]
   const copy = copies
     .map(

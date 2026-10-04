@@ -616,6 +616,10 @@ export default {
     718: "${name} aquí sigue la cadena BLAKE2b (versión ${version}); el nodo del puente necesita uno de la cadena SHA256.",
     719: "Lightning Fork está configurado para leer ${name}, que sigue la cadena SHA256. En Select Node, elige primero tu nodo de la cadena BLAKE2b; después este puede ser el nodo del puente.",
     720: "Esperando a su nodo de la cadena SHA256, ${name}: instálalo o inícialo.",
+    721: "Par Lightning SHA256",
+    722: "Donde los nodos de la cadena SHA256 alcanzan el nodo Lightning SHA256 del puente. Añade una dirección onion para que puedan abrirle canales.",
+    723: "No responde desde hace varios minutos. Comprueba que su nodo de la cadena SHA256 está en marcha, y los registros de este servicio.",
+    724: "Cómo lo alcanzan los nodos de la cadena SHA256, para conectarse o abrirle un canal.",
   },
   de_DE: {
     309: 'Backups',
@@ -1232,6 +1236,10 @@ export default {
     718: "${name} folgt hier der BLAKE2b-Chain (Version ${version}); der Knoten der Bridge braucht einen auf der SHA256-Chain.",
     719: "Lightning Fork ist so eingestellt, dass es ${name} liest, der der SHA256-Chain folgt. Wähle zuerst unter Select Node deinen Knoten auf der BLAKE2b-Chain; danach kann dieser der Knoten der Bridge sein.",
     720: "Wartet auf seinen Knoten auf der SHA256-Chain, ${name}: installiere oder starte ihn.",
+    721: "SHA256-Lightning-Peer",
+    722: "Wo Knoten auf der SHA256-Chain den SHA256-Lightning-Knoten der Bridge erreichen. Füge eine Onion-Adresse hinzu, damit sie Kanäle zu ihm öffnen können.",
+    723: "Antwortet seit mehreren Minuten nicht. Prüfe, ob sein Knoten auf der SHA256-Chain läuft, und die Logs dieses Dienstes.",
+    724: "Wie Knoten auf der SHA256-Chain ihn erreichen, um sich zu verbinden oder einen Kanal zu ihm zu öffnen.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1848,6 +1856,10 @@ export default {
     718: "${name} śledzi tutaj łańcuch BLAKE2b (wersja ${version}); węzeł mostu potrzebuje węzła na łańcuchu SHA256.",
     719: "Lightning Fork jest ustawiony na czytanie ${name}, który śledzi łańcuch SHA256. Najpierw w Select Node wybierz swój węzeł na łańcuchu BLAKE2b; potem ten może być węzłem mostu.",
     720: "Czeka na swój węzeł na łańcuchu SHA256, ${name}: zainstaluj go lub uruchom.",
+    721: "Peer Lightning SHA256",
+    722: "Gdzie węzły na łańcuchu SHA256 docierają do węzła Lightning SHA256 mostu. Dodaj adres onion, aby mogły otwierać do niego kanały.",
+    723: "Nie odpowiada od kilku minut. Sprawdź, czy jego węzeł na łańcuchu SHA256 działa, oraz logi tej usługi.",
+    724: "Jak docierają do niego węzły na łańcuchu SHA256, aby się połączyć lub otworzyć do niego kanał.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2464,5 +2476,9 @@ export default {
     718: "${name} suit ici la chaîne BLAKE2b (version ${version}) ; le nœud du pont en a besoin d'un sur la chaîne SHA256.",
     719: "Lightning Fork est réglé pour lire ${name}, qui suit la chaîne SHA256. Dans Select Node, choisissez d'abord votre nœud de la chaîne BLAKE2b ; celui-ci pourra ensuite être le nœud du pont.",
     720: "En attente de son nœud de la chaîne SHA256, ${name} : installez-le ou démarrez-le.",
+    721: "Pair Lightning SHA256",
+    722: "Là où les nœuds de la chaîne SHA256 joignent le nœud Lightning SHA256 du pont. Ajoutez une adresse onion pour qu'ils puissent lui ouvrir des canaux.",
+    723: "Ne répond plus depuis plusieurs minutes. Vérifiez que son nœud de la chaîne SHA256 tourne, et les journaux de ce service.",
+    724: "Comment les nœuds de la chaîne SHA256 le joignent, pour s'y connecter ou lui ouvrir un canal.",
   },
 } satisfies Record<string, LangDict>

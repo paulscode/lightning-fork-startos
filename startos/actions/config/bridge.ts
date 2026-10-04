@@ -23,14 +23,13 @@ const { InputSpec, Value, Variants } = sdk
 
 // Every key this action writes, so that turning the bridge off leaves none
 // behind. The certificate, macaroon and journal stay on disk.
+// Off keeps how to reach the SHA256 node (bridgerpc.sha256.*): a bridge off
+// with a payment unfinished finishes it through that node, quoting nothing,
+// and stops (Lightning Fork's draining mode).
 const bridgeOff = {
   'bridgerpc.enabled': undefined,
   'bridgerpc.tosha256': undefined,
   'bridgerpc.toblake2b': undefined,
-  'bridgerpc.sha256.rpchost': undefined,
-  'bridgerpc.sha256.tlscertpath': undefined,
-  'bridgerpc.sha256.macaroonpath': undefined,
-  'bridgerpc.sha256.supervised': undefined,
   'bridgerpc.fixedrate': undefined,
   'bridgerpc.spread': undefined,
   'bridgerpc.maxswapmsat': undefined,

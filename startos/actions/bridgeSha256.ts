@@ -107,9 +107,13 @@ export const bridgeSha256Fund = sdk.Action.withoutInput(
               String(info.identity_pubkey),
             {
               copyable: true,
-              description: i18n(
-                'Its identity on the SHA256 chain. It takes no incoming connections, so open channels from it.',
-              ),
+              description: (info.uris as string[] | undefined)?.length
+                ? i18n(
+                    'How nodes on the SHA256 chain reach it, to connect or open a channel to it.',
+                  )
+                : i18n(
+                    'Its identity on the SHA256 chain. It takes no incoming connections, so open channels from it.',
+                  ),
             },
           ),
         ],

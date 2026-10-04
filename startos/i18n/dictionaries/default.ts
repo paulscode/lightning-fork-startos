@@ -692,6 +692,10 @@ const dict = {
   "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.": 718,
   "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; this one can then be the bridge's node.": 719,
   "Waiting for its node on the SHA256 chain, ${name}: install or start it.": 720,
+  "SHA256 Lightning Peer": 721,
+  "Where nodes on the SHA256 chain reach the bridge's SHA256 Lightning node. Add an onion address to let them open channels to it.": 722,
+  "Not answering for several minutes. Check its node on the SHA256 chain is running, and this service's logs.": 723,
+  "How nodes on the SHA256 chain reach it, to connect or open a channel to it.": 724,
 } as const
 
 /**

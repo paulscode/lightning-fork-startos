@@ -166,9 +166,14 @@ action chooses how that LND is provided:
   and checks its identity and chain. It reads the chosen node on the SHA256
   chain (`knots-prerdts` or `bitcoind`, store `bridgeSha256Backend`) by RPC
   polling with that package's cookie, and listens on 127.0.0.1 for gRPC
-  (10019, Lightning Fork's default address) and REST (8089), 9739 for peers
-  (not exposed). A copier in the same shell keeps its `tls.cert` and
-  `admin.macaroon` in the dashboard volume's `sha256/`. The daemon and the
+  (10019, Lightning Fork's default address) and REST (8089), and on 9739 for
+  peers: the **SHA256 Lightning Peer** interface (once a node has existed),
+  whose onion, when the operator adds one, is the only address it advertises;
+  its outbound peers go through Lightning Fork's Tor proxy for onions. It
+  mounts only `sha256-node/` and the bridge's `bridge/sha256/` from the main
+  volume. A copier in the same shell, stopped with lnd, keeps its `tls.cert`
+  and the console's narrow `operator.macaroon` (baked by Lightning Fork; never
+  the admin one) in the dashboard volume's `sha256/`. The daemon and the
   dependency on its chain node exist while the bridge is on in this mode and
   after, while the node has a wallet (`sha256WalletExists`); its health check
   is `lncli state` without a macaroon. `nodeChain.ts` tells each installed node
@@ -180,8 +185,10 @@ action chooses how that LND is provided:
   certificate (PEM) and macaroon to `data/bridge/` in the main volume, checks
   them with `lncli getinfo` before saving, and sets `bridgerpc.sha256.*`.
 
-`bridgerpc.*` keys are removed when the bridge is turned off; the files, the
-journal and a supervised node stay. Turning it off, or moving it to another
+Turning the bridge off removes `bridgerpc.enabled`, the directions and the
+rate keys, and keeps `bridgerpc.sha256.*`: a bridge off with a payment
+unfinished drains it through that node (Lightning Fork quotes nothing and
+stops once it is done). The files, the journal and a supervised node stay. Turning it off, or moving it to another
 node, is refused while `lncli bridge status` shows swaps in flight or needing
 the operator. The bridge dials without Tor. A bridge that cannot reach its
 node stays down and tries again while LND runs as usual; Bridge Status says
