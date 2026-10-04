@@ -92,6 +92,13 @@ export function suggestNode<Id extends string>(
     (id) => seen[id]?.installed && seen[id]?.chain === 'unknown',
   )
   if (maybe) return maybe
-  if (keep && usable.includes(keep)) return keep
-  return usable[0] ?? ids[0]
+  // Nothing installed fits: prefer a choice not known to be wrong (an
+  // uninstalled one, which the form then says to install).
+  const notWrong = (id: Id) =>
+    !(seen[id]?.installed && seen[id]?.chain === other)
+  if (keep && usable.includes(keep) && notWrong(keep)) return keep
+  return (
+    usable.find(notWrong) ??
+    (keep && usable.includes(keep) ? keep : (usable[0] ?? ids[0]))
+  )
 }

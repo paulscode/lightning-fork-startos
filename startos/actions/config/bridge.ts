@@ -10,9 +10,9 @@ import {
 } from '../../bridge'
 import { lndConfFile } from '../../fileModels/lnd.conf'
 import { storeJson } from '../../fileModels/store.json'
-import { defaultBackend, Sha256BackendId } from '../../backends'
+import { backends, defaultBackend, Sha256BackendId } from '../../backends'
 import { sha256BackendChoices, sha256Backends } from '../../sha256Node'
-import { nodeLabel, surveyNodes } from '../../nodes'
+import { nodeLabel, nodeTitle, surveyNodes } from '../../nodes'
 import { suggestNode } from '../../nodeChain'
 import { i18n } from '../../i18n'
 import { sdk } from '../../sdk'
@@ -85,10 +85,18 @@ const bridgeSpec = InputSpec.of({
             const lf = store?.backend ?? defaultBackend
             const choices = sha256BackendChoices(lf)
             const nodes = await surveyNodes(effects)
+            const lfNode = nodes[lf]
             return {
+              warning:
+                lfNode.installed && lfNode.chain === 'sha256'
+                  ? i18n(
+                      "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; ${name} can then be the bridge's node.",
+                      { name: literal(nodeTitle(backends[lf].title, lfNode)) },
+                    )
+                  : null,
               name: i18n('SHA256 Chain Node'),
               description: i18n(
-                'The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.',
+                'The node on the SHA256 chain it reads. Each installed node shows the chain its version says; never the node Lightning Fork reads, which is on the BLAKE2b chain.',
               ),
               default: suggestNode(
                 choices,
@@ -380,8 +388,20 @@ export const bridgeConfig = sdk.Action.withInput(
             'That Bitcoin node is the one this node reads, on the BLAKE2b chain. Choose one on the SHA256 chain.',
           ),
         )
-      const node = (await surveyNodes(effects))[bitcoin]
-      const name = literal(sha256Backends[bitcoin].title)
+      const nodes = await surveyNodes(effects)
+      // Setup 1 before Select Node has been changed: Lightning Fork is
+      // still on its default, the main node, which is on the SHA256 chain
+      // and so is the node the bridge should read.
+      const lfNode = nodes[lf]
+      if (lfNode.installed && lfNode.chain === 'sha256')
+        throw new Error(
+          i18n(
+            "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; ${name} can then be the bridge's node.",
+            { name: literal(nodeTitle(backends[lf].title, lfNode)) },
+          ),
+        )
+      const node = nodes[bitcoin]
+      const name = literal(nodeTitle(sha256Backends[bitcoin].title, node))
       if (!node.installed)
         throw new Error(
           i18n(

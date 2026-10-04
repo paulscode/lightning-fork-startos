@@ -528,7 +528,7 @@ const dict = {
   'The selected Bitcoin node is not on the Bitcoin BLAKE2b chain. Choose a Bitcoin Knots node (29.4.1 or later) or the BLAKE2b Companion under Select Node. Detail: ${reason}': 553,
   'Waiting for the Bitcoin node to reach block ${height} (it has ${headers}); the chain cannot be identified before then': 554,
   'Waiting for the daemon to check which chain the Bitcoin node is on': 555,
-  'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.': 556,
+  "Which node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. Each installed node shows the chain its version says; the Chain Identity health check confirms it when the service starts, and refuses a node on the SHA256 chain.": 556,
   'Unknown chain-identity state ${state}; treat the node as unverified': 557,
   // the dashboard (interfaces.ts, main.ts, actions/dashboardPassword.ts)
   'Dashboard Password': 558,
@@ -639,7 +639,7 @@ const dict = {
   "The LND on the SHA256 chain the bridge pays through. Lightning Fork can run one for you: its seed comes from this wallet, so there is nothing new to write down; it takes about 1-3 GB (a Lightning node, not a second chain node); and it starts empty, so fund it and open a channel from it before the bridge can pay. Or use an LND you already run.": 665,
   "Lightning Fork runs one": 666,
   "SHA256 Chain Node": 667,
-  "The Bitcoin Knots on the SHA256 chain it reads. Install it first. Never the node this one reads, which is on the BLAKE2b chain.": 668,
+  "The node on the SHA256 chain it reads. Each installed node shows the chain its version says; never the node Lightning Fork reads, which is on the BLAKE2b chain.": 668,
   "An LND I already run": 669,
   "SHA256 coin per BLAKE2b coin, such as 0.00483. Leave it empty to set it later with Set Bridge Rate: the bridge quotes nothing until there is one. There is no default, because a wrong rate loses money on every swap.": 670,
   "Pay Lightning invoices on the SHA256 chain for people you choose, through a Lightning node there that Lightning Fork runs for you or one you already run, without holding their funds.": 671,
@@ -686,10 +686,11 @@ const dict = {
   "${name}: not installed": 712,
   "${name}: installed, on the BLAKE2b chain": 713,
   "${name}: installed, on the SHA256 chain": 714,
-  "${name}: installed": 715,
+  "${name}: installed; its chain is checked when it starts": 715,
   "${name} here follows the SHA256 chain (version ${version}). Lightning Fork needs a node on the BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the Bitcoin Knots (BLAKE2b) Companion.": 716,
   "${name} is not installed. Install it first (it must be on the SHA256 chain), or choose another.": 717,
   "${name} here follows the BLAKE2b chain (version ${version}); the bridge's node needs one on the SHA256 chain.": 718,
+  "Lightning Fork is set to read ${name}, which follows the SHA256 chain. In Select Node, choose your node on the BLAKE2b chain first; ${name} can then be the bridge's node.": 719,
 } as const
 
 /**

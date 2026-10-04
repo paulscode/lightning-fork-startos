@@ -112,3 +112,10 @@ test('nothing installed: what was chosen, else the first', () => {
   const s = seen({ bitcoind: '#knots:29.4:11' })
   assert.equal(suggestNode(lfIds, s, 'blake2b', 'knots-blake2b'), 'bitcoind')
 })
+
+test('a node known to be on the wrong chain is not suggested over one to install', () => {
+  // Only Bitcoin Core installed: Lightning Fork's suggestion is the
+  // BLAKE2b Companion, which the form says to install.
+  const s = seen({ bitcoind: '31.1:17' })
+  assert.equal(suggestNode(lfIds, s, 'blake2b', 'bitcoind'), 'knots-blake2b')
+})

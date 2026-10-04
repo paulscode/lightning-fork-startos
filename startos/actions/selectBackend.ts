@@ -1,5 +1,5 @@
 import { BackendId, backendIds, backends, defaultBackend } from '../backends'
-import { nodeLabel, surveyNodes } from '../nodes'
+import { nodeLabel, nodeTitle, surveyNodes } from '../nodes'
 import { suggestNode } from '../nodeChain'
 import { literal } from '../utils'
 import { storeJson } from '../fileModels/store.json'
@@ -25,7 +25,7 @@ const backendInputSpec = InputSpec.of({
     return {
       name: i18n('Select Node'),
       description: i18n(
-        'Which Bitcoin node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. A node on the SHA256d chain is refused when the service starts, and the Chain Identity health check says so.',
+        'Which node Lightning Fork connects to. It must be on the Bitcoin BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the BLAKE2b Companion. Each installed node shows the chain its version says; the Chain Identity health check confirms it when the service starts, and refuses a node on the SHA256 chain.',
       ),
       values: Object.fromEntries(
         backendIds.map((id) => [id, nodeLabel(backends[id].title, nodes[id])]),
@@ -67,7 +67,7 @@ export const selectBackend = sdk.Action.withInput(
         i18n(
           '${name} here follows the SHA256 chain (version ${version}). Lightning Fork needs a node on the BLAKE2b chain: Bitcoin Knots 29.4.1 or later, or the Bitcoin Knots (BLAKE2b) Companion.',
           {
-            name: literal(backends[chosen].title),
+            name: literal(nodeTitle(backends[chosen].title, node)),
             version: literal(node.version ?? ''),
           },
         ),
