@@ -39,6 +39,14 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             'channel.backup.startos-restore',
             'channel.backup.startos-restore.tmp',
             '.channel-backup-restore',
+            // The same for the SHA256 node's agent; its record of which
+            // targets it has kept an earlier copy on above all, so that
+            // after a restore it keeps the copy there again before its
+            // first one (backup-agent.sh, BACKUP_KEEP_FIRST).
+            '.channel-backup-sha256-state.json',
+            '.channel-backup-sha256-state.json.kept',
+            '.channel-backup-sha256.lock',
+            '.channel-backup-sha256-restore',
             'unlock-status.json',
             // The bridge's SHA256 node (sha256Node.ts) keeps its channel
             // backup and loses its wallet, macaroons and (with data/graph
@@ -53,6 +61,8 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             '/sha256-node/data/chain/bitcoin/mainnet/*.macaroon',
             '/data/chain/bitcoin/mainnet/bridge/sha256/bridge.macaroon',
             '/data/chain/bitcoin/mainnet/bridge/sha256/bridge.macaroon.perms',
+            '/data/chain/bitcoin/mainnet/bridge/sha256/operator.macaroon',
+            '/data/chain/bitcoin/mainnet/bridge/sha256/operator.macaroon.perms',
           ],
         },
       })

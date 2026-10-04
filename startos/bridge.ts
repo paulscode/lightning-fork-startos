@@ -58,9 +58,10 @@ export async function lncli(
 }
 
 /**
- * Payments through the bridge that are not finished: in flight, or stopped
- * for the operator. Null when the bridge cannot be asked (LND down or the
- * bridge off), which is no reason to refuse anything.
+ * Payments through the bridge that are not finished: in flight, waiting, or
+ * stopped for the operator; whether the bridge is on, off and finishing them,
+ * or not up. A lost payment is final and does not count. Null when the bridge
+ * cannot be asked (LND down), which is no reason to refuse anything.
  *
  * While any exists the bridge must not be turned off or moved to another
  * SHA256 node: its journal finishes each payment through the node it started
@@ -77,6 +78,9 @@ export async function bridgeUnfinished(
       'status',
     ])
     const s = JSON.parse(out)
+    // Lightning Fork's own count, from its journal.
+    if (typeof s.unfinished === 'number') return s.unfinished
+    // One too old to give it.
     if (!s.enabled) return null
     return Number(s.swaps_in_flight ?? 0) + (s.needs_operator ?? []).length
   } catch {

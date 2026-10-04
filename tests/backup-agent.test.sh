@@ -201,6 +201,46 @@ check "its failures are its own" \
    [ "$(jq -r ".failures | length" "$T/lnd/.channel-backup-state.json")" = 0 ] &&
    grep -q "^\[sha256-channel-backup\]" "$T/err"'
 
+# ---- the second instance keeps what is already there before its first copy
+setup
+mkdir -p "$T/lnd/sha256-node/data/chain/bitcoin/mainnet"
+printf 'scb-new-node' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+mkdir -p "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID"
+printf 'scb-old-node' > "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup"
+kept() { ls "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/" | grep -c '^channel.backup.before-'; }
+BACKUP_KEEP_FIRST=1 second run_agent --once
+rc=$?
+check "a copy already there is kept beside it before the first one is made" \
+  '[ $rc -eq 0 ] && [ "$(kept)" = 1 ] &&
+   [ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/"channel.backup.before-*)" = scb-old-node ] &&
+   [ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup")" = scb-new-node ]'
+check "a target with nothing there is no error, and has nothing kept" \
+  '[ -z "$(ls "$T/remotes/nextcloud/backups/lf/$SHA_ID/" | grep before-)" ]'
+/bin/sleep 1
+BACKUP_KEEP_FIRST=1 second run_agent --once
+check "only before the first copy" '[ "$(kept)" = 1 ]'
+rm -f "$T/lnd/.channel-backup-sha256-state.json.kept"
+printf 'scb-after-restore' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+/bin/sleep 1
+BACKUP_KEEP_FIRST=1 second run_agent --once
+check "and again after a restore, which does not bring the record back" '[ "$(kept)" = 2 ]'
+setup
+mkdir -p "$T/lnd/sha256-node/data/chain/bitcoin/mainnet" "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID"
+printf 'scb-new-node' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+printf 'scb-old-node' > "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup"
+cat > "$T/rclone-keepfail" << 'EOS'
+#!/bin/sh
+case "$*" in *before-*) echo "permission denied" >&2; exit 1 ;; esac
+exec "$REAL_RCLONE" "$@"
+EOS
+chmod +x "$T/rclone-keepfail"
+mkdir -p "$T/kf"
+ln -sf "$T/rclone-keepfail" "$T/kf/rclone"
+REAL_RCLONE="$STUBS/rclone" BACKUP_KEEP_FIRST=1 second agent env PATH="$T/kf:$STUBS:$PATH" REAL_RCLONE="$STUBS/rclone" $AGENT_SH "$AGENT" --once > "$T/out" 2> "$T/err"
+check "a copy that could not be kept is not replaced" \
+  '[ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup")" = scb-old-node ] &&
+   [ "$(jq -r "[.failures[] | select(.code == \"keep\" and .target == \"dropbox\")] | length" "$T/lnd/.channel-backup-sha256-state.json")" = 1 ]'
+
 # ---- restore: the node's folder first, the flat path as a fallback
 put() { mkdir -p "$(dirname "$T/remotes/$1")" && printf '%s' "$2" > "$T/remotes/$1"; }
 retrieved() { jq -r '.retrieved | join(",")' "$T/out" 2>/dev/null; }

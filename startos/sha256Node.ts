@@ -6,6 +6,7 @@ import {
 import { BackendId, Sha256BackendId, sha256BackendIds } from './backends'
 import { sdk } from './sdk'
 import { lndDataDir } from './utils'
+import { sha256GrpcPort, sha256P2pPort, sha256RestPort } from './sha256Ports'
 import { stat } from 'fs/promises'
 
 /**
@@ -45,14 +46,8 @@ export const sha256AdminMacaroon = `${sha256NodeDir}/data/chain/bitcoin/mainnet/
 export const sha256AdminMacaroonHost = `${sha256NodeDirHost}/data/chain/bitcoin/mainnet/admin.macaroon`
 export const sha256TlsCertHost = `${sha256NodeDirHost}/tls.cert`
 
-/**
- * Its ports, clear of Lightning Fork's own (9735, 10009, 8080) in the network
- * namespace the two daemons share. gRPC is where Lightning Fork's bridge
- * dials it, at the default bridgerpc.sha256.rpchost.
- */
-export const sha256P2pPort = 9739
-export const sha256GrpcPort = 10019
-export const sha256RestPort = 8089
+// Its ports: sha256Ports.ts says why they live there.
+export { sha256P2pPort, sha256GrpcPort, sha256RestPort }
 
 /** Where the SHA256 Bitcoin node's volume is mounted, for its RPC cookie. */
 export const sha256BitcoindMnt = '/mnt/sha256-bitcoin'
@@ -214,6 +209,9 @@ export function sha256NodeCommand(
     [
       `trap 'exit 0' TERM INT`,
       `until [ -s ${q(sha256PasswordFile)} ]; do sleep 2 & wait $!; done`,
+      // The admin macaroon an earlier build copied there; the dashboard
+      // gets only the operator one now.
+      `rm -f ${q(`${sha256DashboardMnt}/admin.macaroon`)}`,
       `(while :; do ${copy}; sleep 30; done) &`,
       `copier=$!`,
       `lnd ${args.map(q).join(' ')} &`,

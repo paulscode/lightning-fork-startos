@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises'
 import { i18n } from './i18n'
 import { sdk } from './sdk'
 import { storeJson } from './fileModels/store.json'
-import { sha256P2pPort } from './sha256Node'
+import { sha256P2pPort } from './sha256Ports'
 
 // Internal ports are lnd's defaults, so lnd.conf and every tool that reads
 // it stay stock. The preferred external ports differ from the official LND

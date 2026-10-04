@@ -151,7 +151,13 @@ second instance (`sha256-channel-backup-agent`, health check **Bridge Node
 Channel Backup**) with that node's `CHANNEL_BACKUP_FILE` and lncli, and its
 own `BACKUP_STATE_FILE`, `BACKUP_LOCK_FILE`, `BACKUP_WORK_DIR` and
 `BACKUP_RESTORE_DIR`; the targets are the same, and its identity names its own
-folder. `sh tests/backup-agent.test.sh` exercises it with
+folder. That node is recreated from the same seed after a restore or on a new
+server, so it writes to the old node's folder: with `BACKUP_KEEP_FIRST=1` the
+agent first keeps any copy already there as `channel.backup.before-<time>`
+(and replaces nothing it could not keep), once per target, as recorded in a
+`.kept` file that backups leave out. Restoring from such a copy is by hand:
+put it at `sha256-node/data/chain/bitcoin/mainnet/channel.backup` before the
+bridge recreates the node. `sh tests/backup-agent.test.sh` exercises it with
 stub `lncli` and `rclone`. `current`'s migration completes a saved Nextcloud
 address to the `/remote.php/dav/files/USER/` form rclone requires.
 
@@ -174,14 +180,16 @@ action chooses how that LND is provided:
   (10019, Lightning Fork's default address) and REST (8089), and on 9739 for
   peers: the **SHA256 Lightning Peer** interface (once a node has existed),
   whose onion, when the operator adds one, is the only address it advertises;
-  its outbound peers go through Lightning Fork's Tor proxy for onions. It
+  it uses Tor as Lightning Fork does (`tor.active`, its skip-clearnet choice
+  and `tor.dns`), and not at all when Lightning Fork does not. It
   mounts only `sha256-node/` and the bridge's `bridge/sha256/` from the main
   volume. A copier in the same shell, stopped with lnd, keeps its `tls.cert`
   and the console's narrow `operator.macaroon` (baked by Lightning Fork; never
   the admin one) in the dashboard volume's `sha256/`. The daemon and the
   dependency on its chain node exist while the bridge is on in this mode and
   after, while the node has a wallet (`sha256WalletExists`); its health check
-  is `lncli state` without a macaroon. `nodeChain.ts` tells each installed node
+  is `lncli state`: catching up is starting, and not answering for five
+  minutes once it has its password is a failure. `nodeChain.ts` tells each installed node
   package's chain from its version for the forms, which label, suggest and
   refuse accordingly. Backups keep its `channel.backup` and leave out its
   wallet, macaroons and channel database (`backups.ts`); after a restore with
@@ -193,7 +201,9 @@ action chooses how that LND is provided:
 Turning the bridge off removes `bridgerpc.enabled`, the directions and the
 rate keys, and keeps `bridgerpc.sha256.*`: a bridge off with a payment
 unfinished drains it through that node (Lightning Fork quotes nothing and
-stops once it is done). The files, the journal and a supervised node stay. Turning it off, or moving it to another
+stops once it is done). The Bridge health check and Bridge Status stay while
+those keys are there, to show it. What counts as unfinished is Lightning
+Fork's own `unfinished` count, which leaves out lost payments (final). The files, the journal and a supervised node stay. Turning it off, or moving it to another
 node, is refused while `lncli bridge status` shows swaps in flight or needing
 the operator. The bridge dials without Tor. A bridge that cannot reach its
 node stays down and tries again while LND runs as usual; Bridge Status says

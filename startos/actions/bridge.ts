@@ -44,8 +44,17 @@ type BridgeInfo = {
   }[]
 }
 
+// Also while off with the bridge's SHA256 node still configured, when it may
+// be finishing what was under way.
 const bridgeVisibility = async (effects: T.Effects) =>
-  (await lndConfFile.read((c) => c['bridgerpc.enabled']).const(effects))
+  (await lndConfFile
+    .read(
+      (c) =>
+        !!c['bridgerpc.enabled'] ||
+        !!c['bridgerpc.sha256.supervised'] ||
+        !!c['bridgerpc.sha256.rpchost'],
+    )
+    .const(effects))
     ? ('enabled' as const)
     : ('hidden' as const)
 
@@ -97,10 +106,17 @@ export const bridgeStatus = sdk.Action.withoutInput(
     }
     const attention = status.needs_operator ?? []
 
+    // A direction configured off is not why it is not serving.
+    const refusals = status.refusals.filter(
+      (r) =>
+        !/configured but not enabled|the bridge is not enabled on this node/.test(
+          r,
+        ),
+    )
     const state = !status.enabled
-      ? i18n('Off')
-      : status.refusals.length
-        ? status.refusals.join('\n')
+      ? [i18n('Off'), ...refusals].join('\n')
+      : refusals.length
+        ? refusals.join('\n')
         : i18n('Serving swaps')
     const expires = Number(status.rate_expires_at)
       ? when(status.rate_expires_at)

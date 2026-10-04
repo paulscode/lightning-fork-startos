@@ -650,8 +650,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   }
   // Its onion, when the operator added one to its peer interface: the only
   // address it advertises, so the server's own is never handed out. Its
-  // peers through the same Tor as Lightning Fork's, onions only; others
-  // directly.
+  // peers through Lightning Fork's Tor, as Lightning Fork's own are.
   const sha256Extra: string[] = []
   if (sha256Rpc) {
     const onions =
@@ -675,12 +674,15 @@ export const main = sdk.setupMain(async ({ effects }) => {
       sha256Extra.push(
         `--externalip=${onion.replace(/^[a-z]+:\/\//, '').replace(/\/$/, '')}`,
       )
-    if (conf['tor.socks'])
-      sha256Extra.push(
-        '--tor.active',
-        `--tor.socks=${conf['tor.socks']}`,
-        '--tor.skip-proxy-for-clearnet-targets',
-      )
+    // Tor as Lightning Fork has it: off when it is off, every peer
+    // through Tor when it sends clearnet through Tor too, and its DNS
+    // server for the seeds (which StartOS's egress needs; watchTorDns).
+    if (conf['tor.active'] && conf['tor.socks']) {
+      sha256Extra.push('--tor.active', `--tor.socks=${conf['tor.socks']}`)
+      if (conf['tor.skip-proxy-for-clearnet-targets'])
+        sha256Extra.push('--tor.skip-proxy-for-clearnet-targets')
+      if (conf['tor.dns']) sha256Extra.push(`--tor.dns=${conf['tor.dns']}`)
+    }
   }
   const withSha256Node = <C extends { addDaemon: any; addHealthCheck: any }>(
     chain: C,
@@ -811,6 +813,20 @@ export const main = sdk.setupMain(async ({ effects }) => {
                     : i18n('Running, watching its channels'),
                 }
               }
+              // Up and answering, but not serving yet: lnd says RPC_ACTIVE
+              // all the while it catches up with its chain, which after a
+              // restore or with its chain node syncing can take hours.
+              if (
+                state === 'RPC_ACTIVE' ||
+                state === 'UNLOCKED' ||
+                state === 'WAITING_TO_START'
+              ) {
+                sha256DownSince = null
+                return {
+                  result: 'starting' as const,
+                  message: i18n('Syncing to chain'),
+                }
+              }
               const waiting =
                 state === 'NON_EXISTING' ||
                 (await stat(
@@ -822,7 +838,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
               // Not answering for minutes once it has its password is not starting:
               // a wrong cookie, its chain node down, a crash loop. Said, with
               // where to look, rather than "Starting" for ever.
-              if (!waiting) {
+              if (waiting) {
+                sha256DownSince = null
+              } else {
                 sha256DownSince ??= Date.now()
                 if (Date.now() - sha256DownSince > 5 * 60_000)
                   return {
@@ -865,6 +883,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
               BACKUP_RESTORE_DIR: `${lndDataDir}/.channel-backup-sha256-restore`,
               BACKUP_WORK_DIR: '/tmp/lnd-channel-backup-sha256',
               BACKUP_LOG_TAG: 'sha256-channel-backup',
+              // Recreated from the same seed, it writes to the old node's
+              // folder: keep what is there before its first copy.
+              BACKUP_KEEP_FIRST: '1',
             },
           },
           ready: {
@@ -1877,7 +1898,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // rate, an unreachable SHA256 node or an empty side shows here rather
     // than only as quotes refused. Absent while the bridge is off, which is
     // nearly every node.
-    if (!conf['bridgerpc.enabled']) return withSha256Node(chain)
+    // Also while off with the bridge's SHA256 node still configured: a
+    // bridge turned off finishes what was under way, and says so here.
+    if (
+      !conf['bridgerpc.enabled'] &&
+      !conf['bridgerpc.sha256.supervised'] &&
+      !conf['bridgerpc.sha256.rpchost']
+    )
+      return withSha256Node(chain)
     return withSha256Node(chain).addHealthCheck('bridge', {
       ready: {
         display: i18n('Bridge'),
@@ -1908,9 +1936,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
             return { result: 'starting', message: i18n('LND is starting…') }
           }
           let status: {
+            enabled?: boolean
             directions?: string[]
             refusals?: string[]
             needs_operator?: string[]
+            unfinished?: number
           }
           try {
             status = JSON.parse(res.stdout)
@@ -1923,7 +1953,26 @@ export const main = sdk.setupMain(async ({ effects }) => {
           if (attention.length > 0) {
             return { result: 'failure', message: attention.join('; ') }
           }
-          const refusals = status.refusals ?? []
+          // A direction configured off is not a fault.
+          const refusals = (status.refusals ?? []).filter(
+            (r) =>
+              !/configured but not enabled|the bridge is not enabled on this node/.test(
+                r,
+              ),
+          )
+          if (!status.enabled) {
+            // Off, and finishing what was under way (or unable to).
+            if ((status.unfinished ?? 0) > 0 || refusals.length > 0)
+              return {
+                result:
+                  /finishing the swaps/.test(refusals.join(' ')) &&
+                  refusals.length === 1
+                    ? ('starting' as const)
+                    : ('failure' as const),
+                message: refusals.join('; ') || i18n('Off'),
+              }
+            return { result: 'disabled' as const, message: i18n('Off') }
+          }
           if (refusals.length === 0) {
             return {
               result: 'success',

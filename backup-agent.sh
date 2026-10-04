@@ -23,6 +23,15 @@
 # BACKUP_STATE_FILE, BACKUP_LOCK_FILE, BACKUP_WORK_DIR and BACKUP_RESTORE_DIR;
 # the targets (channel-backup.json) are shared. Its identity names its own
 # folder on each target.
+#
+# BACKUP_KEEP_FIRST=1 (that second instance): before its first copy to a
+# target, a copy the target already holds is kept beside it as
+# channel.backup.before-<time>, and is never replaced if it could not be
+# kept. The SHA256 node is recreated from the same seed (after a restore, on
+# a new server), so its folder is the old node's, and the copy there may be
+# the only record of channels the new one does not know yet. Which targets
+# have had this done is in BACKUP_KEPT_FILE, which backups leave out so that
+# a restore keeps again.
 # shellcheck disable=SC2016
 set -u
 umask 077
@@ -33,6 +42,8 @@ CONFIG="$LND_DIR/channel-backup.json"
 STATE="${BACKUP_STATE_FILE:-$LND_DIR/.channel-backup-state.json}"
 LOCK="${BACKUP_LOCK_FILE:-$LND_DIR/.channel-backup.lock}"
 RESTORE_DIR="${BACKUP_RESTORE_DIR:-$LND_DIR/.channel-backup-restore}"
+KEEP_FIRST=${BACKUP_KEEP_FIRST:-0}
+KEPT="${BACKUP_KEPT_FILE:-$STATE.kept}"
 LNCLI_RPCSERVER=${LNCLI_RPCSERVER:-127.0.0.1:10009}
 LNCLI_LNDDIR=${LNCLI_LNDDIR:-}
 NODE_PUBKEY=${NODE_PUBKEY:-}
@@ -362,6 +373,29 @@ fail_target() {
   jq -nc --arg t "$1" --arg c "$2" --arg d "$3" '{target:$t,code:$c,detail:$d}' >> "$FAILURES" || return 1
 }
 
+# Before this instance's first copy to a target (KEEP_FIRST), what is there
+# is kept beside it. rclone exits 3 or 4 when there is nothing to keep.
+keep_existing() {
+  [ "$KEEP_FIRST" = 1 ] || return 0
+  grep -qx "$REMOTE_NAME" "$KEPT" 2> /dev/null && return 0
+  _kept="$OBJECT.before-$(date +%s)"
+  # shellcheck disable=SC2086
+  rc --config "$RCONF" copyto "$REMOTE_NAME:$REMOTE_PATH/$OBJECT" "$REMOTE_NAME:$REMOTE_PATH/$_kept" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1
+  _keep_rc=$?
+  case "$_keep_rc" in
+    0) log "[$REMOTE_NAME] kept the copy already there as $_kept" ;;
+    3 | 4) ;;
+    *)
+      fail_target "$REMOTE_NAME" keep "$(reason_file "$WORK/remote.out")"
+      return 1
+      ;;
+  esac
+  printf '%s\n' "$REMOTE_NAME" >> "$KEPT" || {
+    fail_target "$REMOTE_NAME" local 'could not record the kept copy'
+    return 1
+  }
+}
+
 ship_target() {
   _remote=$1
   target "$_remote"
@@ -375,6 +409,7 @@ ship_target() {
       return 1
     fi
   fi
+  keep_existing || return 1
   _suffix=$(random_suffix) || {
     fail_target "$REMOTE_NAME" local 'could not create a temporary name'
     return 1
