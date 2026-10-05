@@ -155,13 +155,13 @@ SHA256 chain with outbound liquidity, and it stays off until you turn it on.
    its gRPC lndconnect URI (the form with its LAN IP address).
 2. **Fund the SHA256 Node** and **Open SHA256 Channel:** the node starts
    empty. Send it coins on the SHA256 chain, then open a channel from it to a
-   well-connected node there. It takes no incoming connections, so open
-   channels from it. The dashboard's **Run a bridge** window does the same and
-   walks you through the rest.
-3. **Set Bridge Rate:** set your rate in SHA256 coin per BLAKE2b coin, and
-   renew it before it expires (24 hours by default): until there is one, and
-   once it expires, the bridge quotes nothing. **Bridge Status** shows whether
-   it is serving and why not.
+   well-connected node there (the dashboard's **Run a bridge** window
+   recommends one, and walks you through the rest). Other nodes can open
+   channels to it too once its **SHA256 Lightning Peer** interface has an
+   onion address.
+3. **The rate** follows the market (Neoxa), read live: there is nothing to
+   set. Set your **Fee** in **Bridge** (1.5% by default). **Bridge Status**
+   shows the rate, your fees, and whether the bridge is serving and why not.
 4. **Add Bridge Participant:** makes a bridge code for one person, which they
    add in their dashboard. It needs an onion address on the REST LND Connect
    interface. A code is a credential: send it privately.

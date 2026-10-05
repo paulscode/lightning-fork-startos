@@ -635,6 +635,7 @@ export default {
     743: 'Comisión, pagando facturas BLAKE2b',
     744: 'Tu comisión para intercambios que pagan en esta cadena, si es distinta. Déjalo vacío para usar la comisión de arriba.',
     746: 'Una comisión debe ser mayor del 0,3% y menor del 20%.',
+    747: "Su identidad en la cadena SHA256. Otros nodos pueden abrirle canales cuando su interfaz SHA256 Lightning Peer tenga una dirección onion; si no, abre los canales desde él.",
   },
   de_DE: {
     309: 'Backups',
@@ -1270,6 +1271,7 @@ export default {
     743: 'Gebühr, BLAKE2b-Rechnungen bezahlen',
     744: 'Deine Gebühr für Swaps, die auf dieser Chain auszahlen, falls abweichend. Leer lassen für die Gebühr oben.',
     746: 'Eine Gebühr muss über 0,3% und unter 20% liegen.',
+    747: "Seine Identität auf der SHA256-Chain. Andere Knoten können Kanäle zu ihm öffnen, sobald seine SHA256-Lightning-Peer-Schnittstelle eine Onion-Adresse hat; sonst öffne Kanäle von ihm aus.",
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1905,6 +1907,7 @@ export default {
     743: 'Opłata, płacenie faktur BLAKE2b',
     744: 'Twoja opłata za wymiany wypłacane na tym łańcuchu, jeśli inna. Zostaw puste, aby użyć opłaty powyżej.',
     746: 'Opłata musi być większa niż 0,3% i mniejsza niż 20%.',
+    747: "Jego tożsamość na łańcuchu SHA256. Inne węzły mogą otwierać do niego kanały, gdy jego interfejs SHA256 Lightning Peer ma adres onion; w przeciwnym razie otwieraj kanały od niego.",
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2540,5 +2543,6 @@ export default {
     743: 'Frais, payer des factures BLAKE2b',
     744: "Vos frais pour les échanges qui paient sur cette chaîne, s'ils diffèrent. Laissez vide pour les frais ci-dessus.",
     746: 'Des frais doivent être supérieurs à 0,3 % et inférieurs à 20 %.',
+    747: "Son identité sur la chaîne SHA256. D'autres nœuds peuvent lui ouvrir des canaux une fois que son interface SHA256 Lightning Peer a une adresse onion ; sinon, ouvrez les canaux depuis lui.",
   },
 } satisfies Record<string, LangDict>

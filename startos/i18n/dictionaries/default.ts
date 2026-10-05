@@ -711,6 +711,7 @@ const dict = {
   'Fee, Paying BLAKE2b Invoices': 743,
   'Your fee for swaps that pay out on this chain, if different. Leave empty for the fee above.': 744,
   'A fee must be over 0.3% and under 20%.': 746,
+  "Its identity on the SHA256 chain. Other nodes can open channels to it once its SHA256 Lightning Peer interface has an onion address; otherwise open channels from it.": 747,
 } as const
 
 /**

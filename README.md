@@ -207,8 +207,8 @@ Fork's own `unfinished` count, which leaves out lost payments (final). The files
 node, is refused while `lncli bridge status` shows swaps in flight or needing
 the operator. The bridge dials without Tor. A bridge that cannot reach its
 node stays down and tries again while LND runs as usual; Bridge Status says
-why. **Bridge Status**, **Set Bridge Rate** and **Add Bridge Participant** run
-`lncli bridge status|info|setrate|code` and are hidden while the bridge is
+why. **Bridge Status** and **Add Bridge Participant** run
+`lncli bridge status|info|code` and are hidden while the bridge is
 off; **Fund the SHA256 Node**, **Open SHA256 Channel** and **SHA256 Node
 Recovery Phrase** (`lncli bridge sha256seed`) are shown once a supervised node
 has existed. Codes are offered for the REST interface's onion addresses only:

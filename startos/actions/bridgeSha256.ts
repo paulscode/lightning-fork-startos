@@ -112,7 +112,7 @@ export const bridgeSha256Fund = sdk.Action.withoutInput(
                     'How nodes on the SHA256 chain reach it, to connect or open a channel to it.',
                   )
                 : i18n(
-                    'Its identity on the SHA256 chain. It takes no incoming connections, so open channels from it.',
+                    'Its identity on the SHA256 chain. Other nodes can open channels to it once its SHA256 Lightning Peer interface has an onion address; otherwise open channels from it.',
                   ),
             },
           ),
