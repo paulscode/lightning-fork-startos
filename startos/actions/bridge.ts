@@ -312,11 +312,13 @@ export const bridgeAddParticipant = sdk.Action.withInput(
         ),
       )
 
+    // The code carries this node's alias as the service's name, which the
+    // participant sees as who pays for them. `label` names the participant,
+    // and stays here, beside the code's root key.
     const [out] = await lncli(effects, 'bridge-code', [
       'bridge',
       'code',
       `--url=${input.url}`,
-      `--label=${label}`,
     ])
     // The id is a uint64, which JSON.parse would round.
     const code: string = JSON.parse(out).code
