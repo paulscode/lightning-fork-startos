@@ -3,15 +3,21 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.3-beta.16:0',
+  version: '0.21.3-beta.17:0',
   releaseNotes: {
-    en_US: `Offers on mainnet: paying a BOLT 12 offer from the dashboard or the Android app fetched the invoice and then failed with "This request is for a different network". Fixed; only the paying node needs this release.
+    en_US: `Run a bridge, with nothing new to set up. A bridge lets people pay invoices on the SHA256 chain's Lightning network with BTCB2 through your node, without trusting you. Lightning Fork can now run the bridge's SHA256 Lightning node for you: a stock LND whose seed is derived from your existing recovery phrase, so there is nothing new to write down. Turn it on with the Bridge action, then follow the dashboard's Bridge window: fund that node, open its channel (it recommends a well-connected peer and can open the largest channel your deposit allows), and invite participants. Running a bridge through an LND you already have still works.
 
-The wallet cards fit every message: long descriptions show one or two lines with More, the explanations of offers open on request, and nothing is drawn over the buttons or an error any more.
+The bridge prices from the market. It reads Neoxa's BTCB2_BTC market every 30 seconds (through Tor), checks it against BTCB2_USDC, and quotes nothing while the market can't be read, the two disagree, or the market jumps; just before paying it checks the price again. Set Bridge Rate is gone: there is no rate to keep current. Your Fee (Bridge action, 1.5% by default, optionally different for each direction) widens by itself when the market moves fast or your bridge runs low. If you set a fee before, check it: the old default was 1%.
 
-From 0.21.3-beta.15, if you are updating from an earlier version: paying SHA256 invoices through a service you trust (menu, Paying SHA256 invoices), the Bridge actions for running such a service, and a task that gives the Dashboard an onion address so the Android app works away from home.
+Routes are checked before quoting, so a payer is never held for a payment the bridge can't make, and short routes ask a short hold of the payer. Give the bridge's node a channel to a well-connected node.
 
-Lightning Fork 0.21.3-beta-blake2b.16, dashboard 1.3.2-blake2b.16.`,
+Pay SHA256 invoices from your own bridge: a node running a bridge pays them straight from the bridge's SHA256 node, with no swap and no fee.
+
+Also: the bridge's node's channel backup is copied off the server to your targets too; other SHA256 nodes can open channels to it once its SHA256 Lightning Peer interface has an onion address; a bridge turned off finishes the payments under way first; bridge codes carry your node's name; health checks no longer leave stray processes behind. The download grows by the stock LND image (about 64 MB); none of it runs unless you turn the bridge on.
+
+From 0.21.3-beta.15, if you are updating from an earlier version: paying SHA256 invoices through a service you trust (menu, Paying SHA256 invoices), and a task that gives the Dashboard an onion address so the Android app works away from home.
+
+Lightning Fork 0.21.3-beta-blake2b.17, dashboard 1.3.2-blake2b.17.`,
   },
   migrations: {
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER

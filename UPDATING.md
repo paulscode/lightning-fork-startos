@@ -20,6 +20,7 @@ see in the registry is the one the daemon reports:
 | `0.21.3-beta-blake2b.13` | `0.21.3-beta.13:0` |
 | the same daemon, a package-only fix | `0.21.3-beta.13:1` |
 | `0.21.3-beta-blake2b.14` | `0.21.3-beta.14:0` |
+| `0.21.3-beta-blake2b.17` | `0.21.3-beta.17:0` |
 | a later release on lnd 0.21.4, say `0.21.4-beta-blake2b.15` | `0.21.4-beta.15:0` |
 
 That is `<lnd base>-beta.<fork release>:<package revision>`, the revision
