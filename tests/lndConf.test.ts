@@ -19,7 +19,7 @@ test('a line break or control character is refused', () => {
     { alias: 'node\nbitcoind.rpchost=203.0.113.1' },
     { alias: 'node\r' },
     { externalip: ['1.2.3.4', '5.6.7.8\nrpclisten=0.0.0.0:10009'] },
-    { 'a b': 'c' },
+    { 'a=b': 'c' },
   ]) {
     assert.throws(
       () => toLndConf(conf as any),
@@ -27,4 +27,11 @@ test('a line break or control character is refused', () => {
       JSON.stringify(conf),
     )
   }
+})
+
+test('what an existing lnd.conf holds is written back as it was read', () => {
+  assert.equal(
+    toLndConf({ alias: 'my\tnode', '; a comment': '', 'odd key': 1 } as any),
+    'alias=my\tnode\n; a comment=\nodd key=1\n',
+  )
 })

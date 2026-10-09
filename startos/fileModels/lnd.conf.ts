@@ -425,7 +425,7 @@ export const fullConfigSpec = InputSpec.of({
     name: i18n('Experimental Taproot Channels'),
     default: null,
     description: i18n(
-      'Taproot Channels improve both privacy and cost efficiency of on-chain transactions. Note: Taproot Channels are experimental and only available for unannounced (private) channels at this time.',
+      'Taproot Channels improve both privacy and cost efficiency of on-chain transactions. Note: new Taproot Channels can no longer be opened or accepted, because every new channel must now use chain-bound signatures (option_unified_sigs), which Taproot Channels cannot carry. Channels opened earlier keep working.',
     ),
     footnote: `${i18n('Default')}: false`,
   }),
@@ -433,7 +433,7 @@ export const fullConfigSpec = InputSpec.of({
     name: i18n('Experimental Taproot Overlay Channels'),
     default: null,
     description: i18n(
-      'Enable support for taproot overlay channels — taproot channels carrying custom Taproot Assets data alongside Bitcoin payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled.',
+      'Enable support for taproot overlay channels — taproot channels carrying custom Taproot Assets data alongside Bitcoin payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled. New overlay channels can no longer be opened, for the same reason as Taproot Channels.',
     ),
     footnote: `${i18n('Default')}: false`,
   }),
@@ -929,17 +929,19 @@ export function fromLndConf(text: string): Record<string, string[]> {
 }
 
 // A key or value that would end its line early writes a line of its own into
-// the file lnd reads. Nothing written here legitimately holds one, so it is
-// refused rather than cleaned, and the action that tried says so.
+// the file lnd reads. Nothing written here legitimately holds a line break or
+// a NUL, so one is refused rather than cleaned, and the action that tried says
+// so. Anything else is written as it was read: a tab in an alias, a `;`
+// comment, a key lnd itself would reject are not this file's to refuse, and a
+// write that threw on them would stop the service from starting at all, since
+// every start writes this file back.
 function confLine(key: string, value: unknown): string {
   const text = String(value)
-  if (!/^[A-Za-z0-9._-]+$/.test(key)) {
+  if (/[\r\n\u0000=]/.test(key)) {
     throw new Error(`refusing to write the lnd.conf key ${JSON.stringify(key)}`)
   }
-  if (/[\u0000-\u001f\u007f]/.test(text)) {
-    throw new Error(
-      `refusing to write ${key}: its value contains a line break or another control character`,
-    )
+  if (/[\r\n\u0000]/.test(text)) {
+    throw new Error(`refusing to write ${key}: its value contains a line break`)
   }
   return `${key}=${text}\n`
 }

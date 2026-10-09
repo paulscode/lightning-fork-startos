@@ -7,8 +7,9 @@ const MAX_LENGTH = 128
 
 // Replaces the dashboard's sign-in password. The field offers a generated
 // one; typing over it sets a chosen one. The dashboard reads the file on
-// every attempt, so the change is immediate and needs no restart; open
-// sessions stay open until they expire or sign out.
+// every attempt, so the change is immediate and needs no restart. The
+// dashboard ends every session opened with the old password, and unpairs
+// every phone paired under it, so the action warns before it runs.
 export const setDashboardPassword = sdk.Action.withInput(
   // id
   'set-dashboard-password',
@@ -19,7 +20,9 @@ export const setDashboardPassword = sdk.Action.withInput(
     description: i18n(
       'Replace the password the Dashboard interface asks for, with one of your own or a generated one.',
     ),
-    warning: null,
+    warning: i18n(
+      'A new password signs every browser out of the Dashboard and unpairs every phone paired with the Lightning Fork app; pair them again afterwards.',
+    ),
     allowedStatuses: 'any',
     group: null,
     visibility: 'enabled',
