@@ -38,8 +38,13 @@ including the upgrade from `:9` and `:7` through `current`'s migration. Never
 publish an upstream release candidate: `beta.rc1` is not a valid version
 either.
 
-`lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.38-beta-lnd-v0.21.4-beta`);
-move it together with the LND base version the daemon is rebased on.
+`lndinit` is built from its source in the Dockerfile (`LNDINIT_REF`, now
+the `v0.1.38-beta` commit, for lnd v0.21.4) with one patch,
+`patches/lndinit-fork-channeldb-version.patch`: stock lndinit refuses a
+channel database at any version but the latest stock lnd knows, and Lightning
+Fork's is past that. Move the ref together with the LND base version the
+daemon is rebased on, checking that the patch still applies (the build fails
+if it does not).
 
 The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`sha256-lnd`
 in `startos/manifest/index.ts`, now `v0.21.4-beta`, index digest in the

@@ -15,6 +15,8 @@ A new Dashboard password (Set Dashboard Password) now also unpairs every phone p
 
 The bridge: it no longer counts the blocks before LND gives up on a held payment, quotes only invoices its node would pay, refunds a payment that never left, and stops quoting at a 10% market move. Offers are rate limited per offer and can't fill the disk.
 
+Importing a wallet from Start9's LND package (Initialize Wallet), or restoring a backup from before the database moved to SQLite, works again: the conversion to SQLite stopped at the database version Lightning Fork's own migrations had added, and kept retrying.
+
 From 0.21.3-beta.15, if you are updating from an earlier version: paying SHA256 invoices through a service you trust (menu, Paying SHA256 invoices), running a bridge with its own SHA256 node, and a task that gives the Dashboard an onion address so the Android app works away from home.
 
 Lightning Fork 0.21.4-beta-blake2b.18, dashboard 1.3.2-blake2b.18.`,

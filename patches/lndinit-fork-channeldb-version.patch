@@ -1,0 +1,24 @@
+diff --git a/cmd_migrate_db.go b/cmd_migrate_db.go
+index a9a29d6..618f856 100644
+--- a/cmd_migrate_db.go
++++ b/cmd_migrate_db.go
+@@ -1000,12 +1000,17 @@ func checkChannelDBMigrationsApplied(db kvdb.Backend) error {
+ 		return err
+ 	}
+ 
+-	if meta.DbVersionNumber != channeldb.LatestDBVersion() {
++	// Lightning Fork: its channel database is at the fork's own latest
++	// version, which carries migrations stock lnd does not have. The
++	// buckets are copied as they are either way. The number is the fork's
++	// channeldb.LatestDBVersion(), filled in when the image is built.
++	const forkLatestDBVersion uint32 = FORK_CHANNELDB_VERSION
++	if meta.DbVersionNumber != forkLatestDBVersion {
+ 		return fmt.Errorf("refusing to migrate source database with "+
+ 			"version %d while latest known DB version is %d; "+
+ 			"please upgrade the DB before using the data "+
+ 			"migration tool", meta.DbVersionNumber,
+-			channeldb.LatestDBVersion())
++			forkLatestDBVersion)
+ 	}
+ 
+ 	return nil

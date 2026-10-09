@@ -25,6 +25,43 @@ RUN apk add --no-cache --update alpine-sdk git make gcc \
 &&  GOOS=$TARGETOS GOARCH=$TARGETARCH make release-install \
 &&  if [ -d "/go/bin/${TARGETOS}_${TARGETARCH}" ]; then \
         mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \
+    fi \
+&&  mkdir cmd/lfdbver \
+&&  printf 'package main\n\nimport (\n\t"fmt"\n\n\t"github.com/lightningnetwork/lnd/channeldb"\n)\n\nfunc main() { fmt.Println(channeldb.LatestDBVersion()) }\n' > cmd/lfdbver/main.go \
+&&  go run ./cmd/lfdbver > /fork-channeldb-version \
+&&  rm -r cmd/lfdbver
+
+# lndinit converts a bolt database to SQLite (sqliteBackend.ts) and
+# initializes wallets. Stock lndinit refuses a channel database at any
+# version but the latest stock lnd knows, and Lightning Fork's carries
+# migrations of its own past that, so the conversion never ran. It is built
+# here from its source at a pinned commit (the v0.1.38-beta tag, for lnd
+# v0.21.4) with one change, patches/lndinit-fork-channeldb-version.patch:
+# the check compares with the fork's latest version, read from the fork's
+# own channeldb above. Nothing else differs; the buckets are copied as they
+# are either way. Its own dependencies are left as upstream pins them.
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS lndinit-builder
+
+ARG LNDINIT_REPO=https://github.com/lightninglabs/lndinit
+ARG LNDINIT_REF=301808c5f6b058b0ba0f77b595dc9578a26ef9c2
+ARG TARGETOS
+ARG TARGETARCH
+
+COPY patches/lndinit-fork-channeldb-version.patch /tmp/
+COPY --from=builder /fork-channeldb-version /tmp/
+
+RUN apk add --no-cache --update git make \
+&&  git clone "$LNDINIT_REPO" /go/src/github.com/lightninglabs/lndinit \
+&&  cd /go/src/github.com/lightninglabs/lndinit \
+&&  git checkout "$LNDINIT_REF" \
+&&  git apply /tmp/lndinit-fork-channeldb-version.patch \
+&&  v=$(cat /tmp/fork-channeldb-version) \
+&&  case "$v" in ''|*[!0-9]*) echo "bad channeldb version: '$v'" >&2; exit 1;; esac \
+&&  sed -i "s/FORK_CHANNELDB_VERSION/$v/" cmd_migrate_db.go \
+&&  grep -q "forkLatestDBVersion uint32 = $v\$" cmd_migrate_db.go \
+&&  GOOS=$TARGETOS GOARCH=$TARGETARCH make release-install \
+&&  if [ -d "/go/bin/${TARGETOS}_${TARGETARCH}" ]; then \
+        mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \
     fi
 
 FROM alpine:3.21
@@ -45,10 +82,9 @@ COPY --from=builder /go/bin/lnd /go/bin/lncli /bin/
 COPY --from=builder /lightning-fork-commit /etc/lightning-fork-commit
 COPY --from=builder /btcd-blake2b-version /etc/btcd-blake2b-version
 
-# lndinit drives wallet initialization and the bolt -> SQLite migration. The
-# stock build works against Lightning Fork: it speaks the same RPC and reads
-# the same database layout.
-COPY --from=lightninglabs/lndinit:v0.1.38-beta-lnd-v0.21.4-beta /bin/lndinit /bin/lndinit
+# lndinit drives wallet initialization and the bolt -> SQLite migration; see
+# the lndinit-builder stage.
+COPY --from=lndinit-builder /go/bin/lndinit /bin/lndinit
 
 # Continuous off-box copy of channel.backup (see startos/main.ts).
 COPY backup-agent.sh /usr/local/bin/backup-agent.sh
