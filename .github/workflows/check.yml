@@ -24,7 +24,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      # No install scripts: the typecheck needs no native module, and
+      # diskusage (from the git dependencies) stopped compiling on the
+      # runner once Node 22.23 arrived.
+      - run: npm ci --no-audit --no-fund --ignore-scripts
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Backup agent tests
