@@ -433,7 +433,7 @@ export const fullConfigSpec = InputSpec.of({
     name: i18n('Experimental Taproot Overlay Channels'),
     default: null,
     description: i18n(
-      'Enable support for taproot overlay channels — taproot channels carrying custom Taproot Assets data alongside Bitcoin payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled. New overlay channels can no longer be opened, for the same reason as Taproot Channels.',
+      'Enable support for taproot overlay channels: taproot channels carrying custom Taproot Assets data alongside ordinary payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled. New overlay channels can no longer be opened, for the same reason as Taproot Channels.',
     ),
     footnote: `${i18n('Default')}: false`,
   }),

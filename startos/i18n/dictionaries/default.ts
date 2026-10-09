@@ -319,7 +319,7 @@ const dict = {
 
   // Channel Settings — Taproot Overlay (Taproot Assets)
   'Experimental Taproot Overlay Channels': 258,
-  'Enable support for taproot overlay channels — taproot channels carrying custom Taproot Assets data alongside Bitcoin payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled. New overlay channels can no longer be opened, for the same reason as Taproot Channels.': 259,
+  'Enable support for taproot overlay channels: taproot channels carrying custom Taproot Assets data alongside ordinary payments. Used by the Taproot Assets daemon (tapd). Requires Experimental Taproot Channels to also be enabled. New overlay channels can no longer be opened, for the same reason as Taproot Channels.': 259,
 
   // Reachability — Custom External Host
   'Custom External Host': 262,
