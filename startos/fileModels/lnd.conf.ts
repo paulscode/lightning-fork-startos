@@ -928,16 +928,32 @@ export function fromLndConf(text: string): Record<string, string[]> {
   return formattedDictionary
 }
 
-function toLndConf(conf: LndConf): string {
+// A key or value that would end its line early writes a line of its own into
+// the file lnd reads. Nothing written here legitimately holds one, so it is
+// refused rather than cleaned, and the action that tried says so.
+function confLine(key: string, value: unknown): string {
+  const text = String(value)
+  if (!/^[A-Za-z0-9._-]+$/.test(key)) {
+    throw new Error(`refusing to write the lnd.conf key ${JSON.stringify(key)}`)
+  }
+  if (/[\u0000-\u001f\u007f]/.test(text)) {
+    throw new Error(
+      `refusing to write ${key}: its value contains a line break or another control character`,
+    )
+  }
+  return `${key}=${text}\n`
+}
+
+export function toLndConf(conf: LndConf): string {
   let lndConfStr = ''
 
   Object.entries(conf).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       for (const subValue of value) {
-        lndConfStr += `${key}=${String(subValue)}\n`
+        lndConfStr += confLine(key, subValue)
       }
     } else if (value !== undefined) {
-      lndConfStr += `${key}=${String(value)}\n`
+      lndConfStr += confLine(key, value)
     }
   })
 
