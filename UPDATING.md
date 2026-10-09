@@ -21,7 +21,7 @@ see in the registry is the one the daemon reports:
 | the same daemon, a package-only fix | `0.21.3-beta.13:1` |
 | `0.21.3-beta-blake2b.14` | `0.21.3-beta.14:0` |
 | `0.21.3-beta-blake2b.17` | `0.21.3-beta.17:0` |
-| a later release on lnd 0.21.4, say `0.21.4-beta-blake2b.15` | `0.21.4-beta.15:0` |
+| `0.21.4-beta-blake2b.18`, the first on lnd 0.21.4 | `0.21.4-beta.18:0` |
 
 That is `<lnd base>-beta.<fork release>:<package revision>`, the revision
 starting at 0 for each daemon release. The daemon's own spelling,
@@ -38,7 +38,7 @@ including the upgrade from `:9` and `:7` through `current`'s migration. Never
 publish an upstream release candidate: `beta.rc1` is not a valid version
 either.
 
-`lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta`);
+`lndinit` is pinned separately (`lightninglabs/lndinit:v0.1.38-beta-lnd-v0.21.4-beta`);
 move it together with the LND base version the daemon is rebased on.
 
 The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`sha256-lnd`

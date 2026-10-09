@@ -5,10 +5,10 @@
 # builder runs on the build machine's own platform and cross-compiles for
 # the target, so the aarch64 image takes minutes rather than the hours an
 # emulated Go build takes.
-FROM --platform=$BUILDPLATFORM golang:1.26.8-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS builder
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=cebc10fe01e811a38c2830c0396bd3c9182e5d62
+ARG LIGHTNING_FORK_REF=1314a7a4567a5bf23dc36f43eea2d918e717c25e
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -48,7 +48,7 @@ COPY --from=builder /btcd-blake2b-version /etc/btcd-blake2b-version
 # lndinit drives wallet initialization and the bolt -> SQLite migration. The
 # stock build works against Lightning Fork: it speaks the same RPC and reads
 # the same database layout.
-COPY --from=lightninglabs/lndinit:v0.1.37-beta-lnd-v0.21.3-beta /bin/lndinit /bin/lndinit
+COPY --from=lightninglabs/lndinit:v0.1.38-beta-lnd-v0.21.4-beta /bin/lndinit /bin/lndinit
 
 # Continuous off-box copy of channel.backup (see startos/main.ts).
 COPY backup-agent.sh /usr/local/bin/backup-agent.sh
