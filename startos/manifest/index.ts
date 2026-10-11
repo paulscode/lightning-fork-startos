@@ -19,6 +19,9 @@ export const manifest = setupManifest({
   marketingUrl: 'https://github.com/paulscode/lightning-fork',
   donationUrl: null,
   description: { short, long },
+  // StartOS 0.4.0.2, not the SDK's default, so the registry hides releases from
+  // older servers. Every release from 2026-10-11 on targets 0.4.0.2.
+  osVersion: '0.4.0.2',
   // `dashboard` holds the dashboard's own small state (password, settings)
   // and copies of the two LND files it needs (tls.cert, admin.macaroon), so
   // the dashboard container mounts nothing of LND's: the SDK does not honour
