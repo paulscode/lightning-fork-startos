@@ -101,6 +101,7 @@ export const shape = z.object({
   minchansize: iniNumber,
   maxchansize: iniNumber,
   'protocol.wumbo-channels': iniBoolean,
+  'protocol.splice': iniBoolean,
   'protocol.option-scid-alias': iniBoolean,
   'protocol.zero-conf': iniBoolean,
   'protocol.simple-taproot-chans': iniBoolean,
@@ -405,6 +406,14 @@ export const fullConfigSpec = InputSpec.of({
     ),
     footnote: `${i18n('Default')}: false`,
   }),
+  splice: Value.triState({
+    name: i18n('Resize Channels'),
+    default: null,
+    description: i18n(
+      "Add funds to a channel or move funds out of it without closing it (splicing), from the Dashboard. The peer must support it too, and only channels with chain-bound signatures can be resized. Turning this on upgrades the node's database: it can't go back to an older version of Lightning Fork afterwards.",
+    ),
+    footnote: `${i18n('Default')}: false`,
+  }),
   'option-scid-alias': Value.triState({
     name: i18n('Enable option-scid-alias Channels'),
     default: null,
@@ -705,6 +714,7 @@ export function fileToForm(conf: LndConf): PartialFormType {
     'min-channel-size': conf.minchansize,
     'max-channel-size': conf.maxchansize,
     'wumbo-channels': conf['protocol.wumbo-channels'],
+    splice: conf['protocol.splice'],
     'option-scid-alias': conf['protocol.option-scid-alias'],
     'zero-conf': conf['protocol.zero-conf'],
     'simple-taproot-chans': conf['protocol.simple-taproot-chans'],
@@ -797,6 +807,8 @@ export function formToFile(
     result.maxchansize = input['max-channel-size'] ?? undefined
   if ('wumbo-channels' in input)
     result['protocol.wumbo-channels'] = input['wumbo-channels'] ?? undefined
+  if ('splice' in input)
+    result['protocol.splice'] = input['splice'] ?? undefined
   if ('option-scid-alias' in input)
     result['protocol.option-scid-alias'] =
       input['option-scid-alias'] ?? undefined

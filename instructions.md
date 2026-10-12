@@ -75,6 +75,29 @@ hours, and **Sign out** is in the dashboard's menu. Fiat amounts are BTCB2's own
 neoxa.exchange, converted to other currencies through Coingecko's rate table;
 while a feed is unreachable the dashboard shows sats or BTC instead.
 
+### Resizing channels
+
+A channel's details in the Dashboard have **Add funds** (from your on-chain
+wallet) and **Move funds out** (to your wallet or to an address), without
+closing the channel. The channel keeps working while the change confirms,
+and its size changes once both nodes consider it deep enough, at least six
+confirmations. This is splicing; it is off until you turn on **Resize
+Channels** in **Actions > Channel Settings**.
+
+- The peer's node must support it too. Lightning Fork does, from this
+  version with the setting on, and so does the Core Lightning port for this
+  chain.
+- Only channels with chain-bound signatures can be resized (the channel's
+  details say whether it has them). One opened without them, by an older
+  version or with a peer that didn't support them, can't be.
+- Turning it on upgrades the node's database at the next start. After that
+  the service can't go back to an older version of Lightning Fork.
+- The fee of moving funds out comes from your side of the channel; the
+  amount you enter is what arrives.
+
+While a resize is in progress the channel shows "Resizing" with its
+confirmations, and a normal close waits until it finishes.
+
 ## Mobile app
 
 The Lightning Fork app for Android shows your on-chain and Lightning

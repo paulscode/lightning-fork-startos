@@ -637,6 +637,8 @@ export default {
     746: 'Una comisión debe ser mayor del 0,3% y menor del 20%.',
     747: 'Su identidad en la cadena SHA256. Otros nodos pueden abrirle canales cuando su interfaz SHA256 Lightning Peer tenga una dirección onion; si no, abre los canales desde él.',
     748: 'Una contraseña nueva cierra la sesión del Dashboard en todos los navegadores y desvincula todos los teléfonos vinculados con la app Lightning Fork; vuelve a vincularlos después.',
+    749: 'Redimensionar canales',
+    750: 'Añade fondos a un canal o saca fondos de él sin cerrarlo (splicing), desde el Dashboard. El par también debe admitirlo, y solo se pueden redimensionar los canales con firmas vinculadas a la cadena. Activarlo actualiza la base de datos del nodo: después no puede volver a una versión anterior de Lightning Fork.',
   },
   de_DE: {
     309: 'Backups',
@@ -1274,6 +1276,8 @@ export default {
     746: 'Eine Gebühr muss über 0,3% und unter 20% liegen.',
     747: 'Seine Identität auf der SHA256-Chain. Andere Knoten können Kanäle zu ihm öffnen, sobald seine SHA256-Lightning-Peer-Schnittstelle eine Onion-Adresse hat; sonst öffne Kanäle von ihm aus.',
     748: 'Ein neues Passwort meldet jeden Browser vom Dashboard ab und entkoppelt jedes mit der Lightning-Fork-App gekoppelte Telefon; koppele sie danach erneut.',
+    749: 'Kanalgröße ändern',
+    750: 'Füge einem Kanal Guthaben hinzu oder ziehe Guthaben aus ihm ab, ohne ihn zu schließen (Splicing), über das Dashboard. Die Gegenseite muss es ebenfalls unterstützen, und nur Kanäle mit kettengebundenen Signaturen können in der Größe geändert werden. Das Einschalten aktualisiert die Datenbank des Knotens: Danach kann er nicht zu einer älteren Version von Lightning Fork zurückkehren.',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1911,6 +1915,8 @@ export default {
     746: 'Opłata musi być większa niż 0,3% i mniejsza niż 20%.',
     747: 'Jego tożsamość na łańcuchu SHA256. Inne węzły mogą otwierać do niego kanały, gdy jego interfejs SHA256 Lightning Peer ma adres onion; w przeciwnym razie otwieraj kanały od niego.',
     748: 'Nowe hasło wylogowuje z Dashboardu każdą przeglądarkę i rozłącza każdy telefon sparowany z aplikacją Lightning Fork; sparuj je ponownie później.',
+    749: 'Zmiana rozmiaru kanałów',
+    750: 'Dodawaj środki do kanału lub wypłacaj je z niego bez zamykania (splicing) z poziomu Dashboardu. Druga strona też musi to obsługiwać, a rozmiar można zmienić tylko w kanałach z podpisami powiązanymi z łańcuchem. Włączenie tej opcji aktualizuje bazę danych węzła: potem nie da się wrócić do starszej wersji Lightning Fork.',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2548,5 +2554,7 @@ export default {
     746: 'Des frais doivent être supérieurs à 0,3 % et inférieurs à 20 %.',
     747: "Son identité sur la chaîne SHA256. D'autres nœuds peuvent lui ouvrir des canaux une fois que son interface SHA256 Lightning Peer a une adresse onion ; sinon, ouvrez les canaux depuis lui.",
     748: "Un nouveau mot de passe déconnecte tous les navigateurs du Dashboard et dissocie tous les téléphones jumelés avec l'application Lightning Fork ; jumelez-les à nouveau ensuite.",
+    749: 'Redimensionner les canaux',
+    750: "Ajoutez des fonds à un canal ou retirez-en sans le fermer (splicing), depuis le Dashboard. Le pair doit aussi le prendre en charge, et seuls les canaux avec des signatures liées à la chaîne peuvent être redimensionnés. L'activer met à jour la base de données du nœud : il ne peut plus revenir ensuite à une version antérieure de Lightning Fork.",
   },
 } satisfies Record<string, LangDict>

@@ -713,6 +713,8 @@ const dict = {
   'A fee must be over 0.3% and under 20%.': 746,
   'Its identity on the SHA256 chain. Other nodes can open channels to it once its SHA256 Lightning Peer interface has an onion address; otherwise open channels from it.': 747,
   'A new password signs every browser out of the Dashboard and unpairs every phone paired with the Lightning Fork app; pair them again afterwards.': 748,
+  'Resize Channels': 749,
+  "Add funds to a channel or move funds out of it without closing it (splicing), from the Dashboard. The peer must support it too, and only channels with chain-bound signatures can be resized. Turning this on upgrades the node's database: it can't go back to an older version of Lightning Fork afterwards.": 750,
 } as const
 
 /**

@@ -35,3 +35,27 @@ test('what an existing lnd.conf holds is written back as it was read', () => {
     'alias=my\tnode\n; a comment=\nodd key=1\n',
   )
 })
+
+test('Resize Channels reads and writes protocol.splice, unset by default', async () => {
+  const { fileToForm, formToFile } =
+    await import('../startos/fileModels/lnd.conf')
+  assert.equal(formToFile({ splice: true } as any)['protocol.splice'], true)
+  assert.equal(formToFile({ splice: false } as any)['protocol.splice'], false)
+  // Not set: lnd's default (off), nothing written.
+  assert.equal(
+    formToFile({ splice: null } as any)['protocol.splice'],
+    undefined,
+  )
+  assert.equal('protocol.splice' in formToFile({ alias: 'x' } as any), false)
+  // The schema fills the rest of a conf read from disk.
+  const read = { 'caches.rpc-graph-cache-duration': '5m' }
+  assert.equal(
+    fileToForm({ ...read, 'protocol.splice': true } as any).splice,
+    true,
+  )
+  assert.equal(fileToForm(read as any).splice, undefined)
+  assert.equal(
+    toLndConf({ 'protocol.splice': true } as any),
+    'protocol.splice=true\n',
+  )
+})

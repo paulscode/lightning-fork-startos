@@ -29,6 +29,7 @@ export const channelsConfig = sdk.Action.withInput(
     'min-channel-size': true,
     'max-channel-size': true,
     'wumbo-channels': true,
+    splice: true,
     'option-scid-alias': true,
     'zero-conf': true,
     'simple-taproot-chans': true,
