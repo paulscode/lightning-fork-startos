@@ -27,7 +27,7 @@ RUN apk add --no-cache --update alpine-sdk git make gcc \
         mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \
     fi \
 &&  mkdir cmd/lfdbver \
-&&  printf 'package main\n\nimport (\n\t"fmt"\n\n\t"github.com/lightningnetwork/lnd/channeldb"\n)\n\nfunc main() { fmt.Println(channeldb.LatestDBVersion()) }\n' > cmd/lfdbver/main.go \
+&&  printf 'package main\n\nimport (\n\t"fmt"\n\n\t"github.com/lightningnetwork/lnd/channeldb"\n)\n\nfunc main() { v := channeldb.OpenableDBVersions(); s := fmt.Sprint(v[0]); for _, x := range v[1:] { s += fmt.Sprintf(", %%d", x) }; fmt.Println(s) }\n' > cmd/lfdbver/main.go \
 &&  go run ./cmd/lfdbver > /fork-channeldb-version \
 &&  rm -r cmd/lfdbver
 
@@ -37,8 +37,9 @@ RUN apk add --no-cache --update alpine-sdk git make gcc \
 # migrations of its own past that, so the conversion never ran. It is built
 # here from its source at a pinned commit (the v0.1.38-beta tag, for lnd
 # v0.21.4) with one change, patches/lndinit-fork-channeldb-version.patch:
-# the check compares with the fork's latest version, read from the fork's
-# own channeldb above. Nothing else differs; the buckets are copied as they
+# the check accepts the versions the fork opens as they are (its latest, and
+# the one before the splicing mark, where a node that never turned splicing
+# on stays), read from the fork's own channeldb above. Nothing else differs; the buckets are copied as they
 # are either way. Its own dependencies are left as upstream pins them.
 FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS lndinit-builder
 
@@ -56,9 +57,9 @@ RUN apk add --no-cache --update git make \
 &&  git checkout "$LNDINIT_REF" \
 &&  git apply /tmp/lndinit-fork-channeldb-version.patch \
 &&  v=$(cat /tmp/fork-channeldb-version) \
-&&  case "$v" in ''|*[!0-9]*) echo "bad channeldb version: '$v'" >&2; exit 1;; esac \
-&&  sed -i "s/FORK_CHANNELDB_VERSION/$v/" cmd_migrate_db.go \
-&&  grep -q "forkLatestDBVersion uint32 = $v\$" cmd_migrate_db.go \
+&&  echo "$v" | grep -Eq '^[0-9]+(, [0-9]+)*$' || { echo "bad channeldb versions: '$v'" >&2; exit 1; } \
+&&  sed -i "s/FORK_CHANNELDB_VERSIONS/$v/g" cmd_migrate_db.go \
+&&  grep -q "^	case $v:\$" cmd_migrate_db.go \
 &&  GOOS=$TARGETOS GOARCH=$TARGETARCH make release-install \
 &&  if [ -d "/go/bin/${TARGETOS}_${TARGETARCH}" ]; then \
         mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \

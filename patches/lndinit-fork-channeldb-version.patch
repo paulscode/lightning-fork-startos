@@ -1,24 +1,28 @@
 diff --git a/cmd_migrate_db.go b/cmd_migrate_db.go
-index a9a29d6..618f856 100644
+index a9a29d6..00e222a 100644
 --- a/cmd_migrate_db.go
 +++ b/cmd_migrate_db.go
-@@ -1000,12 +1000,17 @@ func checkChannelDBMigrationsApplied(db kvdb.Backend) error {
+@@ -1000,12 +1000,20 @@ func checkChannelDBMigrationsApplied(db kvdb.Backend) error {
  		return err
  	}
  
 -	if meta.DbVersionNumber != channeldb.LatestDBVersion() {
-+	// Lightning Fork: its channel database is at the fork's own latest
-+	// version, which carries migrations stock lnd does not have. The
-+	// buckets are copied as they are either way. The number is the fork's
-+	// channeldb.LatestDBVersion(), filled in when the image is built.
-+	const forkLatestDBVersion uint32 = FORK_CHANNELDB_VERSION
-+	if meta.DbVersionNumber != forkLatestDBVersion {
++	// Lightning Fork: its channel database is at one of the fork's own
++	// versions, which carry migrations stock lnd does not have: the latest,
++	// or the one before it for a node that never ran with splicing. The
++	// buckets are copied as they are either way. The numbers are the
++	// fork's channeldb.OpenableDBVersions(), filled in when the image is
++	// built.
++	switch meta.DbVersionNumber {
++	case FORK_CHANNELDB_VERSIONS:
++	default:
  		return fmt.Errorf("refusing to migrate source database with "+
- 			"version %d while latest known DB version is %d; "+
+-			"version %d while latest known DB version is %d; "+
++			"version %d, not one this Lightning Fork opens (%s); "+
  			"please upgrade the DB before using the data "+
  			"migration tool", meta.DbVersionNumber,
 -			channeldb.LatestDBVersion())
-+			forkLatestDBVersion)
++			"FORK_CHANNELDB_VERSIONS")
  	}
  
  	return nil
