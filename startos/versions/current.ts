@@ -13,6 +13,8 @@ A resize counts once both nodes have seen six confirmations; one your peer puts 
 
 Also: pairing a phone asks for the Dashboard password first, the Dashboard says so when LND can't follow a channel's funding output, and a node on a pruned Knots can fetch the blocks it pruned from peers again (it refused them and banned the peer that sent them).
 
+From 0.21.4-beta.18:0, if you are updating from an earlier version: built on LND 0.21.4. Every new channel carries chain-bound signatures, and a peer that has not upgraded gets no new channel; no new taproot or legacy channels. Apps can get their own macaroon from the Dashboard's menu. A new Dashboard password also unpairs every phone. Importing a wallet from Start9's LND package, or restoring a backup from before SQLite, works again.
+
 Lightning Fork 0.21.4-beta-blake2b.19, dashboard 1.3.2-blake2b.19.`,
   },
   migrations: {

@@ -57,7 +57,7 @@ RUN apk add --no-cache --update git make \
 &&  git checkout "$LNDINIT_REF" \
 &&  git apply /tmp/lndinit-fork-channeldb-version.patch \
 &&  v=$(cat /tmp/fork-channeldb-version) \
-&&  echo "$v" | grep -Eq '^[0-9]+(, [0-9]+)*$' || { echo "bad channeldb versions: '$v'" >&2; exit 1; } \
+&&  { echo "$v" | grep -Eq '^[0-9]+(, [0-9]+)*$' || { echo "bad channeldb versions: '$v'" >&2; exit 1; }; } \
 &&  sed -i "s/FORK_CHANNELDB_VERSIONS/$v/g" cmd_migrate_db.go \
 &&  grep -q "^	case $v:\$" cmd_migrate_db.go \
 &&  GOOS=$TARGETOS GOARCH=$TARGETARCH make release-install \
