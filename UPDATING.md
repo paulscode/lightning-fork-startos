@@ -22,6 +22,7 @@ see in the registry is the one the daemon reports:
 | `0.21.3-beta-blake2b.14` | `0.21.3-beta.14:0` |
 | `0.21.3-beta-blake2b.17` | `0.21.3-beta.17:0` |
 | `0.21.4-beta-blake2b.18`, the first on lnd 0.21.4 | `0.21.4-beta.18:0` |
+| `0.21.4-beta-blake2b.19` | `0.21.4-beta.19:0` |
 
 That is `<lnd base>-beta.<fork release>:<package revision>`, the revision
 starting at 0 for each daemon release. The daemon's own spelling,
@@ -70,6 +71,13 @@ the next `current` when a release rewrites the file, or a node that skips a
 release never runs it. `0.21.3-beta.14:0` added the first: completing a saved
 Nextcloud address to the `/remote.php/dav/files/USER/` form rclone requires.
 Keep it until no installed package could predate it.
+
+`0.21.4-beta.19:0` added `down: IMPOSSIBLE`: once a node has run with Resize
+Channels on, its channel database is at a version older daemons refuse to
+open, and the package can't tell whether that happened. Without it the SDK
+adds a downgrade edge that does nothing, so StartOS would install the older
+package over the newer data and the daemon would then fail to start. Keep it
+in every later `current`; to go back, roll forward with a fix instead.
 
 ## Dependencies
 

@@ -1,27 +1,25 @@
-import { VersionInfo } from '@start9labs/start-sdk'
+import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
 import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.18:0',
+  version: '0.21.4-beta.19:0',
   releaseNotes: {
-    en_US: `Built on LND 0.21.4. It fixes HTLCs that could be left pending while a channel changed state (and end in a needless force close), keeps a peer from flooding a channel with fee updates or other messages, and fixes breach handling for old channel states.
+    en_US: `Resize channels without closing them. A channel's details in the Dashboard have Add funds (from your on-chain wallet) and Move funds out (to your wallet or an address). The channel keeps working while the change confirms and costs one on-chain transaction. This is splicing, and it is off until you turn on Resize Channels in Actions, Channel Settings.
 
-New channels are bound to this chain. Every new channel now carries chain-bound signatures (option_unified_sigs), as the BLAKE2b Lightning spec requires: a peer that has not upgraded can still connect and route over the channels you already have, but gets no new channel. New taproot channels can't be opened any more (the Taproot settings say so), and LND no longer opens old-style (legacy) channels at all; channels you already have keep working. A channel funded directly from a block reward is refused.
+Before you turn it on: it upgrades the node's channel database at the next start, and after that the service can't go back to an older version of Lightning Fork. Because the package can't tell whether that happened, from this version StartOS refuses to install an older Lightning Fork over this one. Both nodes of a channel need splicing (Lightning Fork from this version, or the Core Lightning port), and only channels with chain-bound signatures can be resized.
 
-Macaroons: in the Dashboard's menu, give an app its own key to your node with only the access it needs (read only, receive payments, a Lightning wallet, or your own choice of permissions), with an optional expiry, and revoke it on its own. Making one asks for your Dashboard password again.
+A resize counts once both nodes have seen six confirmations; one your peer puts coins into waits longer, up to 36, the more it puts in. Until then the channel works at its old size. If your peer adds its own coins, your node won't let the peer spend them through the channel until the resize has 36 confirmations, so a peer that undoes its deposit by reorganising the chain can't take your funds with it. Moving funds out: the amount you enter is what arrives, and the fee comes from your side of the channel. Channel backups made after a resize carry the new funding output.
 
-A new Dashboard password (Set Dashboard Password) now also unpairs every phone paired with the Android app: pair them again afterwards. The Dashboard refuses form posts from other sites and won't be framed, and its dependencies are up to date. Settings that would add lines to lnd.conf are refused.
+Also: pairing a phone asks for the Dashboard password first, the Dashboard says so when LND can't follow a channel's funding output, and a node on a pruned Knots can fetch the blocks it pruned from peers again (it refused them and banned the peer that sent them).
 
-The bridge: it no longer counts the blocks before LND gives up on a held payment, quotes only invoices its node would pay, refunds a payment that never left, and stops quoting at a 10% market move. Offers are rate limited per offer and can't fill the disk.
-
-Importing a wallet from Start9's LND package (Initialize Wallet), or restoring a backup from before the database moved to SQLite, works again: the conversion to SQLite stopped at the database version Lightning Fork's own migrations had added, and kept retrying.
-
-From 0.21.3-beta.15, if you are updating from an earlier version: paying SHA256 invoices through a service you trust (menu, Paying SHA256 invoices), running a bridge with its own SHA256 node, and a task that gives the Dashboard an onion address so the Android app works away from home.
-
-Lightning Fork 0.21.4-beta-blake2b.18, dashboard 1.3.2-blake2b.18.`,
+Lightning Fork 0.21.4-beta-blake2b.19, dashboard 1.3.2-blake2b.19.`,
   },
   migrations: {
+    // Resize Channels moves the channel database to a version older
+    // daemons refuse to open, and the package can't tell whether it has
+    // (UPDATING.md). Carry this into the next `current`.
+    down: IMPOSSIBLE,
     // Completes a saved Nextcloud address to the /remote.php/dav/files/USER
     // form rclone requires, as Start9's LND package does in its :4
     // migration. Idempotent: a complete address comes back unchanged and
