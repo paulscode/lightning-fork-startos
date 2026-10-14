@@ -91,7 +91,11 @@ Channels** in **Actions > Channel Settings**.
   details say whether it has them). One opened without them, by an older
   version or with a peer that didn't support them, can't be.
 - Turning it on upgrades the node's database at the next start. After that
-  the service can't go back to an older version of Lightning Fork.
+  the service can't go back to an older version of Lightning Fork. Since
+  the package can't tell whether that happened, StartOS won't install a
+  version older than 0.21.4-beta.19 over this one, setting on or off.
+- With a Core Lightning peer, let one resize finish before either side
+  starts another.
 - The fee of moving funds out comes from your side of the channel; the
   amount you enter is what arrives.
 
