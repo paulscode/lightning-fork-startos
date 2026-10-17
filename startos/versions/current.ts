@@ -3,19 +3,19 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.19:0',
+  version: '0.21.4-beta.20:0',
   releaseNotes: {
-    en_US: `Resize channels without closing them. A channel's details in the Dashboard have Add funds (from your on-chain wallet) and Move funds out (to your wallet or an address). The channel keeps working while the change confirms and costs one on-chain transaction. This is splicing, and it is off until you turn on Resize Channels in Actions, Channel Settings.
+    en_US: `A safer bridge. A private security review found a way for a payer who also controls the recipient to make a bridge lose a payout, and several smaller problems; all are fixed. If you run the bridge, update.
 
-Before you turn it on: it upgrades the node's channel database at the next start, and after that the service can't go back to an older version of Lightning Fork. Because the package can't tell whether that happened, from this version StartOS refuses to install an older Lightning Fork over this one. Both nodes of a channel need splicing (Lightning Fork from this version, or the Core Lightning port), and only channels with chain-bound signatures can be resized.
+The bridge now refuses to quote an invoice again once an attempt to pay it was funded (the payer is told to ask for a new invoice), each expiring invoice cancels only itself, and before paying it checks for a route and waits while there is none. A swap stopped while paying can be decided with lncli bridge resolve. It keeps quoting through a difficulty retarget on either chain instead of stopping for about a day. Participants see a fixed sentence for each refusal and a rounded maximum.
 
-A resize counts once both nodes have seen six confirmations; one your peer adds coins to waits longer, up to 36, the larger the coins. Until then the channel works at its old size. If your peer adds its own coins, your node won't let the peer spend them through the channel until the resize has 36 confirmations, so a peer that undoes its deposit by reorganising the chain can't take your funds with it. Moving funds out: the amount you enter is what arrives, and the fee comes from your side of the channel. With a Core Lightning peer, let one resize finish before either side starts another. Channel backups made after a resize carry the new funding output.
+Pricing reads two exchanges, Neoxa and NonKYC, from their order books at the largest swap size, and each direction trades at whichever is worse for its payer; a direction stops when they are more than 4% apart. Drift from the 24 hour median, a thin book or a stopped exchange widens the fee rather than stopping quotes. Quotes now hold for 60 seconds.
 
-Also: pairing a phone asks for the Dashboard password first, the Dashboard says so when LND can't follow a channel's funding output, and a node on a pruned Knots can fetch the blocks it pruned from peers again (it refused them and banned the peer that sent them).
+Paying SHA256 invoices through a service checks prices against both exchanges and allows what the service widened its fee by, up to 5%.
 
-From 0.21.4-beta.18:0, if you are updating from an earlier version: built on LND 0.21.4. Every new channel carries chain-bound signatures, and a peer that has not upgraded gets no new channel; no new taproot or legacy channels. Apps can get their own macaroon from the Dashboard's menu. A new Dashboard password also unpairs every phone. Importing a wallet from Start9's LND package, or restoring a backup from before SQLite, works again.
+From 0.21.4-beta.19:0, if you are updating from an earlier version: resize channels without closing them (Add funds and Move funds out in a channel's details), off until you turn on Resize Channels in Actions, Channel Settings. Turning it on upgrades the channel database, and StartOS then refuses to install an older Lightning Fork over this one. Built on LND 0.21.4 (from 0.21.4-beta.18:0): every new channel carries chain-bound signatures.
 
-Lightning Fork 0.21.4-beta-blake2b.19, dashboard 1.3.2-blake2b.19.`,
+Lightning Fork 0.21.4-beta-blake2b.20, dashboard 1.3.2-blake2b.20.`,
   },
   migrations: {
     // Resize Channels moves the channel database to a version older
