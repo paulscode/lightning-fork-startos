@@ -5,6 +5,8 @@ set -o pipefail
 
 STARTOS_USER="start9"
 STARTOS_LND_VOLUME="/media/startos/data/package-data/volumes/lnd/data/main"
+# Where a StartOS 0.3.5 server keeps it, only to recognise one and say so.
+STARTOS_035_LND_VOLUME="/embassy-data/package-data/volumes/lnd/data/main"
 
 export SSHPASS="$STARTOS_PASS"
 
@@ -16,6 +18,26 @@ startos_ssh() {
 }
 startos_sudo() {
   printf '%s\n' "$STARTOS_PASS" | startos_ssh "sudo -S $1"
+}
+
+>&2 echo "Checking the origin's StartOS version and LND"
+
+# Only a StartOS 0.4 origin is supported: 0.3.5 keeps LND's data, status and
+# wallet password elsewhere. Found before anything is stopped.
+if ! startos_sudo "test -d ${STARTOS_LND_VOLUME}"; then
+  if startos_sudo "test -d ${STARTOS_035_LND_VOLUME}"; then
+    >&2 echo "The origin server runs StartOS 0.3.5. Migrating from it isn't supported: update the old server to StartOS 0.4, start LND there once, then run this migration again."
+  else
+    >&2 echo "LND isn't installed on the origin StartOS server."
+  fi
+  exit 1
+fi
+
+# The stop below is confirmed through this status; if it can't be read, it
+# can't be confirmed.
+startos_ssh 'start-cli db dump 2>/dev/null' < /dev/null | jq -e '.value.packageData.lnd.statusInfo | type == "object"' > /dev/null || {
+  >&2 echo "Could not read LND's status on the origin StartOS server."
+  exit 1
 }
 
 >&2 echo "Checking the origin's database conversion state"
@@ -34,10 +56,11 @@ startos_ssh "start-cli package stop lnd" < /dev/null || true
 
 # `package stop` returns as soon as the stop is requested, and copying a live
 # bolt database risks a torn snapshot — wait until the service is actually down
-# (statusInfo.started goes null; also null if LND isn't installed there, which
-# the wallet check below then reports properly).
+# and meant to stay down: `started` alone is also null for a moment while LND
+# restarts, and a copy taken then could leave two live nodes on one set of
+# channels.
 i=0
-while [ "$(startos_ssh 'start-cli db dump 2>/dev/null' < /dev/null | jq -r '.value.packageData.lnd.statusInfo.started // "null"')" != "null" ]; do
+until startos_ssh 'start-cli db dump 2>/dev/null' < /dev/null | jq -e '.value.packageData.lnd.statusInfo | .desired.main == "stopped" and .started == null' > /dev/null; do
   i=$((i + 1))
   if [ "$i" -ge 90 ]; then
     >&2 echo "Timed out waiting for LND to stop on the origin server"
