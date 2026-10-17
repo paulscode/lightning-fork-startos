@@ -372,7 +372,7 @@ const dict = {
   SFTP: 320,
   'Back up to any always-on SSH server, such as a NAS.': 321,
   'OAuth Client ID': 322,
-  'From Google Cloud Console (Drive API, Desktop app).': 323,
+  'From Google Cloud Console (Drive API, Desktop app). Publish the app before signing in, or Google ends the sign-in after 7 days. Publishing needs a home page, a privacy policy link and an authorized domain under Branding, and no logo.': 323,
   'OAuth Client Secret': 324,
   'From Google Cloud Console. Leave blank to keep the stored one.': 325,
   'Authorization Code': 326,
@@ -715,6 +715,15 @@ const dict = {
   'A new password signs every browser out of the Dashboard and unpairs every phone paired with the Lightning Fork app; pair them again afterwards.': 748,
   'Resize Channels': 749,
   "Add funds to a channel or move funds out of it without closing it (splicing), from the Dashboard. The peer must support it too, and only channels with chain-bound signatures can be resized. Turning this on upgrades the node's database: it can't go back to an older version of Lightning Fork afterwards.": 750,
+  // Google Drive and Dropbox sign-in (lnd-startos #227)
+  'Google refused this Client ID and Client Secret. Copy both again from the same client in Google Cloud.': 751,
+  'Google will end this sign-in on ${date}, because the Google Cloud app is still in Testing. Sign in here again before then, or publish the app and sign in again: publishing needs a home page, a privacy policy link and an authorized domain under Branding, and no logo.': 752,
+  'Google Drive: a new Client ID needs its own Client Secret. Paste the secret from the same client.': 753,
+  'Dropbox: a new App Key needs its own App Secret. Paste the secret from the same app.': 754,
+  '${target}: Google refused the saved sign-in. Sign in again in Configure Channel Backups. While the Google Cloud app is in Testing, Google ends every sign-in after 7 days; publishing the app stops that.': 755,
+  '${target}: the saved sign-in was refused. Sign in again in Configure Channel Backups.': 756,
+  '${target}: not signed in yet. Finish the sign-in in Configure Channel Backups.': 757,
+  '${target}: its saved settings are incomplete. Save it again in Configure Channel Backups.': 758,
 } as const
 
 /**

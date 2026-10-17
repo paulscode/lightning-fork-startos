@@ -225,6 +225,17 @@ seed finds the same folder again, and the layout is the same as Start9's LND
 package uses. A copy made by an earlier release, directly in the folder you
 named, is still found on a restore when the node's own folder holds none.
 
+For Google Drive, publish your Google Cloud app before you sign in, or Google
+ends the sign-in after 7 days and the copies stop. Publishing needs an
+**Application home page**, an **Application privacy policy link** and an
+**Authorized domain** on the app's **Branding** page, and no logo; **Publish
+app** then appears under **Audience**. When Google will end a sign-in, the
+action says on which date. Without a website of your own you would have to
+sign in again every 7 days, so Dropbox, Nextcloud or SFTP may suit you better.
+When a provider refuses the saved sign-in, the Channel Backup health check
+says to sign in again, and the next Configure Channel Backups gives the
+authorization link again.
+
 For SFTP, the folder path is relative to the directory your SFTP login starts
 in: your home directory on most servers, somewhere else on a NAS or a
 chrooted account. Connect with an SFTP client and run `pwd` to see it.

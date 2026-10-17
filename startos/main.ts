@@ -900,7 +900,6 @@ export const main = sdk.setupMain(async ({ effects }) => {
             trigger: sdk.trigger.statusTrigger(30_000, {
               starting: 5_000,
               waiting: 5_000,
-              failure: 300_000,
             }),
             fn: async () => {
               const cfg = await channelBackupJson.read().once()
@@ -1688,11 +1687,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
       .addHealthCheck('channel-backup', {
         ready: {
           display: i18n('Channel Backup'),
-          // The backup agent retries a failing target every five minutes.
+          // No longer interval on failure: a failure within the first 10 s
+          // shows as starting, and LND's actions stay disabled until the next
+          // check (see AGENTS.md).
           trigger: sdk.trigger.statusTrigger(30_000, {
             starting: 5_000,
             waiting: 5_000,
-            failure: 300_000,
           }),
           fn: async () => {
             const cfg = await channelBackupJson.read().once()
