@@ -43,7 +43,8 @@ EOF
 
 # rclone: <remote>:<path> is $STUB_REMOTES/<remote>/<path>. A missing source
 # directory exits 3 and a missing file 4, as rclone does; a remote named in
-# $STUB_DOWN fails as unreachable.
+# $STUB_DOWN fails as unreachable, and one named in $STUB_FAIL fails with the
+# output in $STUB_FAIL_TEXT.
 cat > "$STUBS/rclone" << 'EOF'
 #!/bin/sh
 cmd=$1
@@ -55,6 +56,7 @@ map() {
     *:*)
       r=${1%%:*}
       case " ${STUB_DOWN:-} " in *" $r "*) echo "dial tcp: no route to host" >&2; exit 1 ;; esac
+      case " ${STUB_FAIL:-} " in *" $r "*) cat "$STUB_FAIL_TEXT" >&2; exit 1 ;; esac
       printf '%s/%s/%s' "$STUB_REMOTES" "$r" "${1#*:}"
       ;;
     *) printf '%s' "$1" ;;
@@ -99,6 +101,7 @@ EOF
 agent() {
   env PATH="$STUBS:$PATH" LND_DIR="$T/lnd" STUB_LOG="$T/log" STUB_REMOTES="$T/remotes" \
     STUB_PUBKEY="${STUB_PUBKEY:-$PUBKEY}" STUB_LNCLI_DOWN="$T/lncli-down" STUB_DOWN="${STUB_DOWN:-}" \
+    STUB_FAIL="${STUB_FAIL:-}" STUB_FAIL_TEXT="$T/fail-text" \
     "$@"
 }
 run_agent() { agent $AGENT_SH "$AGENT" "$@" > "$T/out" 2> "$T/err"; }
@@ -249,8 +252,81 @@ check "a copy that could not be kept is not replaced" \
   '[ "$(cat "$T/remotes/dropbox/lnd-channel-backups/$SHA_ID/channel.backup")" = scb-old-node ] &&
    [ "$(jq -r "[.failures[] | select(.code == \"keep\" and .target == \"dropbox\")] | length" "$T/lnd/.channel-backup-sha256-state.json")" = 1 ]'
 
-# ---- restore: the node's folder first, the flat path as a fallback
+# ---- how a failing target is reported
 put() { mkdir -p "$(dirname "$T/remotes/$1")" && printf '%s' "$2" > "$T/remotes/$1"; }
+# Google Drive enabled and signed in, beside the setup's two targets.
+with_gdrive() {
+  jq '.gdrive = {"enabled": true, "clientId": "gid", "clientSecret": "gs", "token": "{\"refresh_token\":\"g\"}", "path": "lnd-channel-backups"}' \
+    "$T/lnd/channel-backup.json" > "$T/cfg.json" && mv "$T/cfg.json" "$T/lnd/channel-backup.json"
+}
+failure_of() { jq -r --arg t "$1" "[.failures[] | select(.target == \$t) | .$2] | join(\";\")" "${3:-$T/lnd/.channel-backup-state.json}" 2>/dev/null; }
+# What rclone prints when Google refuses the refresh token, as it does a week
+# after the sign-in while the Cloud app is in Testing. invalid_grant sits past
+# the 160 characters a detail keeps.
+cat > "$T/fail-invalid-grant" << 'EOS'
+2026/10/17 09:00:00 CRITICAL: Failed to create file system for destination "gdrive:lnd-channel-backups/x/.channel.backup.tmp.y": couldn't find root directory ID: Get "https://www.googleapis.com/drive/v3/files/root?alt=json&fields=id&prettyPrint=false&supportsAllDrives=true": couldn't fetch token: invalid_grant: maybe token expired? - try refreshing with "rclone config reconnect gdrive:"
+EOS
+# Drive answering a revoked access token, in the multi-line form newer
+# Google API clients use.
+cat > "$T/fail-auth-error" << 'EOS'
+2026/10/17 09:00:00 ERROR : channel.backup: Failed to copy: googleapi: Error 401: Request had invalid authentication credentials., unauthorized
+Details:
+[]
+More details:
+Reason: authError, Message: Invalid Credentials
+EOS
+# An error that is not about the sign-in, behind a long Drive URL.
+cat > "$T/fail-long-url" << 'EOS'
+2026/10/17 09:00:00 CRITICAL: Failed to create file system for destination "gdrive:lnd-channel-backups/x/.channel.backup.tmp.y": couldn't find root directory ID: Get "https://www.googleapis.com/drive/v3/files/root?alt=json&fields=id&prettyPrint=false&supportsAllDrives=true": dial tcp: lookup www.googleapis.com: no such host
+EOS
+
+setup
+with_gdrive
+cp "$T/fail-invalid-grant" "$T/fail-text"
+STUB_FAIL=gdrive run_agent --once
+rc=$?
+check "a refused token refresh is recorded as signin, with no detail" \
+  '[ $rc -eq 1 ] && [ "$(failure_of gdrive code)" = signin ] && [ -z "$(failure_of gdrive detail)" ]'
+check "and the other targets still get their copy" \
+  '[ "$(failure_of dropbox code)" = "" ] && [ -f "$T/remotes/dropbox/lnd-channel-backups/$NODE_ID/channel.backup" ]'
+setup
+with_gdrive
+cp "$T/fail-auth-error" "$T/fail-text"
+STUB_FAIL=gdrive run_agent --once
+check "Drive's authError is a refused sign-in too" '[ "$(failure_of gdrive code)" = signin ]'
+setup
+with_gdrive
+cp "$T/fail-long-url" "$T/fail-text"
+STUB_FAIL=gdrive run_agent --once
+check "any other error keeps its cause, without the request URL in front of it" \
+  '[ "$(failure_of gdrive code)" = upload ] &&
+   [ "$(failure_of gdrive detail)" = "couldn'"'"'t find root directory ID: dial tcp: lookup www.googleapis.com: no such host" ]'
+setup
+with_gdrive
+cp "$T/fail-invalid-grant" "$T/fail-text"
+put "dropbox/lnd-channel-backups/$NODE_ID/channel.backup" per-node
+STUB_FAIL=gdrive run_agent --pull
+rc=$?
+check "a restore reports the refused sign-in the same way" \
+  '[ $rc -eq 6 ] && [ "$(jq -r ".unreachable[] | select(.target == \"gdrive\") | .code" "$T/out")" = signin ]'
+setup
+with_gdrive
+mkdir -p "$T/lnd/sha256-node/data/chain/bitcoin/mainnet"
+printf 'scb-sha256' > "$T/lnd/sha256-node/data/chain/bitcoin/mainnet/channel.backup"
+cp "$T/fail-invalid-grant" "$T/fail-text"
+STUB_FAIL=gdrive BACKUP_KEEP_FIRST=1 second run_agent --once
+check "and when the first step to meet it is keeping what is there" \
+  '[ "$(failure_of gdrive code "$T/lnd/.channel-backup-sha256-state.json")" = signin ]'
+
+setup
+jq '.gdrive = {"enabled": true, "clientId": "gid", "clientSecret": "gs", "token": null, "path": "lnd-channel-backups"}' \
+  "$T/lnd/channel-backup.json" > "$T/cfg.json" && mv "$T/cfg.json" "$T/lnd/channel-backup.json"
+run_agent --once
+rc=$?
+check "an enabled target not signed in yet is nocreds, and rclone is not asked" \
+  '[ $rc -eq 1 ] && [ "$(failure_of gdrive code)" = nocreds ] && ! grep -q "gdrive:" "$T/log"'
+
+# ---- restore: the node's folder first, the flat path as a fallback
 retrieved() { jq -r '.retrieved | join(",")' "$T/out" 2>/dev/null; }
 
 setup

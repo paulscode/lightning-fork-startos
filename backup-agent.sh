@@ -84,10 +84,13 @@ REMOTE_EXTRA=''
 
 log() { echo "[${BACKUP_LOG_TAG:-channel-backup}] $*" >&2; }
 
+# The last line of rclone's output, as one short line. A request URL is
+# dropped first: a Drive URL alone runs past the cut, which used to leave only
+# the start of the URL and none of the error behind it.
 reason() {
   tr -d '\000-\010\013\014\016-\037\177' \
     | grep -v '^[[:space:]]*$' | tail -n 1 \
-    | sed 's|^[0-9/]* [0-9:]* [A-Z]*: ||; s|^Failed to create file system for destination "[^"]*": ||' \
+    | sed -E 's|^[0-9/]* [0-9:]* [A-Z]*: ||; s|^Failed to create file system for destination "[^"]*": ||; s@(Get|Post|Put|Patch|Delete|Head|Options|Connect|Trace) "https?://[^"]*": @@g' \
     | cut -c1-160
 }
 reason_file() { tail -c 8192 "$1" 2>/dev/null | reason; }
@@ -373,6 +376,19 @@ fail_target() {
   jq -nc --arg t "$1" --arg c "$2" --arg d "$3" '{target:$t,code:$c,detail:$d}' >> "$FAILURES" || return 1
 }
 
+# A sign-in the provider refused is `signin`, whatever step met it: rclone
+# reports invalid_grant when a token refresh is refused (as Google does a week
+# after a sign-in while its Cloud app is in Testing, or after access was
+# revoked), and Drive answers a revoked access token with authError. Both can
+# sit past where reason() cuts, so the whole output is searched.
+fail_remote() {
+  if grep -Eq 'invalid_grant|authError' "$WORK/remote.out" 2> /dev/null; then
+    fail_target "$1" signin ''
+  else
+    fail_target "$1" "$2" "$(reason_file "$WORK/remote.out")"
+  fi
+}
+
 # Before this instance's first copy to a target (KEEP_FIRST), what is there
 # is kept beside it. rclone exits 3 or 4 when there is nothing to keep.
 keep_existing() {
@@ -388,7 +404,7 @@ keep_existing() {
     0) log "[$REMOTE_NAME] kept the copy already there as $_kept" ;;
     3 | 4) ;;
     *)
-      fail_target "$REMOTE_NAME" keep "$(reason_file "$WORK/remote.out")"
+      fail_remote "$REMOTE_NAME" keep
       return 1
       ;;
   esac
@@ -411,6 +427,12 @@ ship_target() {
       return 1
     fi
   fi
+  # An enabled target that is not set up yet, such as Google Drive before its
+  # sign-in, has no section in rclone.conf, and rclone would only say so.
+  if ! has_creds "$REMOTE_NAME"; then
+    fail_target "$REMOTE_NAME" nocreds ''
+    return 1
+  fi
   keep_existing || return 1
   _suffix=$(random_suffix) || {
     fail_target "$REMOTE_NAME" local 'could not create a temporary name'
@@ -419,16 +441,14 @@ ship_target() {
   REMOTE_TMP=".$OBJECT.tmp.$_suffix"
   # shellcheck disable=SC2086
   if ! rc --config "$RCONF" copyto "$SNAPSHOT" "$REMOTE_NAME:$REMOTE_PATH/$REMOTE_TMP" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1; then
-    _detail=$(reason_file "$WORK/remote.out")
     cleanup_remote_tmp
-    fail_target "$REMOTE_NAME" upload "$_detail"
+    fail_remote "$REMOTE_NAME" upload
     return 1
   fi
   # shellcheck disable=SC2086
   if ! rc --config "$RCONF" moveto "$REMOTE_NAME:$REMOTE_PATH/$REMOTE_TMP" "$REMOTE_NAME:$REMOTE_PATH/$OBJECT" $RCLONE_FLAGS $REMOTE_EXTRA --log-level NOTICE > "$WORK/remote.out" 2>&1; then
-    _detail=$(reason_file "$WORK/remote.out")
     cleanup_remote_tmp
-    fail_target "$REMOTE_NAME" publish "$_detail"
+    fail_remote "$REMOTE_NAME" publish
     return 1
   fi
   REMOTE_TMP=''
@@ -619,7 +639,7 @@ do_pull() {
       log "[$_provider] holds no channel.backup"
     elif [ "$_found" = - ]; then
       _incomplete=1
-      fail_target "$_provider" check "$(reason_file "$WORK/remote.out")" || {
+      fail_remote "$_provider" check || {
         unlock
         return 1
       }
