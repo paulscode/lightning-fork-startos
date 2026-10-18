@@ -36,11 +36,11 @@ export const manifest = setupManifest({
       // for two platforms ("cannot overwrite digest"). The tag is never moved
       // once published. What it resolved to when this version was released,
       // to compare with `docker buildx imagetools inspect <tag>`:
-      //   index sha256:dee0960f7f3b5c4fc3a1eea8a4b4a2109948f62eab756b1734aaf22449c06c88
+      //   index sha256:5f7640daf0557b6eb86989de33314510a5ee4a20cee1664f26e3682a8d190f29
       // The Makefile refuses to pack while a digest placeholder is in
       // place, for a future edit that forgets this line.
       source: {
-        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.20',
+        dockerTag: 'paulscode/umbrel-lightning-fork:1.3.2-blake2b.21',
       },
       arch: ['aarch64', 'x86_64'],
     },
