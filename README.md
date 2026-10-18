@@ -164,10 +164,11 @@ address to the `/remote.php/dav/files/USER/` form rclone requires.
 Google ends the sign-in it gives a Google Cloud app still in Testing after 7
 days, and says so in the token response as `refresh_token_expires_in`;
 Configure Channel Backups then gives the date in its result (a pasted refresh
-token carries none). The agent records a refused sign-in as `signin`
-(`invalid_grant` from rclone's token refresh, `authError` from Drive,
-searched over the whole rclone output since either can sit past the 160
-characters a detail keeps), and an enabled Google Drive or Dropbox target with
+token carries none). The agent records a refused Google Drive or Dropbox
+sign-in as `signin` (`invalid_grant` from rclone's token refresh, `authError`
+from Drive, searched over rclone's last log entry and its continuation lines,
+since either can sit past the 160 characters a detail keeps, while an earlier
+retry's error must not count; other targets have no sign-in), and an enabled Google Drive or Dropbox target with
 no token as `nocreds`. Request URLs are removed from other errors before the
 cut, so a long Drive URL no longer hides the cause. While LND's agent has a
 `signin` failure on record, the action offers the authorization link again;

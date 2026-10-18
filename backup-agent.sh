@@ -90,7 +90,7 @@ log() { echo "[${BACKUP_LOG_TAG:-channel-backup}] $*" >&2; }
 reason() {
   tr -d '\000-\010\013\014\016-\037\177' \
     | grep -v '^[[:space:]]*$' | tail -n 1 \
-    | sed -E 's|^[0-9/]* [0-9:]* [A-Z]*: ||; s|^Failed to create file system for destination "[^"]*": ||; s@(Get|Post|Put|Patch|Delete|Head|Options|Connect|Trace) "https?://[^"]*": @@g' \
+    | sed -E 's|^[0-9/]* [0-9:]* ([A-Z]+: )?||; s|^Failed to create file system for destination "[^"]*": ||; s@(Get|Post|Put|Patch|Delete|Head|Options|Connect|Trace) "https?://[^"]*": @@g' \
     | cut -c1-160
 }
 reason_file() { tail -c 8192 "$1" 2>/dev/null | reason; }
@@ -376,17 +376,31 @@ fail_target() {
   jq -nc --arg t "$1" --arg c "$2" --arg d "$3" '{target:$t,code:$c,detail:$d}' >> "$FAILURES" || return 1
 }
 
-# A sign-in the provider refused is `signin`, whatever step met it: rclone
-# reports invalid_grant when a token refresh is refused (as Google does a week
-# after a sign-in while its Cloud app is in Testing, or after access was
-# revoked), and Drive answers a revoked access token with authError. Both can
-# sit past where reason() cuts, so the whole output is searched.
+# rclone's last log entry, with the lines that continue it (a Google API error
+# runs over several): where the error that ended the command is. An earlier
+# retry's error is not in it.
+last_entry() {
+  tail -c 8192 "$1" 2> /dev/null \
+    | awk '/^[0-9][0-9][0-9][0-9]\/[0-9][0-9]\/[0-9][0-9] |^Failed to /{buf=""} {buf = buf $0 "\n"} END{printf "%s", buf}'
+}
+
+# A sign-in Google Drive or Dropbox refused is `signin`, whatever step met
+# it: rclone reports invalid_grant when a token refresh is refused (as Google
+# does a week after a sign-in while its Cloud app is in Testing, or after
+# access was revoked), and Drive answers a revoked access token with
+# authError. Both can sit past where reason() cuts, so the whole last entry is
+# searched. Other targets have no sign-in: the words in a server's error
+# there mean nothing.
 fail_remote() {
-  if grep -Eq 'invalid_grant|authError' "$WORK/remote.out" 2> /dev/null; then
-    fail_target "$1" signin ''
-  else
-    fail_target "$1" "$2" "$(reason_file "$WORK/remote.out")"
-  fi
+  case "$1" in
+    gdrive | dropbox)
+      if last_entry "$WORK/remote.out" | grep -Eq 'invalid_grant|authError'; then
+        fail_target "$1" signin ''
+        return
+      fi
+      ;;
+  esac
+  fail_target "$1" "$2" "$(reason_file "$WORK/remote.out")"
 }
 
 # Before this instance's first copy to a target (KEEP_FIRST), what is there

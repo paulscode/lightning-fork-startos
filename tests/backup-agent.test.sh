@@ -318,6 +318,39 @@ STUB_FAIL=gdrive BACKUP_KEEP_FIRST=1 second run_agent --once
 check "and when the first step to meet it is keeping what is there" \
   '[ "$(failure_of gdrive code "$T/lnd/.channel-backup-sha256-state.json")" = signin ]'
 
+# A retry's refusal earlier in the output, then a final attempt that failed
+# for another reason: the reason that ended it is what counts.
+cat > "$T/fail-retry-then-dns" << 'EOS'
+2026/10/17 09:00:00 ERROR : channel.backup: Failed to copy: googleapi: Error 401: Request had invalid authentication credentials., unauthorized
+Details:
+[]
+More details:
+Reason: authError, Message: Invalid Credentials
+2026/10/17 09:00:01 ERROR : Attempt 1/2 failed with 1 errors and: googleapi: Error 401: Invalid Credentials, authError
+2026/10/17 09:00:02 ERROR : channel.backup: Failed to copy: Post "https://www.googleapis.com/upload/drive/v3/files?alt=json&uploadType=multipart": dial tcp: lookup www.googleapis.com: no such host
+2026/10/17 09:00:02 ERROR : Attempt 2/2 failed with 1 errors and: dial tcp: lookup www.googleapis.com: no such host
+2026/10/17 09:00:02 Failed to copyto: dial tcp: lookup www.googleapis.com: no such host
+EOS
+setup
+with_gdrive
+cp "$T/fail-retry-then-dns" "$T/fail-text"
+STUB_FAIL=gdrive run_agent --once
+check "a refusal only in an earlier retry is not signin; the final error is kept" \
+  '[ "$(failure_of gdrive code)" = upload ] && [ "$(failure_of gdrive detail)" = "Failed to copyto: dial tcp: lookup www.googleapis.com: no such host" ]'
+setup
+cp "$T/fail-invalid-grant" "$T/fail-text"
+STUB_FAIL=dropbox run_agent --once
+check "Dropbox's refused refresh is signin too" '[ "$(failure_of dropbox code)" = signin ]'
+# A WebDAV error body, or an SFTP disconnect reason, can carry the words.
+cat > "$T/fail-server-words" << 'EOS'
+2026/10/17 09:00:00 CRITICAL: Failed to copy: 400 Bad Request: {"error":"invalid_grant","note":"authError from a proxy"}
+EOS
+setup
+cp "$T/fail-server-words" "$T/fail-text"
+STUB_FAIL=nextcloud run_agent --once
+check "Nextcloud has no sign-in: invalid_grant in its error is an upload failure" \
+  '[ "$(failure_of nextcloud code)" = upload ] && failure_of nextcloud detail | grep -q invalid_grant'
+
 setup
 jq '.gdrive = {"enabled": true, "clientId": "gid", "clientSecret": "gs", "token": null, "path": "lnd-channel-backups"}' \
   "$T/lnd/channel-backup.json" > "$T/cfg.json" && mv "$T/cfg.json" "$T/lnd/channel-backup.json"
