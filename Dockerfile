@@ -5,10 +5,10 @@
 # builder runs on the build machine's own platform and cross-compiles for
 # the target, so the aarch64 image takes minutes rather than the hours an
 # emulated Go build takes.
-FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS builder
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=eb0848bad4abdfdbe90b4970be1e4511461fc553
+ARG LIGHTNING_FORK_REF=7c8f252b13d37f4160cce1c5916477b3edca5565
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -41,7 +41,7 @@ RUN apk add --no-cache --update alpine-sdk git make gcc \
 # the one before the splicing mark, where a node that never turned splicing
 # on stays), read from the fork's own channeldb above. Nothing else differs; the buckets are copied as they
 # are either way. Its own dependencies are left as upstream pins them.
-FROM --platform=$BUILDPLATFORM golang:1.27.1-alpine AS lndinit-builder
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS lndinit-builder
 
 ARG LNDINIT_REPO=https://github.com/lightninglabs/lndinit
 ARG LNDINIT_REF=301808c5f6b058b0ba0f77b595dc9578a26ef9c2
