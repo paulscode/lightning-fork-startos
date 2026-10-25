@@ -16,7 +16,7 @@ export async function replaceFile(
   mode: number,
 ): Promise<void> {
   const tmp = `${path}.tmp`
-  await rm(tmp, { force: true })
+  await rm(tmp, { force: true, recursive: true })
   await writeFile(tmp, data, { mode, flag: 'wx' })
   await rename(tmp, path)
 }
@@ -24,10 +24,27 @@ export async function replaceFile(
 /** The folder dependents mount, read-only, for tls.cert and nothing else. */
 export const publicDir = `${mainVolumeHost}/public`
 
-/** Put a copy of tls.cert in public/. */
+/** Remove `path` if it exists and `keep` says its own entry is wrong. */
+async function removeUnless(
+  path: string,
+  keep: (st: Awaited<ReturnType<typeof lstat>>) => boolean,
+) {
+  const st = await lstat(path).catch(() => null)
+  if (st && !keep(st)) await rm(path, { force: true, recursive: true })
+}
+
+/**
+ * Put a copy of tls.cert in public/. An imported data directory arrives as a
+ * tar stream, which can carry a public/ that is a symlink (mkdir would follow
+ * it, and the copy would land wherever it points) or a tls.cert that isn't a
+ * regular file; lstat sees the entry itself, so either is removed first.
+ */
 export async function writePublicCert(cert: string | Uint8Array) {
+  const to = `${publicDir}/tls.cert`
+  await removeUnless(publicDir, (st) => st.isDirectory())
   await mkdir(publicDir, { recursive: true, mode: 0o755 })
-  await replaceFile(`${publicDir}/tls.cert`, cert, 0o644)
+  await removeUnless(to, (st) => st.isFile())
+  await replaceFile(to, cert, 0o644)
 }
 
 /**
