@@ -302,6 +302,19 @@ workspace's `release.sh` stages universal builds for the registry.
   Lightning Fork's own node, and always for the bridge's SHA256 node, pruned
   or not (see `AGENTS.md`); that node logs *Config 'routing.assumechanvalid'
   is deprecated, please remove it* at each start, which is expected.
+- **A slow LND stays shown as running.** LND Server, Wallet Unlock and the
+  sync check share one `/v1/state` probe, and a request that times out keeps
+  LND's last answered state, since a timeout means LND accepted the
+  connection. LND Server then stays `success` reading *LND is running but
+  slow to respond*: every daemon that requires `lnd` (the unlock, the channel
+  backup agent, the dashboard and its credentials, the public `tls.cert`
+  copy) is stopped the moment that result leaves `success`. A `getinfo` that fails or
+  runs past 25 seconds reads *LND is starting…* (`starting`) only while LND
+  is still starting up; once `/v1/state` has reported `SERVER_ACTIVE` it
+  reads *LND is running but not responding* (`loading`), so dependents keep
+  waiting either way. A refused connection or `WAITING_TO_START` still reads
+  as start-up, and a process exit is still reported by the SDK. Ported from
+  lnd-startos #228.
 - Paying an invoice from a node on the SHA256 chain, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.

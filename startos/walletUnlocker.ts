@@ -5,8 +5,15 @@ import { lndDataDir, mainVolumeHost, selfRestUrl } from './utils'
 
 export const certPath = `${mainVolumeHost}/tls.cert`
 
-/** Hit LND's /v1/state REST endpoint on loopback using its TLS cert. */
-export async function getLndState(): Promise<string | null> {
+export const STATE_TIMED_OUT = 'TIMED_OUT'
+
+/**
+ * Hit LND's /v1/state REST endpoint on loopback using its TLS cert. A request
+ * that times out resolves to `onTimeout`, null unless the caller asks.
+ */
+export async function getLndState(
+  onTimeout: string | null = null,
+): Promise<string | null> {
   const ca = await readFile(certPath).catch(() => null)
   return new Promise((resolve) => {
     const req = request(
@@ -27,7 +34,7 @@ export async function getLndState(): Promise<string | null> {
     req.on('error', () => resolve(null))
     req.on('timeout', () => {
       req.destroy()
-      resolve(null)
+      resolve(onTimeout)
     })
     req.end()
   })

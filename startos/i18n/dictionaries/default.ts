@@ -739,6 +739,9 @@ const dict = {
   'The SHA256 node did not hand over its state: ${error}. It must be running, and started since SHA256 Node Logging was set to Detailed.': 769,
   "The SHA256 node's ${count} goroutines are in this service's logs. Download the logs from its Logs page now, then set SHA256 Node Logging back to Normal when you are done.": 770,
   'Captured at': 771,
+  // A running LND that is slow to answer (lnd-startos #228)
+  'LND is running but not responding': 772,
+  'LND is running but slow to respond': 773,
 } as const
 
 /**

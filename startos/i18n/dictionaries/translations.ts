@@ -660,6 +660,8 @@ export default {
     769: 'El nodo SHA256 no entregó su estado: ${error}. Debe estar en marcha y haberse iniciado después de poner Registro del nodo SHA256 en Detallado.',
     770: 'Las ${count} goroutines del nodo SHA256 están en los registros de este servicio. Descarga los registros desde su página Registros ahora y, cuando termines, vuelve a poner Registro del nodo SHA256 en Normal.',
     771: 'Capturado el',
+    772: 'LND está en marcha pero no responde',
+    773: 'LND está en marcha pero tarda en responder',
   },
   de_DE: {
     309: 'Backups',
@@ -1320,6 +1322,8 @@ export default {
     769: 'Der SHA256-Knoten hat seinen Zustand nicht geliefert: ${error}. Er muss laufen und seit dem Umstellen von Protokollierung des SHA256-Knotens auf Ausführlich neu gestartet sein.',
     770: 'Die ${count} Goroutinen des SHA256-Knotens stehen in den Protokollen dieses Dienstes. Lade die Protokolle jetzt auf seiner Seite Protokolle herunter und stelle Protokollierung des SHA256-Knotens danach wieder auf Normal.',
     771: 'Erfasst am',
+    772: 'LND läuft, antwortet aber nicht',
+    773: 'LND läuft, antwortet aber langsam',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1980,6 +1984,8 @@ export default {
     769: 'Węzeł SHA256 nie przekazał swojego stanu: ${error}. Musi działać i zostać uruchomiony po ustawieniu Logi węzła SHA256 na Szczegółowe.',
     770: '${count} gorutyn węzła SHA256 jest w logach tej usługi. Pobierz teraz logi ze strony Logi, a gdy skończysz, przywróć Logi węzła SHA256 na Normalne.',
     771: 'Zapisano',
+    772: 'LND działa, ale nie odpowiada',
+    773: 'LND działa, ale odpowiada powoli',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2640,5 +2646,7 @@ export default {
     769: "Le nœud SHA256 n'a pas transmis son état : ${error}. Il doit être en marche et avoir démarré depuis que Journalisation du nœud SHA256 est sur Détaillé.",
     770: 'Les ${count} goroutines du nœud SHA256 sont dans les journaux de ce service. Téléchargez maintenant les journaux depuis sa page Journaux, puis remettez Journalisation du nœud SHA256 sur Normal une fois terminé.',
     771: 'Capturé le',
+    772: 'LND fonctionne mais ne répond pas',
+    773: 'LND fonctionne mais répond lentement',
   },
 } satisfies Record<string, LangDict>
