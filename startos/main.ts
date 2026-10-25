@@ -1738,6 +1738,42 @@ export const main = sdk.setupMain(async ({ effects }) => {
         },
         requires: ['channel-backup-agent'],
       })
+      // A copy of tls.cert, alone in main's public/ folder, for packages that
+      // depend on this one: they mount main with subpath 'public' read-only
+      // (dependency mounts honour readonly) and see the certificate and
+      // nothing else, not the macaroons or the wallet beside it. A folder
+      // rather than the file itself, because a bind mount of a single file
+      // keeps the old one after a replace, and setupCerts reissues tls.cert
+      // when the container's or the node's addresses change. Fresh at every
+      // start: main re-runs when tls.cert is reissued.
+      .addOneshot('public-tls-cert', {
+        subcontainer: null,
+        exec: {
+          fn: async (_, abort) => {
+            const dir = `${mainVolumeHost}/public`
+            const to = `${dir}/tls.cert`
+            while (!abort.aborted) {
+              try {
+                const bytes = await readFile(certPath)
+                await mkdir(dir, { recursive: true, mode: 0o755 })
+                await rm(`${to}.tmp`, { force: true })
+                await writeFile(`${to}.tmp`, bytes, {
+                  mode: 0o644,
+                  flag: 'wx',
+                })
+                await rename(`${to}.tmp`, to)
+                return null
+              } catch (e) {
+                // LND writes tls.cert as it starts.
+                console.log(`public tls.cert not ready yet: ${String(e)}`)
+                await sleep(2_000, abort)
+              }
+            }
+            return null
+          },
+        },
+        requires: ['lnd'],
+      })
       // The dashboard's credentials: copies of tls.cert and admin.macaroon
       // in the dashboard's own volume, so the dashboard mounts nothing of
       // LND's. (The SDK's own-volume mounts ignore `readonly`, so a mount of
