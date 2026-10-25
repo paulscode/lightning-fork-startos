@@ -26,7 +26,7 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             'startup-flags.json',
             // The copy of tls.cert for dependent packages, remade by
             // setupCerts in init and by main at every start.
-            'public',
+            '/public',
             'data/graph',
             'data/chain/bitcoin/mainnet/channel.db',
             'data/chain/bitcoin/mainnet/sphinxreplay.db',
