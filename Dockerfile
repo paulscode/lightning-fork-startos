@@ -68,6 +68,9 @@ RUN apk add --no-cache --update git make \
 
 FROM alpine:3.21
 
+# The base image's CA store is only as current as its last release.
+RUN apk add --no-cache --upgrade ca-certificates ca-certificates-bundle
+
 # curl calls the REST API for wallet setup and migration polling; sqlite
 # scrubs the migrated database; openssh-client and sshpass import remote
 # wallets; rclone copies channel.backup to configured providers; flock
