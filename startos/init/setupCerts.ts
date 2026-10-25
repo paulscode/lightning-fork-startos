@@ -1,7 +1,25 @@
 import { T, utils } from '@start9labs/start-sdk'
-import { writeFile } from 'fs/promises'
+import { rename, rm, writeFile } from 'fs/promises'
 import { gRPCHostId, gRPCPort } from '../interfaces'
 import { sdk } from '../sdk'
+import { mainVolumeHost } from '../utils'
+
+/**
+ * Write through a temporary file and a rename, so a reader never sees a
+ * truncated file: LND reading the pair as it starts, or main's watch on
+ * tls.cert, which fires on a rename-replace too (the old file's inode
+ * changes) and then reads the new file whole.
+ */
+export async function replaceFile(
+  path: string,
+  data: string | Uint8Array,
+  mode: number,
+): Promise<void> {
+  const tmp = `${path}.tmp`
+  await rm(tmp, { force: true })
+  await writeFile(tmp, data, { mode, flag: 'wx' })
+  await rename(tmp, path)
+}
 
 /**
  * Issue the TLS pair for every address LND is reached at and write it to the
@@ -50,8 +68,10 @@ export async function writeCerts(effects: T.Effects): Promise<void> {
     '',
   )
   const key = await sdk.getSslKey(effects, { hostnames })
-  await writeFile(`/media/startos/volumes/main/tls.cert`, cert)
-  await writeFile(`/media/startos/volumes/main/tls.key`, key)
+  // The key first: main restarts LND when tls.cert changes, and LND reads
+  // both.
+  await replaceFile(`${mainVolumeHost}/tls.key`, key, 0o600)
+  await replaceFile(`${mainVolumeHost}/tls.cert`, cert, 0o644)
 }
 
 export const setupCerts = sdk.setupOnInit(writeCerts)
