@@ -129,9 +129,8 @@ one, so read the interface addresses rather than assuming these.
 
 A package that talks to LND's REST or gRPC interface can read the
 certificate from a folder that holds nothing else: `public/tls.cert` in the
-`main` volume, kept current whenever LND reissues it. Mount it read-only
-(dependency mounts honour `readonly`), rather than the whole volume, which
-also holds the macaroons and the wallet:
+`main` volume. Mount it read-only (dependency mounts honour `readonly`),
+rather than the whole volume, which also holds the macaroons and the wallet:
 
 ```ts
 sdk.Mounts.of().mountDependency({
@@ -143,14 +142,18 @@ sdk.Mounts.of().mountDependency({
 })
 ```
 
-The certificate is issued by StartOS for the container's IP, 127.0.0.1, the
-server's IP and the node's private addresses, not for
-`lightning-fork.startos`, so connect over the address
+This package has StartOS issue the certificate (`startos/init/setupCerts.ts`),
+for the container's IP, 127.0.0.1, the server's IP and the gRPC interface's
+addresses except public IPv4 ones, localhost and link-local. It is not issued
+for `lightning-fork.startos`, so connect over the address
 `sdk.getContainerIp(effects, { packageId: 'lightning-fork' })` returns. The
-package reissues it when one of those addresses changes, so read it again
-after a failed handshake rather than only at startup. Macaroons aren't shared this
-way: an owner bakes a narrow one in the dashboard and gives it to the other
-package.
+package reissues it when one of those addresses changes; LND restarts with
+it and the copy in `public/` follows, except in a run that started with a
+wallet import or a database conversion pending, where both wait for the
+next start. Read it
+again after a failed handshake rather than only at startup. Macaroons aren't
+shared this way: an owner bakes a narrow one in the dashboard and gives it
+to the other package.
 
 ## What was removed from the LND package
 

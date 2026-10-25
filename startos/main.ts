@@ -322,7 +322,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
 
   // LND reads its TLS pair once at startup, so re-running main is what carries
   // a reissued certificate — a new address on the gRPC interface — to a client.
-  // Not armed ahead of a preparatory phase, which a re-run would abandon.
+  // Not armed ahead of a preparatory phase, which a re-run would abandon, and
+  // not armed later in that run either: the reconciler swaps to the LND chain
+  // without re-running main, so a cert reissued then waits for the next start.
   if (!startupFlags.importPending && !(await needsSqliteMigration())) {
     await FileHelper.string(certPath).read().const(effects)
   }
@@ -1745,8 +1747,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
       // nothing else, not the macaroons or the wallet beside it. A folder
       // rather than the file itself, because a bind mount of a single file
       // keeps the old one after a replace, and setupCerts reissues tls.cert
-      // when the container's or the node's addresses change. Fresh at every
-      // start: main re-runs when tls.cert is reissued.
+      // when the container's or the node's addresses change. Rewritten at
+      // every start, to match the cert LND starts with: main re-runs when
+      // tls.cert is reissued, but only where its watch is armed (above, not
+      // in a run that started with an import or a conversion pending, which
+      // keeps both the copy and LND on the old cert until the next start).
+      // setupCerts writes the first copy, in init.
       .addOneshot('public-tls-cert', {
         subcontainer: null,
         exec: {
@@ -1756,7 +1762,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
                 await writePublicCert(await readFile(certPath))
                 return null
               } catch (e) {
-                // LND writes tls.cert as it starts.
+                // setupCerts writes tls.cert in init, so this only retries a
+                // read or a write that failed.
                 console.log(`public tls.cert not ready yet: ${String(e)}`)
                 await sleep(2_000, abort)
               }
@@ -1772,8 +1779,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       // the LND volume would have been writable by a browser-facing Node app;
       // narrowing it to the mainnet directory would still have covered
       // wallet.db.) Fresh at every start: main re-runs when tls.cert is
-      // reissued, and a macaroon rotation happens inside unlock-wallet, which
-      // this waits for in the lifecycle that rotates.
+      // reissued where its watch is armed (see public-tls-cert), and a
+      // macaroon rotation happens inside unlock-wallet, which this waits for
+      // in the lifecycle that rotates.
       .addOneshot('dashboard-credentials', {
         subcontainer: null,
         exec: {

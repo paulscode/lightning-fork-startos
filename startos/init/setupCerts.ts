@@ -24,7 +24,7 @@ export async function replaceFile(
 /** The folder dependents mount, read-only, for tls.cert and nothing else. */
 export const publicDir = `${mainVolumeHost}/public`
 
-/** Remove `path` if it exists and `keep` says its own entry is wrong. */
+/** Remove what is at `path` if `keep` rejects the entry itself (lstat). */
 async function removeUnless(
   path: string,
   keep: (st: Awaited<ReturnType<typeof lstat>>) => boolean,
@@ -51,11 +51,8 @@ export async function writePublicCert(cert: string | Uint8Array) {
  * Issue the TLS pair for every address LND is reached at and write it to the
  * volume. Watched, not read once: the proxy dials the container by IP on
  * REST's internal leg, so a new container IP must reissue the cert or REST
- * goes dark. Also called by the `:12` update migration before the bolt →
- * SQLite conversion (versions/current.ts): the migration runs earlier in init
- * than this step, and the conversion pins its LND-facing curls to this cert
- * on 127.0.0.1 — a SAN pre-0.21 certs don't carry, which would wedge the
- * update until the conversion's timeout.
+ * goes dark. The bolt to SQLite conversion runs from main, after init, and
+ * pins its LND-facing curls to this cert on 127.0.0.1.
  */
 export async function writeCerts(effects: T.Effects): Promise<void> {
   // gRPC is TLS passthrough, so every address a client dials has to be a SAN.

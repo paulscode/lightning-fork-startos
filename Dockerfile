@@ -37,10 +37,11 @@ RUN apk add --no-cache --update alpine-sdk git make gcc \
 # migrations of its own past that, so the conversion never ran. It is built
 # here from its source at a pinned commit (the v0.1.38-beta tag, for lnd
 # v0.21.4) with one change, patches/lndinit-fork-channeldb-version.patch:
-# the check accepts the versions the fork opens as they are (its latest, and
-# the one before the splicing mark, where a node that never turned splicing
-# on stays), read from the fork's own channeldb above. Nothing else differs; the buckets are copied as they
-# are either way. Its own dependencies are left as upstream pins them.
+# the check accepts every version the fork opens as it is, which depends on
+# the features a node has run with: the list channeldb.OpenableDBVersions()
+# returns, read from the fork's own channeldb above. Nothing else differs;
+# the buckets are copied as they are. Its own dependencies are left as
+# upstream pins them.
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS lndinit-builder
 
 ARG LNDINIT_REPO=https://github.com/lightninglabs/lndinit

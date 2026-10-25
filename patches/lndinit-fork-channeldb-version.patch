@@ -8,11 +8,11 @@ index a9a29d6..00e222a 100644
  
 -	if meta.DbVersionNumber != channeldb.LatestDBVersion() {
 +	// Lightning Fork: its channel database is at one of the fork's own
-+	// versions, which carry migrations stock lnd does not have: the latest,
-+	// or the one before it for a node that never ran with splicing. The
-+	// buckets are copied as they are either way. The numbers are the
-+	// fork's channeldb.OpenableDBVersions(), filled in when the image is
-+	// built.
++	// versions, which carry migrations stock lnd does not have; which one
++	// depends on the features the node has run with. Every version the
++	// fork opens as it is passes, and the buckets are copied as they are.
++	// The numbers are the fork's channeldb.OpenableDBVersions(), filled in
++	// when the image is built.
 +	switch meta.DbVersionNumber {
 +	case FORK_CHANNELDB_VERSIONS:
 +	default:
