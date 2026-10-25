@@ -1,5 +1,5 @@
 import { T, utils } from '@start9labs/start-sdk'
-import { rename, rm, writeFile } from 'fs/promises'
+import { lstat, mkdir, rename, rm, writeFile } from 'fs/promises'
 import { gRPCHostId, gRPCPort } from '../interfaces'
 import { sdk } from '../sdk'
 import { mainVolumeHost } from '../utils'
@@ -19,6 +19,15 @@ export async function replaceFile(
   await rm(tmp, { force: true })
   await writeFile(tmp, data, { mode, flag: 'wx' })
   await rename(tmp, path)
+}
+
+/** The folder dependents mount, read-only, for tls.cert and nothing else. */
+export const publicDir = `${mainVolumeHost}/public`
+
+/** Put a copy of tls.cert in public/. */
+export async function writePublicCert(cert: string | Uint8Array) {
+  await mkdir(publicDir, { recursive: true, mode: 0o755 })
+  await replaceFile(`${publicDir}/tls.cert`, cert, 0o644)
 }
 
 /**
@@ -72,6 +81,18 @@ export async function writeCerts(effects: T.Effects): Promise<void> {
   // both.
   await replaceFile(`${mainVolumeHost}/tls.key`, key, 0o600)
   await replaceFile(`${mainVolumeHost}/tls.cert`, cert, 0o644)
+  // A dependent can start before main does: on a fresh install, an update
+  // from a package without public/, or a restore, which leaves public/ out.
+  // Init runs first, so it puts the copy there. Only when there is none:
+  // refreshing it is main's public-tls-cert oneshot's, which runs as the
+  // daemon starts with this cert. The cert watch that restarts main is not
+  // armed while an import or a conversion is pending, so a copy written here
+  // then could be ahead of the cert LND is serving until its next restart.
+  const hasCopy = await lstat(`${publicDir}/tls.cert`).then(
+    (st) => st.isFile(),
+    () => false,
+  )
+  if (!hasCopy) await writePublicCert(cert)
 }
 
 export const setupCerts = sdk.setupOnInit(writeCerts)

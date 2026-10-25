@@ -24,8 +24,8 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             // decides from files on disk — while importPending can hold an
             // origin's password in cleartext, which must not ride into backups.
             'startup-flags.json',
-            // The copy of tls.cert for dependent packages, remade at every
-            // start.
+            // The copy of tls.cert for dependent packages, remade by
+            // setupCerts in init and by main at every start.
             'public',
             'data/graph',
             'data/chain/bitcoin/mainnet/channel.db',

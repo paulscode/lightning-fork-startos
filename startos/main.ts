@@ -51,6 +51,7 @@ import {
   mempoolAppsEnv,
 } from './utils'
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
+import { writePublicCert } from './init/setupCerts'
 import { get as httpGet } from 'http'
 import {
   dashboardPort,
@@ -1750,18 +1751,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
         subcontainer: null,
         exec: {
           fn: async (_, abort) => {
-            const dir = `${mainVolumeHost}/public`
-            const to = `${dir}/tls.cert`
             while (!abort.aborted) {
               try {
-                const bytes = await readFile(certPath)
-                await mkdir(dir, { recursive: true, mode: 0o755 })
-                await rm(`${to}.tmp`, { force: true })
-                await writeFile(`${to}.tmp`, bytes, {
-                  mode: 0o644,
-                  flag: 'wx',
-                })
-                await rename(`${to}.tmp`, to)
+                await writePublicCert(await readFile(certPath))
                 return null
               } catch (e) {
                 // LND writes tls.cert as it starts.
