@@ -3,9 +3,11 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:0',
+  version: '0.21.4-beta.21.1:1',
   releaseNotes: {
-    en_US: `A security update: Lightning Fork is now built with Go 1.27.3, which stops trusting a set of compromised certificate authority intermediates (CVE-2026-111943). Earlier builds still trusted them for the node's outbound HTTPS: fee estimates from a fee URL and, if you run the bridge, its price sources. Nothing else changes.
+    en_US: `For apps that connect to Lightning Fork: a copy of its TLS certificate, alone in a folder of its own, that other StartOS packages can read without seeing the macaroons or the wallet beside it. The same daemon as 0.21.4-beta.21.1:0.
+
+From 0.21.4-beta.21.1:0, if you are updating from an earlier version: Lightning Fork is built with Go 1.27.3, which stops trusting a set of compromised certificate authority intermediates (CVE-2026-111943). Earlier builds still trusted them for the node's outbound HTTPS: fee estimates from a fee URL and, if you run the bridge, its price sources. Nothing else changes.
 
 From 0.21.4-beta.21:0, if you are updating from an earlier version: pay short-lived SHA256 invoices through a bridge. Shops often issue invoices that live about a minute; the bridge refused anything with less than 15 minutes left and now quotes an invoice while it has at least 20 seconds. The phone app (0.2.3) gets a firm price as soon as an invoice is scanned, shows its countdown, and pays in one tap. Both the bridge and the paying node need this version. If a payout can't arrive in time, the payer is refunded within seconds.
 
