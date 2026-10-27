@@ -198,10 +198,7 @@ the call only while the macaroon is missing (on each start of your `main`,
 checking the mount, is the simplest; a critical task made there stops the
 package until the owner approves, and the owner starts it again). The action needs Lightning Fork
 running with its wallet unlocked; until the owner approves there is no file,
-so wait for it, or show the task, rather than failing. Mounting the folder
-before then is fine (StartOS creates it empty); the file appears in the
-mount, or, where StartOS made that folder as a user Lightning Fork cannot
-write as, in a fresh one that your package sees from its next start.
+so wait for it, or show the task, rather than failing.
 
 Permissions on offer, and nothing else: `info:read`, `offchain:read`,
 `offchain:write` (pays from the channels; also the bridge's `Quote`),
@@ -212,15 +209,21 @@ channels), `peers:write`, `info:write` (stops the daemon) and `uri:`
 permissions. The package id must match `^[a-z0-9][a-z0-9-]{0,62}$` and be
 installed (`effects.getInstalledPackages`).
 
-Mount the folder, not the volume:
+Mount `apps`, not your own folder or the whole volume, and read
+`apps/<your package id>/access.macaroon` from it. StartOS refuses to start a
+package whose mount source doesn't exist (mount exits with status 32), and
+your folder only exists once the owner has approved, so a package that mounts
+`apps/<its id>` can't start to ask. `apps` always exists: Lightning Fork's init
+makes it. A grant made or replaced while your package runs appears in the
+mount at once.
 
 ```ts
 sdk.Mounts.of()
   .mountDependency({
     dependencyId: 'lightning-fork',
     volumeId: 'main',
-    subpath: 'apps/your-package-id',
-    mountpoint: '/mnt/lightning-fork-access',
+    subpath: 'apps',
+    mountpoint: '/mnt/lightning-fork-apps',
     readonly: true,
   })
   .mountDependency({
@@ -238,13 +241,11 @@ again after a `verification failed` or permission error: a replaced grant
 is a new file. **Revoke App Access** deletes the grant's root key (its
 macaroon stops working at once), the folder and the record; the task can then
 be raised again. **Revoke Macaroons** rotates every root key, these included,
-and removes every grant (folders and records) as it does. A grant made
-after either is in a new folder, which a running package sees from its next
-start.
+and removes every grant (folders and records) as it does.
 
 The limit: StartOS has no per-dependent mount control. Any package that
-declares Lightning Fork as a dependency can mount another package's
-`apps/<id>/`, as it could the whole volume with the admin macaroon. This
+declares Lightning Fork as a dependency can read another package's
+`apps/<id>/`, as it could mount the whole volume with the admin macaroon. This
 keeps honest apps to least privilege and gives the owner consent and per-app
 revocation; it does not protect one dependent from another. Installing a
 package is still the trust decision.

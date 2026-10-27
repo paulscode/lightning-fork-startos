@@ -80,10 +80,10 @@ const ownDir = (st: { isDirectory(): boolean; uid: number | bigint }) =>
   st.isDirectory() && Number(st.uid) === (process.getuid?.() ?? 0)
 
 /**
- * apps/ itself, made in init so that it is ours before any package mounts
- * its folder: StartOS creates a missing mount source, apps/<id>/ included,
- * and a folder it made inside an apps/ it also made could belong to a user
- * this container cannot write as, and could not be removed from here.
+ * apps/ itself, made in init: dependents mount it (StartOS refuses to start
+ * a package whose mount source is missing, checked on a 0.4 box, so they
+ * can't mount their own apps/<id>/ before it exists), and it must be a
+ * directory of ours, not a symlink an imported volume carried.
  */
 export async function ensureAppsDir() {
   await removeUnless(appsDir, ownDir)
@@ -95,10 +95,8 @@ export async function ensureAppsDir() {
  * Write the macaroon where the package reads it. A restored or imported
  * volume can carry an apps/ or apps/<id>/ that is a symlink (mkdir would
  * follow it), or an access.macaroon that isn't a regular file; lstat sees
- * the entry itself, so either is removed first, as for public/. A folder
- * StartOS made for the package's mount before the grant (empty) is used
- * as it is when it is ours, and replaced when it is not; a package that has
- * it mounted then sees the file from its next start.
+ * the entry itself, so either is removed first, as for public/. A package
+ * that mounts apps/ sees the file at once.
  */
 async function writeAppMacaroon(packageId: string, macaroon: Uint8Array) {
   const dir = appDir(packageId)
