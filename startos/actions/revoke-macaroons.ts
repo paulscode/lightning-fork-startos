@@ -1,6 +1,7 @@
 import { startupFlagsJson } from '../fileModels/startupFlags.json'
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
+import { removeAllAppGrants } from './appAccess'
 import { sdk } from '../sdk'
 
 export const revokeMacaroons = sdk.Action.withoutInput(
@@ -15,7 +16,7 @@ export const revokeMacaroons = sdk.Action.withoutInput(
     return {
       name: i18n('Revoke Macaroons'),
       description: i18n(
-        'Revokes every macaroon this node has issued by rotating the root key they are signed with, then restarts LND to write fresh ones. Deleting macaroon files alone does not revoke them, so use this if one may have been copied or exposed.',
+        'Revokes every macaroon this node has issued by rotating the root keys they are signed with, then restarts LND to write fresh ones. That includes the macaroons granted to apps, which are removed: each app has to ask again. Deleting macaroon files alone does not revoke them, so use this if one may have been copied or exposed.',
       ),
       warning: i18n(
         'This revokes every existing macaroon. Any service connected to LND loses access until it picks up the new macaroon, and may need to be restarted.',
@@ -42,6 +43,14 @@ export const revokeMacaroons = sdk.Action.withoutInput(
     // has, which breaks even the node's own health check. LND rotates the key
     // and re-bakes the files together through the wallet unlocker, so the work
     // happens at unlock; this only asks for it.
+    //
+    // LND's rotation (RootKeyStorage.GenerateNewRootKey) replaces every root
+    // key it holds, the default one and each one baked with its own
+    // --root_key_id, so it revokes the apps' macaroons and the bridge codes
+    // too. Apps' files and records would outlive it, each a macaroon that
+    // no longer verifies, so they are removed now; their root keys are
+    // deleted too while LND answers, which revokes them before the restart.
+    await removeAllAppGrants(effects)
     await startupFlagsJson.merge(effects, { rotateMacaroonRootKey: true })
     await sdk.restart(effects)
 

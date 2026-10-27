@@ -25,7 +25,7 @@ export async function replaceFile(
 export const publicDir = `${mainVolumeHost}/public`
 
 /** Remove what is at `path` if `keep` rejects the entry itself (lstat). */
-async function removeUnless(
+export async function removeUnless(
   path: string,
   keep: (st: Awaited<ReturnType<typeof lstat>>) => boolean,
 ) {

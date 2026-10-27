@@ -151,9 +151,106 @@ package reissues it when one of those addresses changes; LND restarts with
 it and the copy in `public/` follows, except in a run that started with a
 wallet import or a database conversion pending, where both wait for the
 next start. Read it
-again after a failed handshake rather than only at startup. Macaroons aren't
-shared this way: an owner bakes a narrow one in the dashboard and gives it
-to the other package.
+again after a failed handshake rather than only at startup.
+
+### Asking for a macaroon
+
+A package asks for the permissions it needs with a task for the
+**Grant an App Access** action (`grant-app-access`,
+`startos/actions/appAccess.ts`). The owner sees the package id and each
+permission in plain words, and approves, unchecks some, or dismisses it. The
+action bakes a macaroon with a root key of its own
+(`lncli bakemacaroon --root_key_id=<random uint64>`), writes it in LND's binary
+format to `apps/<package id>/access.macaroon` in the `main` volume (0644, in
+0755 folders), and records the grant in `store.json` (`appGrants`: package id,
+root key id, permissions, label, date). One grant per package: asking again
+replaces it, the new macaroon written before the old root key is deleted.
+
+```ts
+import { grantAppAccess } from 'lightning-fork-startos/startos/actions/appAccess'
+
+await sdk.action.createTask(effects, 'lightning-fork', grantAppAccess, 'critical', {
+  input: {
+    kind: 'partial',
+    // Done once the owner grants at least this; `set` fills in the form.
+    accept: [{ packageId: 'your-package-id', permissions: ['info:read', 'invoices:read'] }],
+    set: { packageId: 'your-package-id', permissions: ['info:read', 'invoices:read'] },
+  },
+  when: { condition: 'input-not-matches', once: true },
+  reason: 'Your App needs to read invoices on Lightning Fork',
+})
+```
+
+The input is `{ packageId: string, permissions: string[], label?: string | null }`.
+Only the action's id travels to StartOS (`createTask` sends
+`options.action.id`), so the import is for the types; add this repository to
+`package.json` as a `github:` dependency to use it. Keep `when` as shown: with
+`once: true` StartOS removes the task when the owner runs the action with an
+input that includes the `accept` entry (this package id and every permission
+in it), and keeps it when the action is run for another package. Without
+`when`, any run of the action, for any package, removes every package's task
+for it. If the owner grants less than you asked for, your task stays: ask for
+what you need and no more, and use `important` rather than `critical` when
+the package can run without it, because a critical task keeps it stopped.
+
+StartOS writes the task again, active, at every `createTask` call, so make
+the call only while the macaroon is missing (on each start of your `main`,
+checking the mount, is the simplest; a critical task made there stops the
+package until the owner approves, and the owner starts it again). The action needs Lightning Fork
+running with its wallet unlocked; until the owner approves there is no file,
+so wait for it, or show the task, rather than failing. Mounting the folder
+before then is fine (StartOS creates it empty); the file appears in the
+mount, or, where StartOS made that folder as a user Lightning Fork cannot
+write as, in a fresh one that your package sees from its next start.
+
+Permissions on offer, and nothing else: `info:read`, `offchain:read`,
+`offchain:write` (pays from the channels; also the bridge's `Quote`),
+`invoices:read`, `invoices:write`, `onchain:read`, `address:read`,
+`address:write`, `peers:read`, `message:read`, `message:write`. Refused:
+`macaroon:*`, `signer:*`, `onchain:write` (on-chain sends, opening and closing
+channels), `peers:write`, `info:write` (stops the daemon) and `uri:`
+permissions. The package id must match `^[a-z0-9][a-z0-9-]{0,62}$` and be
+installed (`effects.getInstalledPackages`).
+
+Mount the folder, not the volume:
+
+```ts
+sdk.Mounts.of()
+  .mountDependency({
+    dependencyId: 'lightning-fork',
+    volumeId: 'main',
+    subpath: 'apps/your-package-id',
+    mountpoint: '/mnt/lightning-fork-access',
+    readonly: true,
+  })
+  .mountDependency({
+    dependencyId: 'lightning-fork',
+    volumeId: 'main',
+    subpath: 'public',
+    mountpoint: '/mnt/lightning-fork',
+    readonly: true,
+  })
+```
+
+The REST interface takes the macaroon hex-encoded in the
+`Grpc-Metadata-macaroon` header, gRPC as `macaroon` metadata. Read the file
+again after a `verification failed` or permission error: a replaced grant
+is a new file. **Revoke App Access** deletes the grant's root key (its
+macaroon stops working at once), the folder and the record; the task can then
+be raised again. **Revoke Macaroons** rotates every root key, these included,
+and removes every grant (folders and records) as it does. A grant made
+after either is in a new folder, which a running package sees from its next
+start.
+
+The limit: StartOS has no per-dependent mount control. Any package that
+declares Lightning Fork as a dependency can mount another package's
+`apps/<id>/`, as it could the whole volume with the admin macaroon. This
+keeps honest apps to least privilege and gives the owner consent and per-app
+revocation; it does not protect one dependent from another. Installing a
+package is still the trust decision.
+
+Backups keep `apps/` with the root keys and the records, so a restored grant
+works as before.
 
 ## What was removed from the LND package
 
