@@ -3,9 +3,11 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:1',
+  version: '0.21.4-beta.21.1:2',
   releaseNotes: {
-    en_US: `For apps that connect to Lightning Fork: a copy of its TLS certificate, alone in a folder of its own, that other StartOS packages can read without seeing the macaroons or the wallet beside it. The same daemon as 0.21.4-beta.21.1:0.
+    en_US: `Apps that connect to Lightning Fork can ask for access to it: you see what an app asks for in plain words and the app it is for, you approve exactly what each gets, and you can revoke it per app (Actions, App Access). Moving on-chain funds, opening or closing channels and making credentials are never granted to an app. Revoke Macaroons now also removes what apps were granted. The same daemon as 0.21.4-beta.21.1:0.
+
+From 0.21.4-beta.21.1:1, if you are updating from an earlier version: a copy of Lightning Fork's TLS certificate, alone in a folder of its own, that other StartOS packages can read without seeing the macaroons or the wallet beside it.
 
 From 0.21.4-beta.21.1:0, if you are updating from an earlier version: Lightning Fork is built with Go 1.27.3, which stops trusting a set of compromised certificate authority intermediates (CVE-2026-111943). Earlier builds still trusted them for the node's outbound HTTPS: fee estimates from a fee URL and, if you run the bridge, its price sources. Nothing else changes.
 
