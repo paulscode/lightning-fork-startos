@@ -727,7 +727,7 @@ const dict = {
   // actions/appAccess.ts
   "See node information: this node's identity, version and sync state, and the public network graph": 759,
   'See Lightning channels, balances and payment history': 760,
-  'Send Lightning payments from your channels, and change channel fees': 761,
+  'Send Lightning payments from your channels, change channel fees, abandon a channel, restore channel backups and delete payment history': 761,
   'See invoices and whether they were paid': 762,
   'Create invoices to receive payments': 763,
   'See the on-chain balance and transactions': 764,

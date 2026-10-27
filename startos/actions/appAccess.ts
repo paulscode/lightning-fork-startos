@@ -46,7 +46,9 @@ const permissionWords = {
   'offchain:read': () =>
     i18n('See Lightning channels, balances and payment history'),
   'offchain:write': () =>
-    i18n('Send Lightning payments from your channels, and change channel fees'),
+    i18n(
+      'Send Lightning payments from your channels, change channel fees, abandon a channel, restore channel backups and delete payment history',
+    ),
   'invoices:read': () => i18n('See invoices and whether they were paid'),
   'invoices:write': () => i18n('Create invoices to receive payments'),
   'onchain:read': () => i18n('See the on-chain balance and transactions'),
