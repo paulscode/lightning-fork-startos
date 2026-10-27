@@ -27,6 +27,12 @@ export const { createBackup, restoreInit } = sdk.setupBackups(
             // The copy of tls.cert for dependent packages, remade by
             // setupCerts in init and by main at every start.
             '/public',
+            // apps/, the macaroons granted to other packages, is kept: the
+            // backup carries the root keys that sign them (macaroons.db, or
+            // chain.sqlite once converted) and their records in store.json,
+            // so after a restore each grant still works, file, key and record
+            // together. Leaving it out would leave every restored grant
+            // recorded and valid with no file for its app to read.
             'data/graph',
             'data/chain/bitcoin/mainnet/channel.db',
             'data/chain/bitcoin/mainnet/sphinxreplay.db',

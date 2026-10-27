@@ -134,6 +134,26 @@ another server (or after StartOS gives this one a new root), paired phones
 say the node's certificate changed: pair them again, and remove the old
 entries under Mobile app.
 
+## Apps that use your node
+
+An app on this server that needs Lightning Fork asks for access with a task
+for **Grant an App Access**. The form shows which app (its package id) and
+each thing it asks to do, in plain words. Submit it as it is, uncheck what
+the app should not do, or dismiss the task. The app gets a credential (a
+macaroon) that allows exactly what was checked, and nothing else; moving
+on-chain funds, opening or closing channels and signing with the wallet's
+keys are never offered. Asking again replaces what an app had.
+
+**Revoke App Access** lists every app you granted access, with what it may
+do and since when, and takes one back: it stops working at once. **Revoke
+Macaroons** takes back every app's access along with every other
+credential, and each app has to ask again.
+
+Any app you install that uses Lightning Fork could still read another app's
+credential, as it could read the node's own, because StartOS lets an app
+that depends on another read all of its data. Install only apps you trust
+with your node.
+
 ## Funds and replay
 
 Coins that existed before block 961640 exist for nodes that have not upgraded

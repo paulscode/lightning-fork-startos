@@ -1,4 +1,5 @@
 import { utils } from '@start9labs/start-sdk'
+import { ensureAppsDir } from '../actions/appAccess'
 import { coldStorageJson } from '../fileModels/cold-storage.json'
 import { dashboardJson } from '../fileModels/dashboard.json'
 import { lndConfFile } from '../fileModels/lnd.conf'
@@ -28,6 +29,13 @@ export const seedFiles = sdk.setupOnInit(async (effects, kind) => {
     await lndConfFile.merge(effects, {})
     await storeJson.merge(effects, {})
   }
+
+  // The folder of the macaroons granted to other packages
+  // (actions/appAccess.ts), ours before any package mounts its part of it.
+  // Never fails init: the grant action makes it again, or says why not.
+  await ensureAppsDir().catch((e) =>
+    console.warn('Could not make the apps/ folder', e),
+  )
 
   // The dashboard password: on install, and on the first start after an
   // update from a version that had no dashboard. Never regenerated once set.

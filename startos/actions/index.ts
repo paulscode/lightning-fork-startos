@@ -19,6 +19,7 @@ import { watchtowerServerConfig } from './config/watchtowerServer'
 import { initializeWallet } from './initializeWallet'
 import { nodeInfo } from './nodeInfo'
 import { revokeMacaroons } from './revoke-macaroons'
+import { grantAppAccess, revokeAppAccess } from './appAccess'
 import { resetWalletTransactions } from './resetTxns'
 import { towerInfo } from './towerInfo'
 import { watchtowers } from './watchtowers'
@@ -60,6 +61,8 @@ export const actions = sdk.Actions.of()
   .addAction(setDashboardPassword)
   .addAction(initializeWallet)
   .addAction(revokeMacaroons)
+  .addAction(grantAppAccess)
+  .addAction(revokeAppAccess)
   .addAction(autoconfig)
   .addAction(configureChannelBackup)
   .addAction(backupChannelsNow)

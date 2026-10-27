@@ -59,6 +59,21 @@ export const shape = z.object({
       }),
     )
     .catch([]),
+  // The macaroons granted to other packages (actions/appAccess.ts), one per
+  // package, each with a root key of its own so that it can be revoked alone.
+  // The macaroon itself is at apps/<packageId>/access.macaroon in this
+  // volume. The root key id is a uint64, kept as a string as above.
+  appGrants: z
+    .array(
+      z.object({
+        packageId: z.string(),
+        rootKeyId: z.string(),
+        permissions: z.array(z.string()),
+        label: z.string(),
+        createdAt: z.string(),
+      }),
+    )
+    .catch([]),
 })
 
 export const storeJson = FileHelper.json(
