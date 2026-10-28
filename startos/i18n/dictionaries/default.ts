@@ -732,6 +732,13 @@ const dict = {
   'Detailed adds debug lines from its startup, wallet, chain backend and RPC server. Use it to troubleshoot, for example a node that does not answer: reproduce the problem, download the logs from the Logs page, then set this back to Normal, as detailed logs grow quickly.': 763,
   Normal: 764,
   'Detailed, for troubleshooting': 765,
+  // Capture SHA256 Node State (actions/bridgeSha256.ts)
+  'Capture SHA256 Node State': 766,
+  "Writes what each part of the bridge's SHA256 Lightning node is doing or waiting on (its goroutines) into this service's logs, for troubleshooting a node that stops answering. Download the logs afterwards.": 767,
+  'Set SHA256 Node Logging to Detailed first: that starts what this reads.': 768,
+  'The SHA256 node did not hand over its state: ${error}. It must be running, and started since SHA256 Node Logging was set to Detailed.': 769,
+  "The SHA256 node's ${count} goroutines are in this service's logs. Download the logs from its Logs page now, then set SHA256 Node Logging back to Normal when you are done.": 770,
+  'Captured at': 771,
 } as const
 
 /**

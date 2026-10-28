@@ -306,9 +306,25 @@ workspace's `release.sh` stages universal builds for the registry.
      `--debuglevel=info,LTND=debug,CHRE=debug,RPCS=debug,LNWL=debug,BTWL=debug,RPCC=debug,NTFN=debug`
      (and `sha256-channel-backup-agent`, which requires it), and nothing
      else: Lightning Fork's node and its `debuglevel` in `lnd.conf` are
-     untouched. The shell first prints *The bridge's SHA256 node: starting
-     lnd with --debuglevel=...*, and the `[DBG]` lines are that node's.
-  2. Reproduce the problem, then download the service's log from its
-     **Logs** page in StartOS (or `start-cli package logs lightning-fork`).
-  3. Set it back to *Normal*, which drops the flag and restarts that node
+     untouched. Detailed also starts that lnd's profiler,
+     `--pprof.profile=127.0.0.1:6061` (`sha256ProfilePort`; Lightning Fork's
+     own lnd runs none). The shell first prints *The bridge's SHA256 node:
+     starting lnd with --debuglevel=...*, and the `[DBG]` lines are that
+     node's.
+  2. Reproduce the problem. For a node that stops answering, wait until it
+     does (the **SHA256 Lightning Node** health check or Bridge Status says
+     so), then run **Capture SHA256 Node State** (Bridge group, enabled only
+     while Detailed is on). It reads
+     `http://127.0.0.1:6061/debug/pprof/goroutine?debug=2` from the action's
+     own context (falling back to `wget` in a temporary `sha256-lnd`
+     subcontainer) and writes it to the service log between
+     `=== SHA256 node goroutines (captured <time>) ===` and
+     `=== end of SHA256 node goroutines (captured <time>) ===`, one log
+     entry per line, paced at about 250 lines a second for at most a minute.
+     Goroutines with the same stack are folded into one entry giving their
+     count, states with wait times, and ids (`goroutineDump.ts`); a stock
+     lnd with nothing connected folds 2,144 lines into 391.
+  3. Download the service's log from its **Logs** page in StartOS (or
+     `start-cli package logs lightning-fork`).
+  4. Set it back to *Normal*, which drops both flags and restarts that node
      again: detailed logs grow quickly.

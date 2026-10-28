@@ -11,3 +11,8 @@
 export const sha256P2pPort = 9739
 export const sha256GrpcPort = 10019
 export const sha256RestPort = 8089
+
+// Its profiler, on loopback and only while SHA256 Node Logging is Detailed,
+// for Capture SHA256 Node State. Lightning Fork's own lnd runs none, and
+// nothing else in the package listens here.
+export const sha256ProfilePort = 6061

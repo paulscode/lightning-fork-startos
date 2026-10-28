@@ -206,7 +206,9 @@ here.
 
 If that node misbehaves, **SHA256 Node Logging** set to *Detailed, for
 troubleshooting* makes it log in detail; reproduce the problem, download the
-logs from this service's **Logs** page, and set it back to *Normal*. Each
+logs from this service's **Logs** page, and set it back to *Normal*. If it
+stops answering, run **Capture SHA256 Node State** while it is stuck, before
+downloading the logs: it writes what the node is waiting on into them. Each
 change restarts that node only, which pauses the bridge until it is back.
 
 The swap journal, which records swaps in flight, is kept in this service's

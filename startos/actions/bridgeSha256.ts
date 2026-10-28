@@ -7,7 +7,9 @@ import {
   sha256AdminMacaroon,
   sha256GrpcPort,
   sha256NodeDir,
+  sha256ProfilePort,
 } from '../sha256Node'
+import { foldGoroutines } from '../goroutineDump'
 import { literal } from '../utils'
 
 const { InputSpec, Value } = sdk
@@ -304,5 +306,112 @@ export const bridgeSha256Logging = sdk.Action.withInput(
   // Only the store: main's daemon builder watches it (main.ts).
   async ({ effects, input }) => {
     await storeJson.merge(effects, { sha256Logging: input.logging })
+  },
+)
+
+// The profiler Detailed logging starts beside the SHA256 node (sha256Node.ts),
+// on the loopback the package's subcontainers and its JavaScript share.
+const goroutineUrl = `http://127.0.0.1:${sha256ProfilePort}/debug/pprof/goroutine?debug=2`
+
+async function fetchGoroutines(effects: T.Effects): Promise<string> {
+  try {
+    const res = await fetch(goroutineUrl, {
+      signal: AbortSignal.timeout(20_000),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.text()
+  } catch (e) {
+    // From the node's own image instead, in case this context cannot reach
+    // the loopback the daemons listen on.
+    console.warn(`goroutine dump: fetch failed (${String(e)}), trying wget`)
+    return sdk.SubContainer.withTemp(
+      effects,
+      { imageId: 'sha256-lnd' },
+      null,
+      'sha256-goroutines',
+      async (sub) => {
+        const res = await sub.exec(
+          ['wget', '-q', '-T', '20', '-O', '-', goroutineUrl],
+          {},
+          30_000,
+        )
+        if (res.exitCode !== 0)
+          throw new Error(
+            String(res.stderr).trim() || `wget exited ${res.exitCode}`,
+          )
+        return String(res.stdout)
+      },
+    )
+  }
+}
+
+export const bridgeSha256Capture = sdk.Action.withoutInput(
+  // id
+  'bridge-sha256-capture',
+
+  // metadata
+  async ({ effects }) => {
+    const { ever, logging } = (await storeJson
+      .read((s) => ({
+        ever: s.bridgeSha256Ever || s.bridgeMode === 'supervised',
+        logging: s.sha256Logging,
+      }))
+      .const(effects)) ?? { ever: false, logging: 'normal' }
+    return {
+      name: i18n('Capture SHA256 Node State'),
+      description: i18n(
+        "Writes what each part of the bridge's SHA256 Lightning node is doing or waiting on (its goroutines) into this service's logs, for troubleshooting a node that stops answering. Download the logs afterwards.",
+      ),
+      warning: null,
+      allowedStatuses: 'only-running',
+      group: i18n('Bridge'),
+      visibility: !ever
+        ? 'hidden'
+        : logging === 'detailed'
+          ? 'enabled'
+          : {
+              disabled: i18n(
+                'Set SHA256 Node Logging to Detailed first: that starts what this reads.',
+              ),
+            },
+    }
+  },
+
+  // the execution function
+  async ({ effects }) => {
+    let dump: string
+    try {
+      dump = await fetchGoroutines(effects)
+    } catch (e) {
+      throw new Error(
+        i18n(
+          'The SHA256 node did not hand over its state: ${error}. It must be running, and started since SHA256 Node Logging was set to Detailed.',
+          { error: literal(e instanceof Error ? e.message : String(e)) },
+        ),
+      )
+    }
+    const { goroutines, lines } = foldGoroutines(dump)
+    const at = new Date().toISOString()
+
+    // One log entry per line, and paced, so a large dump is not dropped by
+    // the log's rate limit; never for longer than an action may run.
+    const started = Date.now()
+    console.log(`=== SHA256 node goroutines (captured ${at}) ===`)
+    for (let i = 0; i < lines.length; i++) {
+      console.log(lines[i])
+      if (i % 500 === 499 && Date.now() - started < 60_000)
+        await new Promise((r) => setTimeout(r, 2_000))
+    }
+    console.log(`=== end of SHA256 node goroutines (captured ${at}) ===`)
+
+    return {
+      version: '1',
+      title: i18n('Capture SHA256 Node State'),
+      message: i18n(
+        "The SHA256 node's ${count} goroutines are in this service's logs. Download the logs from its Logs page now, then set SHA256 Node Logging back to Normal when you are done.",
+        { count: String(goroutines) },
+      ),
+      result: single(i18n('Captured at'), at, { copyable: true }),
+    }
   },
 )

@@ -6,7 +6,12 @@ import {
 import { BackendId, Sha256BackendId, sha256BackendIds } from './backends'
 import { sdk } from './sdk'
 import { lndDataDir } from './utils'
-import { sha256GrpcPort, sha256P2pPort, sha256RestPort } from './sha256Ports'
+import {
+  sha256GrpcPort,
+  sha256P2pPort,
+  sha256ProfilePort,
+  sha256RestPort,
+} from './sha256Ports'
 import { stat } from 'fs/promises'
 
 /**
@@ -47,7 +52,7 @@ export const sha256AdminMacaroonHost = `${sha256NodeDirHost}/data/chain/bitcoin/
 export const sha256TlsCertHost = `${sha256NodeDirHost}/tls.cert`
 
 // Its ports: sha256Ports.ts says why they live there.
-export { sha256P2pPort, sha256GrpcPort, sha256RestPort }
+export { sha256P2pPort, sha256GrpcPort, sha256RestPort, sha256ProfilePort }
 
 /** Where the SHA256 Bitcoin node's volume is mounted, for its RPC cookie. */
 export const sha256BitcoindMnt = '/mnt/sha256-bitcoin'
@@ -155,6 +160,8 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
  * bitcoind polling client (BTWL), the bitcoind RPC client (RPCC) and the
  * chain notifier (NTFN). lnd refuses to start on a subsystem it does not
  * know, so each tag is one stock lnd v0.21.4 registers (log.go there).
+ * Detailed also starts lnd's profiler on loopback (sha256ProfilePort), for
+ * Capture SHA256 Node State's goroutine dump.
  * Lightning Fork's own node is not affected: its level is debuglevel in
  * lnd.conf.
  */
@@ -209,7 +216,12 @@ export function sha256NodeCommand(
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
     ...extra,
-    ...(debuglevel ? [`--debuglevel=${debuglevel}`] : []),
+    ...(debuglevel
+      ? [
+          `--debuglevel=${debuglevel}`,
+          `--pprof.profile=127.0.0.1:${sha256ProfilePort}`,
+        ]
+      : []),
   ]
   const q = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`
   const cookieFile = `${sha256BitcoindMnt}/.cookie`
@@ -252,7 +264,7 @@ export function sha256NodeCommand(
       // which one this is when its detail is turned up.
       ...(debuglevel
         ? [
-            `echo ${q(`The bridge's SHA256 node: starting lnd with --debuglevel=${debuglevel}`)}`,
+            `echo ${q(`The bridge's SHA256 node: starting lnd with --debuglevel=${debuglevel} and its profiler on 127.0.0.1:${sha256ProfilePort}`)}`,
           ]
         : []),
       `lnd ${args.map(q).join(' ')} &`,
