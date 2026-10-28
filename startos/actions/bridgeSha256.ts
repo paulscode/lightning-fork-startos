@@ -263,3 +263,46 @@ export const bridgeSha256Seed = sdk.Action.withoutInput(
     }
   },
 )
+
+export const bridgeSha256Logging = sdk.Action.withInput(
+  // id
+  'bridge-sha256-logging',
+
+  // metadata
+  async ({ effects }) => ({
+    name: i18n('SHA256 Node Logging'),
+    description: i18n(
+      "How much the bridge's SHA256 Lightning node writes to this service's logs. Lightning Fork's own node is not affected.",
+    ),
+    warning: i18n(
+      "Saving a change restarts the SHA256 node, which pauses the bridge until it is back; Lightning Fork's own node keeps running.",
+    ),
+    // Saved for the next start when the service is stopped.
+    allowedStatuses: 'any',
+    group: i18n('Bridge'),
+    visibility: await everVisibility(effects),
+  }),
+
+  InputSpec.of({
+    logging: Value.select({
+      name: i18n('Log Detail'),
+      description: i18n(
+        'Detailed adds debug lines from its startup, wallet, chain backend and RPC server. Use it to troubleshoot, for example a node that does not answer: reproduce the problem, download the logs from the Logs page, then set this back to Normal, as detailed logs grow quickly.',
+      ),
+      default: 'normal',
+      values: {
+        normal: i18n('Normal'),
+        detailed: i18n('Detailed, for troubleshooting'),
+      },
+    }),
+  }),
+
+  async () => ({
+    logging: (await storeJson.read((s) => s.sha256Logging).once()) ?? 'normal',
+  }),
+
+  // Only the store: main's daemon builder watches it (main.ts).
+  async ({ effects, input }) => {
+    await storeJson.merge(effects, { sha256Logging: input.logging })
+  },
+)

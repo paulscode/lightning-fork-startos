@@ -204,6 +204,11 @@ must watch its channels. **SHA256 Node Recovery Phrase** shows the words that
 restore it in another LND; your Lightning Fork phrase already recreates it
 here.
 
+If that node misbehaves, **SHA256 Node Logging** set to *Detailed, for
+troubleshooting* makes it log in detail; reproduce the problem, download the
+logs from this service's **Logs** page, and set it back to *Normal*. Each
+change restarts that node only, which pauses the bridge until it is back.
+
 The swap journal, which records swaps in flight, is kept in this service's
 data, so StartOS backups include it. A backup also keeps the bridge node's
 channel backup and leaves out its wallet: after a restore, turning the bridge

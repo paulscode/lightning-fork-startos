@@ -67,6 +67,7 @@ import {
   sha256DashboardSubpath,
   sha256GrpcPort,
   sha256NodeCommand,
+  Sha256Logging,
   sha256PasswordFile,
   sha256RpcHost,
   sha256WalletExists,
@@ -689,6 +690,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   }
   const withSha256Node = <C extends { addDaemon: any; addHealthCheck: any }>(
     chain: C,
+    logging: Sha256Logging,
   ): C => {
     // Said rather than left blank: without it the bridge only reports that
     // its node is not ready, which reads as starting for ever.
@@ -778,7 +780,9 @@ export const main = sdk.setupMain(async ({ effects }) => {
       chain
         .addDaemon('sha256-lnd', {
           subcontainer: sub,
-          exec: { command: sha256NodeCommand(sha256Rpc, sha256Extra) },
+          exec: {
+            command: sha256NodeCommand(sha256Rpc, sha256Extra, logging),
+          },
           ready: {
             display: i18n('SHA256 Lightning Node'),
             // Its wallet's state, which it answers without a macaroon: a port
@@ -948,7 +952,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
     )
   }
 
-  const lndChain = () => {
+  const lndChain = (sha256Logging: Sha256Logging) => {
     const chain = sdk.Daemons.of(effects)
       .addOneshot('stage-local-restore', () =>
         restore
@@ -1941,8 +1945,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
       !conf['bridgerpc.sha256.supervised'] &&
       !conf['bridgerpc.sha256.rpchost']
     )
-      return withSha256Node(chain)
-    return withSha256Node(chain).addHealthCheck('bridge', {
+      return withSha256Node(chain, sha256Logging)
+    return withSha256Node(chain, sha256Logging).addHealthCheck('bridge', {
       ready: {
         display: i18n('Bridge'),
         trigger: sdk.trigger.statusTrigger(60_000, {
@@ -2043,14 +2047,23 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // stats for itself, and dbSchemaFinalized is deliberately not watched — it
     // flips mid-conversion, and swapping chains then would abandon the run.
     await startupFlagsJson.read((f) => f.dbMigrationComplete).const(dynEffects)
+    // Read here, not with the store at the top of main: a change then
+    // rebuilds the chains and the reconciler restarts the SHA256 node (its
+    // command line differs) and what requires it, leaving Lightning Fork's
+    // own node running.
+    const sha256Logging =
+      (await storeJson.read((s) => s.sha256Logging).const(dynEffects)) ??
+      'normal'
 
     // Order is load-bearing: LND must never open an un-imported or un-converted
     // data directory, so each preparatory phase holds the chain until the flag
     // or the on-disk state that selected it is gone.
     // The bridge's SHA256 node runs through these too: it watches its own
     // channels, whatever Lightning Fork is doing to its own data.
-    if (importPending) return withSha256Node(importChain(importPending.source))
-    if (await needsSqliteMigration()) return withSha256Node(conversionChain())
-    return lndChain()
+    if (importPending)
+      return withSha256Node(importChain(importPending.source), sha256Logging)
+    if (await needsSqliteMigration())
+      return withSha256Node(conversionChain(), sha256Logging)
+    return lndChain(sha256Logging)
   })
 })

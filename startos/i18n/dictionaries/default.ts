@@ -724,6 +724,14 @@ const dict = {
   '${target}: the saved sign-in was refused. Sign in again in Configure Channel Backups.': 756,
   '${target}: not signed in yet. Finish the sign-in in Configure Channel Backups.': 757,
   '${target}: its saved settings are incomplete. Save it again in Configure Channel Backups.': 758,
+  // SHA256 Node Logging (actions/bridgeSha256.ts)
+  'SHA256 Node Logging': 759,
+  "How much the bridge's SHA256 Lightning node writes to this service's logs. Lightning Fork's own node is not affected.": 760,
+  "Saving a change restarts the SHA256 node, which pauses the bridge until it is back; Lightning Fork's own node keeps running.": 761,
+  'Log Detail': 762,
+  'Detailed adds debug lines from its startup, wallet, chain backend and RPC server. Use it to troubleshoot, for example a node that does not answer: reproduce the problem, download the logs from the Logs page, then set this back to Normal, as detailed logs grow quickly.': 763,
+  Normal: 764,
+  'Detailed, for troubleshooting': 765,
 } as const
 
 /**

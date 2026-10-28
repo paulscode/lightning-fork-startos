@@ -48,6 +48,10 @@ export const shape = z.object({
     .enum(sha256BackendIds as unknown as [string, ...string[]])
     .nullable()
     .catch(null),
+  // How much the bridge's SHA256 node logs (sha256Node.ts,
+  // sha256DebugLevels). Read by main's daemon builder, so a change restarts
+  // that node alone.
+  sha256Logging: z.enum(['normal', 'detailed']).catch('normal'),
   // The bridge codes issued, so that one can be revoked by its label. The
   // root key id is a uint64, kept as a string to keep every digit.
   bridgeParticipants: z

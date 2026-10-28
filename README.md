@@ -257,8 +257,8 @@ node stays down and tries again while LND runs as usual; Bridge Status says
 why. **Bridge Status** and **Add Bridge Participant** run
 `lncli bridge status|info|code` and are hidden while the bridge is
 off; **Fund the SHA256 Node**, **Open SHA256 Channel** and **SHA256 Node
-Recovery Phrase** (`lncli bridge sha256seed`) are shown once a supervised node
-has existed. Codes are offered for the REST interface's onion addresses only:
+Recovery Phrase** (`lncli bridge sha256seed`) and **SHA256 Node Logging** (see
+Diagnosing) are shown once a supervised node has existed. Codes are offered for the REST interface's onion addresses only:
 any other address needs the SHA-256 of the certificate StartOS presents
 there. Each code's root key id and label are kept in `store.json`
 (`bridgeParticipants`), and **Remove Bridge Participant** runs
@@ -294,3 +294,21 @@ workspace's `release.sh` stages universal builds for the registry.
 - Paying an invoice from a node on the SHA256 chain, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.
+- The bridge's SHA256 node (`sha256-lnd`) logs to the same service log as
+  Lightning Fork's own node, in the same format; its lines are the ones after
+  a `Version Info` line naming a stock version such as `version=0.21.4-beta`
+  (Lightning Fork's names a `-blake2b` one). It logs at lnd's default, `info`. When it
+  misbehaves, for example does not answer `getinfo` within 30 s:
+  1. Run **SHA256 Node Logging** (Bridge group, shown once the node has
+     existed) and choose *Detailed, for troubleshooting*. It writes
+     `sha256Logging` in `store.json`, which `main`'s daemon builder watches,
+     so the reconciler restarts `sha256-lnd` with
+     `--debuglevel=info,LTND=debug,CHRE=debug,RPCS=debug,LNWL=debug,BTWL=debug,RPCC=debug,NTFN=debug`
+     (and `sha256-channel-backup-agent`, which requires it), and nothing
+     else: Lightning Fork's node and its `debuglevel` in `lnd.conf` are
+     untouched. The shell first prints *The bridge's SHA256 node: starting
+     lnd with --debuglevel=...*, and the `[DBG]` lines are that node's.
+  2. Reproduce the problem, then download the service's log from its
+     **Logs** page in StartOS (or `start-cli package logs lightning-fork`).
+  3. Set it back to *Normal*, which drops the flag and restarts that node
+     again: detailed logs grow quickly.

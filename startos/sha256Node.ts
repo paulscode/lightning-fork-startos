@@ -146,6 +146,26 @@ export const sha256DashboardSubpath = 'sha256'
 export const sha256DashboardMnt = '/mnt/dashboard-sha256'
 
 /**
+ * How much the SHA256 node logs, chosen in SHA256 Node Logging (store
+ * sha256Logging). Normal passes no --debuglevel, so lnd keeps its own
+ * default, info, and the command line is the one earlier releases ran.
+ * Detailed keeps info everywhere else and turns on debug for what a node
+ * that does not answer is waiting on: startup (LTND), the chain registry
+ * (CHRE), the RPC server (RPCS), the wallet (LNWL), btcwallet and its
+ * bitcoind polling client (BTWL), the bitcoind RPC client (RPCC) and the
+ * chain notifier (NTFN). lnd refuses to start on a subsystem it does not
+ * know, so each tag is one stock lnd v0.21.4 registers (log.go there).
+ * Lightning Fork's own node is not affected: its level is debuglevel in
+ * lnd.conf.
+ */
+export const sha256DebugLevels = {
+  normal: null,
+  detailed:
+    'info,LTND=debug,CHRE=debug,RPCS=debug,LNWL=debug,BTWL=debug,RPCC=debug,NTFN=debug',
+} as const
+export type Sha256Logging = keyof typeof sha256DebugLevels
+
+/**
  * The stock lnd's command line. Polling rather than ZMQ, so nothing has to be
  * switched on in the SHA256 Bitcoin node for this, and a block is noticed
  * within ten seconds, which a bridge node can live with.
@@ -170,7 +190,9 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
 export function sha256NodeCommand(
   rpchost: string,
   extra: string[] = [],
+  logging: Sha256Logging = 'normal',
 ): string[] {
+  const debuglevel = sha256DebugLevels[logging]
   const args = [
     `--lnddir=${sha256NodeDir}`,
     '--bitcoin.mainnet',
@@ -187,6 +209,7 @@ export function sha256NodeCommand(
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
     ...extra,
+    ...(debuglevel ? [`--debuglevel=${debuglevel}`] : []),
   ]
   const q = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`
   const cookieFile = `${sha256BitcoindMnt}/.cookie`
@@ -225,6 +248,13 @@ export function sha256NodeCommand(
       // a different one; the daemon then restarts it, with the new cookie.
       // An absent cookie (the node is down) is waited out, as main does.
       `cookie=$(cat ${q(cookieFile)} 2>/dev/null)`,
+      // Both nodes log to the same service log, in the same format: say
+      // which one this is when its detail is turned up.
+      ...(debuglevel
+        ? [
+            `echo ${q(`The bridge's SHA256 node: starting lnd with --debuglevel=${debuglevel}`)}`,
+          ]
+        : []),
       `lnd ${args.map(q).join(' ')} &`,
       `lnd=$!`,
       `(while sleep 10; do c=$(cat ${q(cookieFile)} 2>/dev/null); ` +
