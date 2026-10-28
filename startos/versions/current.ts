@@ -3,7 +3,7 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:2',
+  version: '0.21.4-beta.21.1:3',
   releaseNotes: {
     en_US: `A fix for the bridge's SHA256 node: after the SHA256 Bitcoin node restarted (an update, a reboot), the SHA256 node kept the Bitcoin node's old RPC credentials and every call failed with status 401, so the bridge stopped until Lightning Fork was restarted. It now restarts the SHA256 node by itself when the Bitcoin node's credentials change, without restarting Lightning Fork.
 
