@@ -3,9 +3,11 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:1',
+  version: '0.21.4-beta.21.1:2',
   releaseNotes: {
-    en_US: `For apps that connect to Lightning Fork: a copy of its TLS certificate, alone in a folder of its own, that other StartOS packages can read without seeing the macaroons or the wallet beside it. The same daemon as 0.21.4-beta.21.1:0.
+    en_US: `A fix for the bridge's SHA256 node: after the SHA256 Bitcoin node restarted (an update, a reboot), the SHA256 node kept the Bitcoin node's old RPC credentials and every call failed with status 401, so the bridge stopped until Lightning Fork was restarted. It now restarts the SHA256 node by itself when the Bitcoin node's credentials change, without restarting Lightning Fork.
+
+From 0.21.4-beta.21.1:1, if you are updating from an earlier version: for apps that connect to Lightning Fork, a copy of its TLS certificate, alone in a folder of its own, that other StartOS packages can read without seeing the macaroons or the wallet beside it. The same daemon as 0.21.4-beta.21.1:0.
 
 From 0.21.4-beta.21.1:0, if you are updating from an earlier version: Lightning Fork is built with Go 1.27.3, which stops trusting a set of compromised certificate authority intermediates (CVE-2026-111943). Earlier builds still trusted them for the node's outbound HTTPS: fee estimates from a fee URL and, if you run the bridge, its price sources. Nothing else changes.
 

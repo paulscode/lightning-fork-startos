@@ -158,6 +158,10 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
  * Lightning Fork, the dashboard and the actions are all there. Only the peer
  * port is for other nodes.
  *
+ * Beside lnd runs a watcher that stops it when the SHA256 Bitcoin node
+ * writes a new RPC cookie (lnd reads the cookie once, at start), so the
+ * daemon restarts it with the new one.
+ *
  * Beside lnd runs a copier that keeps the dashboard's copies of its
  * certificate and admin macaroon current, checking every thirty seconds; the
  * macaroon appears only once Lightning Fork has created the wallet. It stops
@@ -185,6 +189,7 @@ export function sha256NodeCommand(
     ...extra,
   ]
   const q = (a: string) => `'${a.replace(/'/g, `'\\''`)}'`
+  const cookieFile = `${sha256BitcoindMnt}/.cookie`
   const copies: Array<[string, string]> = [
     [`${sha256NodeDir}/tls.cert`, `${sha256DashboardMnt}/tls.cert`],
     // The console's own narrow macaroon, which Lightning Fork bakes once
@@ -214,12 +219,23 @@ export function sha256NodeCommand(
       `rm -f ${q(`${sha256DashboardMnt}/admin.macaroon`)}`,
       `(while :; do ${copy}; sleep 30; done) &`,
       `copier=$!`,
+      // lnd turns the cookie into a fixed user and password as it starts,
+      // so a restart of the SHA256 Bitcoin node, which writes a new cookie,
+      // would leave it answered 401 for good. Stop lnd when the node writes
+      // a different one; the daemon then restarts it, with the new cookie.
+      // An absent cookie (the node is down) is waited out, as main does.
+      `cookie=$(cat ${q(cookieFile)} 2>/dev/null)`,
       `lnd ${args.map(q).join(' ')} &`,
       `lnd=$!`,
-      `trap 'kill -TERM $lnd 2>/dev/null; wait $lnd; kill $copier 2>/dev/null; exit 0' TERM INT`,
+      `(while sleep 10; do c=$(cat ${q(cookieFile)} 2>/dev/null); ` +
+        `if [ -n "$c" ] && [ "$c" != "$cookie" ]; then ` +
+        `echo 'The SHA256 Bitcoin node has a new RPC cookie: restarting lnd'; ` +
+        `kill -TERM $lnd; exit 0; fi; done) &`,
+      `watcher=$!`,
+      `trap 'kill -TERM $lnd 2>/dev/null; wait $lnd; kill $copier $watcher 2>/dev/null; exit 0' TERM INT`,
       `wait $lnd`,
       `rc=$?`,
-      `kill $copier 2>/dev/null`,
+      `kill $copier $watcher 2>/dev/null`,
       `exit $rc`,
     ].join('\n'),
   ]
