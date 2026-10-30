@@ -9,6 +9,7 @@ import { manifest } from './manifest'
 import { sdk } from './sdk'
 import {
   lndDataDir,
+  lndEnv,
   mainMounts,
   mainVolumeHost,
   selfRestUrl,
@@ -253,7 +254,7 @@ async function finalizeBoltSchema(
   await sdk.Daemons.of(effects)
     .addDaemon('lnd-schema', {
       subcontainer: schemaSub,
-      exec: { command },
+      exec: { command, env: lndEnv },
       ready: {
         display: null,
         // Ready once the wallet unlocker is serving (LOCKED) or the wallet is

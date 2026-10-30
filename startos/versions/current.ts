@@ -3,9 +3,11 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:5',
+  version: '0.21.4-beta.21.1:6',
   releaseNotes: {
-    en_US: `Troubleshooting for the bridge's SHA256 node: SHA256 Node Logging (Actions, Bridge) turns on detailed logging for that node only, and Capture SHA256 Node State then writes what it is doing into the logs, for when the bridge reports that the node does not answer. Download the logs from the Logs page, then set the logging back to Normal. Nothing else changes.
+    en_US: `Security: Lightning Fork's nodes now listen on plain TCP instead of Multipath TCP. A serious Linux kernel bug, CVE-2026-98432, has a published attack that takes over a server through a Multipath TCP listener, and Go programs such as LND listen that way by default. This closes that route. It does not fix the kernel bug, which needs a StartOS update with a patched kernel; until then, if your node accepts peer connections from the internet rather than only through Tor, consider turning that off. Nothing else changes.
+
+From 0.21.4-beta.21.1:5, if you are updating from an earlier version: troubleshooting for the bridge's SHA256 node: SHA256 Node Logging (Actions, Bridge) turns on detailed logging for that node only, and Capture SHA256 Node State then writes what it is doing into the logs, for when the bridge reports that the node does not answer. Download the logs from the Logs page, then set the logging back to Normal. Nothing else changes.
 
 From 0.21.4-beta.21.1:3, if you are updating from an earlier version: a fix for the bridge's SHA256 node: after the SHA256 Bitcoin node restarted (an update, a reboot), the SHA256 node kept the Bitcoin node's old RPC credentials and every call failed with status 401, so the bridge stopped until Lightning Fork was restarted. It now restarts the SHA256 node by itself when the Bitcoin node's credentials change, without restarting Lightning Fork.
 

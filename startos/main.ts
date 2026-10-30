@@ -41,6 +41,7 @@ import {
   GetInfo,
   literal,
   lndDataDir,
+  lndEnv,
   localRestoreBackupPath,
   localRestoreBackupTempPath,
   remoteRestoreDir,
@@ -782,6 +783,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           subcontainer: sub,
           exec: {
             command: sha256NodeCommand(sha256Rpc, sha256Extra, logging),
+            env: lndEnv,
           },
           ready: {
             display: i18n('SHA256 Lightning Node'),
@@ -983,7 +985,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           : null,
       )
       .addDaemon('lnd', {
-        exec: { command: ['lnd', ...lndArgs] },
+        exec: { command: ['lnd', ...lndArgs], env: lndEnv },
         subcontainer: lndSub,
         ready: {
           display: i18n('LND Server'),

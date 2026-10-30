@@ -125,6 +125,15 @@ as the `dashboard` UI interface behind StartOS's own TLS. Preferred external por
 one server; on StartOS a colliding preferred port silently lands on a random
 one, so read the interface addresses rather than assuming these.
 
+Every lnd the package starts (`lnd`, `sha256-lnd`, and the temporary runs in
+wallet creation and the SQLite migration) gets `GODEBUG=multipathtcp=0`
+(`lndEnv` in `startos/utils.ts`), so its listeners are plain TCP. Go 1.24 and
+later listen on MPTCP by default, and the published remote-root exploit for
+kernel bug CVE-2026-98432 needs an MPTCP listener. This closes that path only;
+the kernel bug itself is fixed by a StartOS kernel update. To check, `ss -lM`
+in the service container's network namespace lists MPTCP listeners and should
+show none of lnd's ports.
+
 ## For packages that depend on this one
 
 A package that talks to LND's REST or gRPC interface can read the

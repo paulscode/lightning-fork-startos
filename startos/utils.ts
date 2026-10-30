@@ -27,6 +27,20 @@ export const selfRestUrl = `https://127.0.0.1:${restPort}`
 export const selfGrpcHost = `127.0.0.1:${gRPCPort}`
 
 /**
+ * Environment for every lnd this package starts (both daemons, and the short
+ * runs that create a wallet and migrate to SQLite): listen on plain TCP, not
+ * MPTCP.
+ *
+ * Go 1.24 and later open every listener as MPTCP by default, and the published
+ * remote-root exploit for CVE-2026-98432 (a use-after-free in the kernel's IPv4
+ * TCP handshake) needs an MPTCP listener. This removes that path for lnd's peer,
+ * gRPC and REST ports until StartOS ships a fixed kernel. It does not fix the
+ * kernel bug, which a plain TCP listener still reaches. Neither image sets
+ * GODEBUG, so nothing of theirs is overridden.
+ */
+export const lndEnv = { GODEBUG: 'multipathtcp=0' }
+
+/**
  * Connection settings for lnd.conf for the selected Bitcoin node. Each
  * address is its own `.const()` on a single string, so main re-runs only when
  * an address it uses actually changes (node install/uninstall/port-change),

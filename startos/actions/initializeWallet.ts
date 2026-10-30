@@ -4,7 +4,7 @@ import { startupFlagsJson } from '../fileModels/startupFlags.json'
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
-import { lndDataDir, mainMounts, selfRestUrl, sleep } from '../utils'
+import { lndDataDir, lndEnv, mainMounts, selfRestUrl, sleep } from '../utils'
 import { UNLOCK_TIMEOUT_MS } from '../walletUnlocker'
 
 const { InputSpec, Value, Variants } = sdk
@@ -124,13 +124,16 @@ async function initFresh(
       // init, and the wallet this creates is empty, so there is nothing for one
       // to do. --nobootstrap keeps the server initwallet starts from dialing
       // peers it has no use for.
-      const child = await subc.spawn([
-        'lnd',
-        '--bitcoin.active',
-        '--bitcoin.mainnet',
-        '--bitcoin.node=nochainbackend',
-        '--nobootstrap',
-      ])
+      const child = await subc.spawn(
+        [
+          'lnd',
+          '--bitcoin.active',
+          '--bitcoin.mainnet',
+          '--bitcoin.node=nochainbackend',
+          '--nobootstrap',
+        ],
+        { env: lndEnv },
+      )
 
       let cipherSeed: string[] = []
       do {
