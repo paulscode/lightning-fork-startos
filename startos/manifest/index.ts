@@ -49,10 +49,10 @@ export const manifest = setupManifest({
     // by digest). Every change this fork makes is one that must not apply
     // on the SHA256 chain, so that node runs upstream's binary. What the tag
     // resolved to when this version was released:
-    //   index sha256:04d06edcc0f6e99a5e797ea34959f330add222226f840cd86afbc31f8f29627d
+    //   index sha256:54b3c87ad0bc3fea3fab8af23ace6421147ea97e6b56bf3911592d7853c185b8
     'sha256-lnd': {
       source: {
-        dockerTag: 'lightninglabs/lnd:v0.21.4-beta',
+        dockerTag: 'lightninglabs/lnd:v0.21.6-beta',
       },
       arch: ['aarch64', 'x86_64'],
     },

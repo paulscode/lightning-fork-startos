@@ -159,7 +159,7 @@ export const sha256DashboardMnt = '/mnt/dashboard-sha256'
  * (CHRE), the RPC server (RPCS), the wallet (LNWL), btcwallet and its
  * bitcoind polling client (BTWL), the bitcoind RPC client (RPCC) and the
  * chain notifier (NTFN). lnd refuses to start on a subsystem it does not
- * know, so each tag is one stock lnd v0.21.4 registers (log.go there).
+ * know, so each tag is one stock lnd v0.21.6 registers (log.go there).
  * Detailed also starts lnd's profiler on loopback (sha256ProfilePort), for
  * Capture SHA256 Node State's goroutine dump.
  * Lightning Fork's own node is not affected: its level is debuglevel in
@@ -213,6 +213,17 @@ export function sha256NodeCommand(
     `--restlisten=127.0.0.1:${sha256RestPort}`,
     `--listen=0.0.0.0:${sha256P2pPort}`,
     '--alias=Lightning Fork bridge (SHA256)',
+    // Take the public graph's channels on their announcements' word rather
+    // than look up each funding output in the SHA256 Bitcoin node, as
+    // neutrino nodes do by default. Checking them meant a getblock per
+    // channel, sent one at a time over the node's single RPC connection; a
+    // pruned node fetches each old block from its peers, so a graph sync
+    // queued hundreds of them for hours and every other call, the bridge's
+    // GetInfo included, waited behind them and timed out. A channel closed
+    // since leaves the graph after two weeks without updates instead, and a
+    // made-up one costs a failed payment attempt, not funds. The node's own
+    // channels are watched on chain as before.
+    '--routing.assumechanvalid',
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
     ...extra,
