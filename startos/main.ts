@@ -8,6 +8,7 @@ import {
 } from './actions/unlockWallet'
 import { lndConfFile } from './fileModels/lnd.conf'
 import { ImportPending, startupFlagsJson } from './fileModels/startupFlags.json'
+import { isUnusableCopy } from './restoreErrors'
 import { shape, storeJson } from './fileModels/store.json'
 import { unlockStatusJson } from './fileModels/unlock-status.json'
 import { i18n } from './i18n'
@@ -1448,11 +1449,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                     const reason = tail(res.stderr)
                     // Only a file LND cannot open is the copy's own fault:
                     // another seed's, or damaged.
-                    if (
-                      /unable to (unpack|decrypt|read nonce)|message authentication failed|unknown multi-version|unexpected EOF/i.test(
-                        reason,
-                      )
-                    ) {
+                    if (isUnusableCopy(reason)) {
                       console.warn(
                         `skipped the channel.backup from ${label}: ${reason}`,
                       )
