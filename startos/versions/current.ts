@@ -3,9 +3,16 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.4-beta.21.1:6',
+  version: '0.21.4-beta.21.2:0',
   releaseNotes: {
-    en_US: `Security: Lightning Fork's nodes now listen on plain TCP instead of Multipath TCP. A serious Linux kernel bug, CVE-2026-98432, has a published attack that takes over a server through a Multipath TCP listener, and Go programs such as LND listen that way by default. This closes that route. It does not fix the kernel bug, which needs a StartOS update with a patched kernel; until then, if your node accepts peer connections from the internet rather than only through Tor, consider turning that off. Nothing else changes.
+    en_US: `Fixes:
+
+- Restoring channels from a channel backup works. In every earlier release LND refused every restore through its RPC as a backup from another chain: Recover channels in the dashboard, and the restore that runs after you recover this service from a StartOS backup. That one then took the refusal for a damaged copy, logged that it skipped it, and finished without restoring any channel. If you recovered this service from a StartOS backup before this version, its channels were not restored, though copies of the channel backup remain on the node and on your backup targets: do not recover the service again (channels opened since would be lost), and open an issue at github.com/paulscode/lightning-fork-startos so we can restore them with you. Restoring when you create the wallet was not affected.
+- Apps that follow channel events (SubscribeChannelEvents) no longer have their stream cut with "internal server error" at the first payment on a channel, which started in 0.21.4-beta.19.
+- The bridge's SHA256 node no longer stops answering while it learns the SHA256 Lightning network. It checked every public channel against the SHA256 Bitcoin node one block at a time, which on a pruned node took hours, and the bridge timed out waiting. It now takes channel announcements as given, as phone wallets do, so a payment may occasionally try a channel that has since closed and then route around it. Its own channels are watched on chain as before.
+- The SHA256 node runs LND 0.21.6, which turns off Multipath TCP listeners itself (CVE-2026-98432), as Lightning Fork's own LND now does too.
+
+From 0.21.4-beta.21.1:6, if you are updating from an earlier version: Security: Lightning Fork's nodes now listen on plain TCP instead of Multipath TCP. A serious Linux kernel bug, CVE-2026-98432, has a published attack that takes over a server through a Multipath TCP listener, and Go programs such as LND listen that way by default. This closes that route. It does not fix the kernel bug, which needs a StartOS update with a patched kernel; until then, if your node accepts peer connections from the internet rather than only through Tor, consider turning that off. Nothing else changes.
 
 From 0.21.4-beta.21.1:5, if you are updating from an earlier version: troubleshooting for the bridge's SHA256 node: SHA256 Node Logging (Actions, Bridge) turns on detailed logging for that node only, and Capture SHA256 Node State then writes what it is doing into the logs, for when the bridge reports that the node does not answer. Download the logs from the Logs page, then set the logging back to Normal. Nothing else changes.
 
@@ -23,7 +30,7 @@ Also: LND on SQLite could hang for every caller when two invoice subscriptions r
 
 From 0.21.4-beta.20:0, if you are updating from an earlier version: a hardened bridge after a private security review by cguida (thank you), bridge pricing from two exchanges, and no bridge outage after a difficulty retarget. From 0.21.4-beta.19:0: resize channels without closing them, off until you turn on Resize Channels in Actions, Channel Settings; turning it on upgrades the channel database, and StartOS then refuses to install an older Lightning Fork over this one.
 
-Lightning Fork 0.21.4-beta-blake2b.21.1, dashboard 1.3.2-blake2b.21.`,
+Lightning Fork 0.21.4-beta-blake2b.21.2, dashboard 1.3.2-blake2b.21.`,
   },
   migrations: {
     // Resize Channels moves the channel database to a version older
