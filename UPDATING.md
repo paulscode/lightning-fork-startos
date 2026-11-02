@@ -51,7 +51,9 @@ The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`sha256-lnd`
 in `startos/manifest/index.ts`, now `v0.21.6-beta`, index digest in the
 comment beside it). Move it when upstream LND releases, after checking that
 `lncli state`, `--wallet-unlock-password-file` with
-`--wallet-unlock-allow-create`, and the REST routes the dashboard uses still
+`--wallet-unlock-allow-create`, `--routing.assumechanvalid` (deprecated
+upstream, still honoured in v0.21.6; if it goes, the graph sync stalls the
+bridge again on a pruned node), and the REST routes the dashboard uses still
 behave as `sha256Node.ts` and the daemon's `bridgerpc` expect; keep the Umbrel
 app's pin (`docker-compose.yml`, `sha256-lnd`) on the same version.
 

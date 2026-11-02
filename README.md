@@ -300,7 +300,8 @@ workspace's `release.sh` stages universal builds for the registry.
   result stays `loading`, which dependents gate on. Upstream also sets
   `routing.assumechanvalid` on a pruned node; this package never sets it for
   Lightning Fork's own node, and always for the bridge's SHA256 node, pruned
-  or not (see `AGENTS.md`).
+  or not (see `AGENTS.md`); that node logs *Config 'routing.assumechanvalid'
+  is deprecated, please remove it* at each start, which is expected.
 - Paying an invoice from a node on the SHA256 chain, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.
