@@ -14,11 +14,12 @@
  * Imports nothing, so it can be tried outside the package.
  */
 export function isUnusableCopy(reason: string): boolean {
-  const cause = reason.replace(
-    /^.*?unable to unpack (chan backup|single backups): /s,
-    '',
-  )
-  return /unable to (decrypt|read nonce)|message authentication failed|unknown multi-version|unexpected EOF/i.test(
-    cause,
+  // Without the prefix LND did not get as far as the copy: lncli could not
+  // reach it, or the connection broke ("error reading from server:
+  // unexpected EOF"). That is the node's trouble, never the copy's.
+  const m = reason.match(/unable to unpack (chan backup|single backups): (.*)$/s)
+  if (!m) return false
+  return /unable to (decrypt|read nonce)|message authentication failed|unknown multi-version|unknown version|unexpected EOF|payload size too small/i.test(
+    m[2],
   )
 }
