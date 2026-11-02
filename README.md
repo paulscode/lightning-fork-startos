@@ -298,9 +298,9 @@ workspace's `release.sh` stages universal builds for the registry.
   (`lncli chain getblock`). A failure reads *Bitcoin is not serving blocks to
   LND* with the error, and two in a row send one error notification. The
   result stays `loading`, which dependents gate on. Upstream also sets
-  `routing.assumechanvalid` on a pruned node; this package does not for
-  Lightning Fork's own node, only for the bridge's SHA256 node (see
-  `AGENTS.md`).
+  `routing.assumechanvalid` on a pruned node; this package never sets it for
+  Lightning Fork's own node, and always for the bridge's SHA256 node, pruned
+  or not (see `AGENTS.md`).
 - Paying an invoice from a node on the SHA256 chain, or from a Lightning Fork node
   older than 0.21.3-beta-blake2b.12, fails with a message saying the invoice
   does not set `option_blake2b`; that is the intended behaviour.

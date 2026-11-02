@@ -220,9 +220,10 @@ export function sha256NodeCommand(
     // pruned node fetches each old block from its peers, so a graph sync
     // queued hundreds of them for hours and every other call, the bridge's
     // GetInfo included, waited behind them and timed out. A channel closed
-    // since leaves the graph after two weeks without updates instead, and a
-    // made-up one costs a failed payment attempt, not funds. The node's own
-    // channels are watched on chain as before.
+    // since leaves the graph after two weeks without updates instead. A
+    // made-up one can make a payment try a path that fails, or hold its HTLC
+    // until it times out, as a real channel can; it cannot take funds. The
+    // node's own channels are watched on chain as before.
     '--routing.assumechanvalid',
     `--wallet-unlock-password-file=${sha256PasswordFile}`,
     '--wallet-unlock-allow-create',
