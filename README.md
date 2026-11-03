@@ -1,10 +1,15 @@
 # lightning-fork-startos
 
 [Lightning Fork](https://github.com/paulscode/lightning-fork), an LND fork that
-follows the Bitcoin BLAKE2b chain, packaged for StartOS 0.4.0.x. Derived from
+follows the Bitcoin BLAKE2b chain, packaged for StartOS 0.4. Derived from
 [Start9's LND package](https://github.com/Start9Labs/lnd-startos) at SDK 2.0.9;
 wallet setup, channel backups, cold storage mode, Tor and the watchtower are
 that package's code, unchanged. What differs is below.
+
+**Requires StartOS 0.4.0.2 or newer** from 0.21.4-beta.19:0 on. A server on 0.4.0.1 is not
+offered those releases: the registry lists them, but installing one reports
+`not found on https://start9.paulscode.com/rpc/v0`.
+Such a server can still install 0.21.4-beta.18:0. Update StartOS first.
 
 Maintained by Paul Lamb (<https://github.com/paulscode>). Not affiliated with
 Start9 or Lightning Labs.
