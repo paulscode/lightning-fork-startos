@@ -64,6 +64,7 @@ import {
   sha256PeerInterfaceId,
 } from './interfaces'
 import { Sha256BackendId } from './backends'
+import { restartOnStaleMount } from './staleMount'
 import {
   sha256BitcoindMnt,
   sha256DashboardMnt,
@@ -323,6 +324,11 @@ export const main = sdk.setupMain(async ({ effects }) => {
       (prev, next) => next === null || prev === next,
     )
     .const(effects)
+  await restartOnStaleMount(
+    effects,
+    backend,
+    `${await lndSub.rootfs}${bitcoindMnt}/.cookie`,
+  )
 
   // LND reads its TLS pair once at startup, so re-running main is what carries
   // a reissued certificate — a new address on the gRPC interface — to a client.
@@ -777,6 +783,14 @@ export const main = sdk.setupMain(async ({ effects }) => {
           readonly: false,
         }),
       'sha256-lnd-sub',
+    )
+    void (async () =>
+      restartOnStaleMount(
+        effects,
+        sha256Backend,
+        `${await sub.rootfs}${sha256BitcoindMnt}/.cookie`,
+      ))().catch((e) =>
+      console.error('watching the SHA256 node for a stale mount', e),
     )
     let sha256DownSince: number | null = null
     return (
