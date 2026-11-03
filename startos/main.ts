@@ -786,10 +786,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
           readonly: false,
         }),
       // Named for its node's start, so each start of that node rebuilds
-      // this with its data mounted again: a mount made once keeps the
-      // directory it was made from, and a failed install of the node puts
-      // its data back by renaming another into place, after which its new
-      // cookie would never show here.
+      // this with its data mounted again once its RPC is ready: a mount made
+      // once keeps the directory it was made from, and a failed install of
+      // the node puts its data back by renaming another into place, after
+      // which its new cookie would never show here. On an ordinary restart
+      // of the node the cookie watch below has usually restarted lnd once
+      // already; the rebuild restarts it again, with the node up both times.
       nodeStart === null ? 'sha256-lnd-sub' : `sha256-lnd-sub-${nodeStart}`,
     )
     let sha256DownSince: number | null = null
@@ -2091,10 +2093,15 @@ export const main = sdk.setupMain(async ({ effects }) => {
       (await storeJson.read((s) => s.sha256Logging).const(dynEffects)) ??
       'normal'
     // A start of the SHA256 node rebuilds its subcontainer (see its name in
-    // withSha256Node); a stop changes nothing, so it is waited out as before.
+    // withSha256Node) once its RPC is ready; a stop changes nothing, so it is
+    // waited out as before.
     const sha256NodeStart =
       sha256Wanted && sha256Backend && !sha256Conflict
-        ? await new DependencyStart(dynEffects, sha256Backend).const()
+        ? await new DependencyStart(
+            dynEffects,
+            sha256Backend,
+            sha256Backends[sha256Backend].healthChecks[0],
+          ).const()
         : null
 
     // Order is load-bearing: LND must never open an un-imported or un-converted

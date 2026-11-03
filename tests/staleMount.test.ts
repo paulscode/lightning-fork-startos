@@ -176,10 +176,10 @@ test('a node down when main started, then ready with no cookie here, restarts th
   )
 })
 
-test('a start time changes on a start, not on a stop or a health change', async () => {
+test('a start time changes on a ready start, not on a stop or a health change', async () => {
   const e = fakeEffects(up('2026-11-03T01:00:00Z'))
   const seen: Array<number | null> = []
-  new DependencyStart(e as any, 'bitcoind').onChange(async (v) => {
+  new DependencyStart(e as any, 'bitcoind', CHECK).onChange(async (v) => {
     seen.push(v ?? null)
     return { cancel: false }
   })
@@ -188,6 +188,10 @@ test('a start time changes on a start, not on a stop or a health change', async 
   await flush()
   e.set(null)
   await flush()
+  // Started, but its RPC not ready yet: what uses it waits.
+  e.set(up('2026-11-03T02:00:00Z', false))
+  await flush()
+  assert.deepEqual(seen, [Date.parse('2026-11-03T01:00:00Z')])
   e.set(up('2026-11-03T02:00:00Z'))
   await flush()
   e.leave()

@@ -10,8 +10,12 @@ const COOKIE_GRACE_MS = 30_000
 type Status = Awaited<ReturnType<T.Effects['getStatus']>>
 
 /**
- * A package's last start time, as a number for use in a name. A stop is not
- * a change, so a node going down restarts nothing; its next start does.
+ * A package's last start time, as a number for use in a name, once its RPC
+ * health check passes on that start. A package counts as started before its
+ * node has written its cookie or opened its RPC port, and acting then would
+ * stop what uses the node while it is down. A stop, or the check failing
+ * later, is not a change, so a node going down restarts nothing; its next
+ * start does, once ready.
  */
 export class DependencyStart extends utils.Watchable<Status, number | null> {
   protected readonly label = 'DependencyStart'
@@ -19,9 +23,13 @@ export class DependencyStart extends utils.Watchable<Status, number | null> {
   constructor(
     effects: T.Effects,
     readonly packageId: string,
+    rpcCheck: string,
   ) {
     super(effects, {
-      map: (status) => (status?.started ? Date.parse(status.started) : null),
+      map: (status) =>
+        status?.started && status.health?.[rpcCheck]?.result === 'success'
+          ? Date.parse(status.started)
+          : null,
       eq: (prev, next) => next === null || prev === next,
     })
   }
