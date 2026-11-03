@@ -6,8 +6,8 @@ follows the Bitcoin BLAKE2b chain, packaged for StartOS 0.4. Derived from
 wallet setup, channel backups, cold storage mode, Tor and the watchtower are
 that package's code, unchanged. What differs is below.
 
-**Requires StartOS 0.4.0.2 or newer** from 0.21.4-beta.19:0 on. A server on 0.4.0.1 is not
-offered those releases: the registry lists them, but installing one reports
+**Requires StartOS 0.4.0.2 or newer** from 0.21.4-beta.19:0 on. A server older than 0.4.0.2 is
+not offered those releases: installing one reports
 `not found on https://start9.paulscode.com/rpc/v0`.
 Such a server can still install 0.21.4-beta.18:0. Update StartOS first.
 
