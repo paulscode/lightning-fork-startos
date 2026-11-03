@@ -63,8 +63,8 @@ import {
   sha256PeerHostId,
   sha256PeerInterfaceId,
 } from './interfaces'
-import { Sha256BackendId } from './backends'
-import { restartOnStaleMount } from './staleMount'
+import { backends, Sha256BackendId } from './backends'
+import { DependencyStart, restartOnStaleMount } from './staleMount'
 import {
   sha256BitcoindMnt,
   sha256DashboardMnt,
@@ -327,6 +327,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
   await restartOnStaleMount(
     effects,
     backend,
+    backends[backend].healthChecks[0],
     `${await lndSub.rootfs}${bitcoindMnt}/.cookie`,
   )
 
@@ -700,6 +701,8 @@ export const main = sdk.setupMain(async ({ effects }) => {
   const withSha256Node = <C extends { addDaemon: any; addHealthCheck: any }>(
     chain: C,
     logging: Sha256Logging,
+    // When its node last started, or null: see sha256NodeStart.
+    nodeStart: number | null,
   ): C => {
     // Said rather than left blank: without it the bridge only reports that
     // its node is not ready, which reads as starting for ever.
@@ -782,15 +785,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
           mountpoint: sha256DashboardMnt,
           readonly: false,
         }),
-      'sha256-lnd-sub',
-    )
-    void (async () =>
-      restartOnStaleMount(
-        effects,
-        sha256Backend,
-        `${await sub.rootfs}${sha256BitcoindMnt}/.cookie`,
-      ))().catch((e) =>
-      console.error('watching the SHA256 node for a stale mount', e),
+      // Named for its node's start, so each start of that node rebuilds
+      // this with its data mounted again: a mount made once keeps the
+      // directory it was made from, and a failed install of the node puts
+      // its data back by renaming another into place, after which its new
+      // cookie would never show here.
+      nodeStart === null ? 'sha256-lnd-sub' : `sha256-lnd-sub-${nodeStart}`,
     )
     let sha256DownSince: number | null = null
     return (
@@ -970,7 +970,10 @@ export const main = sdk.setupMain(async ({ effects }) => {
     )
   }
 
-  const lndChain = (sha256Logging: Sha256Logging) => {
+  const lndChain = (
+    sha256Logging: Sha256Logging,
+    sha256NodeStart: number | null,
+  ) => {
     let lastLndState: string | null = null
     // A timeout means LND accepted the connection, so its last answer still
     // stands.
@@ -1975,97 +1978,100 @@ export const main = sdk.setupMain(async ({ effects }) => {
       !conf['bridgerpc.sha256.supervised'] &&
       !conf['bridgerpc.sha256.rpchost']
     )
-      return withSha256Node(chain, sha256Logging)
-    return withSha256Node(chain, sha256Logging).addHealthCheck('bridge', {
-      ready: {
-        display: i18n('Bridge'),
-        trigger: sdk.trigger.statusTrigger(60_000, {
-          starting: 10_000,
-          waiting: 10_000,
-          failure: 60_000,
-        }),
-        fn: async () => {
-          let res
-          try {
-            res = await lndSub.exec(
-              [
-                'timeout',
-                '25',
-                'lncli',
-                `--rpcserver=${selfGrpcHost}`,
-                'bridge',
-                'status',
-              ],
-              {},
-              30_000,
+      return withSha256Node(chain, sha256Logging, sha256NodeStart)
+    return withSha256Node(chain, sha256Logging, sha256NodeStart).addHealthCheck(
+      'bridge',
+      {
+        ready: {
+          display: i18n('Bridge'),
+          trigger: sdk.trigger.statusTrigger(60_000, {
+            starting: 10_000,
+            waiting: 10_000,
+            failure: 60_000,
+          }),
+          fn: async () => {
+            let res
+            try {
+              res = await lndSub.exec(
+                [
+                  'timeout',
+                  '25',
+                  'lncli',
+                  `--rpcserver=${selfGrpcHost}`,
+                  'bridge',
+                  'status',
+                ],
+                {},
+                30_000,
+              )
+            } catch {
+              return { result: 'starting', message: i18n('LND is starting…') }
+            }
+            if (res.exitCode !== 0 || typeof res.stdout !== 'string') {
+              return { result: 'starting', message: i18n('LND is starting…') }
+            }
+            let status: {
+              enabled?: boolean
+              directions?: string[]
+              refusals?: string[]
+              needs_operator?: string[]
+              unfinished?: number
+            }
+            try {
+              status = JSON.parse(res.stdout)
+            } catch {
+              return { result: 'starting', message: i18n('LND is starting…') }
+            }
+            // A lost swap, or one the bridge stopped on, needs a person
+            // whatever else is true, so it outranks everything below.
+            const attention = status.needs_operator ?? []
+            if (attention.length > 0) {
+              return { result: 'failure', message: attention.join('; ') }
+            }
+            // A direction configured off is not a fault.
+            const refusals = (status.refusals ?? []).filter(
+              (r) =>
+                !/configured but not enabled|the bridge is not enabled on this node/.test(
+                  r,
+                ),
             )
-          } catch {
-            return { result: 'starting', message: i18n('LND is starting…') }
-          }
-          if (res.exitCode !== 0 || typeof res.stdout !== 'string') {
-            return { result: 'starting', message: i18n('LND is starting…') }
-          }
-          let status: {
-            enabled?: boolean
-            directions?: string[]
-            refusals?: string[]
-            needs_operator?: string[]
-            unfinished?: number
-          }
-          try {
-            status = JSON.parse(res.stdout)
-          } catch {
-            return { result: 'starting', message: i18n('LND is starting…') }
-          }
-          // A lost swap, or one the bridge stopped on, needs a person
-          // whatever else is true, so it outranks everything below.
-          const attention = status.needs_operator ?? []
-          if (attention.length > 0) {
-            return { result: 'failure', message: attention.join('; ') }
-          }
-          // A direction configured off is not a fault.
-          const refusals = (status.refusals ?? []).filter(
-            (r) =>
-              !/configured but not enabled|the bridge is not enabled on this node/.test(
+            if (!status.enabled) {
+              // Off, and finishing what was under way (or unable to).
+              if ((status.unfinished ?? 0) > 0 || refusals.length > 0)
+                return {
+                  result:
+                    /finishing the swaps/.test(refusals.join(' ')) &&
+                    refusals.length === 1
+                      ? ('starting' as const)
+                      : ('failure' as const),
+                  message: refusals.join('; ') || i18n('Off'),
+                }
+              return { result: 'disabled' as const, message: i18n('Off') }
+            }
+            if (refusals.length === 0) {
+              return {
+                result: 'success',
+                message: i18n('Serving ${directions}', {
+                  directions: (status.directions ?? []).join(', '),
+                }),
+              }
+            }
+            // Measuring each chain's block rate and catching up take a few
+            // minutes after every start; that is not a fault.
+            const settling = refusals.every((r) =>
+              /still measuring|not synced|has not started|not ready yet|still connecting|reading the market|quotes once there is a rate/.test(
                 r,
               ),
-          )
-          if (!status.enabled) {
-            // Off, and finishing what was under way (or unable to).
-            if ((status.unfinished ?? 0) > 0 || refusals.length > 0)
-              return {
-                result:
-                  /finishing the swaps/.test(refusals.join(' ')) &&
-                  refusals.length === 1
-                    ? ('starting' as const)
-                    : ('failure' as const),
-                message: refusals.join('; ') || i18n('Off'),
-              }
-            return { result: 'disabled' as const, message: i18n('Off') }
-          }
-          if (refusals.length === 0) {
+            )
             return {
-              result: 'success',
-              message: i18n('Serving ${directions}', {
-                directions: (status.directions ?? []).join(', '),
-              }),
+              result: settling ? 'starting' : 'failure',
+              message: refusals[0],
             }
-          }
-          // Measuring each chain's block rate and catching up take a few
-          // minutes after every start; that is not a fault.
-          const settling = refusals.every((r) =>
-            /still measuring|not synced|has not started|not ready yet|still connecting|reading the market|quotes once there is a rate/.test(
-              r,
-            ),
-          )
-          return {
-            result: settling ? 'starting' : 'failure',
-            message: refusals[0],
-          }
+          },
         },
+        requires: ['lnd'],
       },
-      requires: ['lnd'],
-    })
+    )
   }
 
   return sdk.Daemons.dynamic(effects, async ({ effects: dynEffects }) => {
@@ -2084,6 +2090,12 @@ export const main = sdk.setupMain(async ({ effects }) => {
     const sha256Logging =
       (await storeJson.read((s) => s.sha256Logging).const(dynEffects)) ??
       'normal'
+    // A start of the SHA256 node rebuilds its subcontainer (see its name in
+    // withSha256Node); a stop changes nothing, so it is waited out as before.
+    const sha256NodeStart =
+      sha256Wanted && sha256Backend && !sha256Conflict
+        ? await new DependencyStart(dynEffects, sha256Backend).const()
+        : null
 
     // Order is load-bearing: LND must never open an un-imported or un-converted
     // data directory, so each preparatory phase holds the chain until the flag
@@ -2091,9 +2103,13 @@ export const main = sdk.setupMain(async ({ effects }) => {
     // The bridge's SHA256 node runs through these too: it watches its own
     // channels, whatever Lightning Fork is doing to its own data.
     if (importPending)
-      return withSha256Node(importChain(importPending.source), sha256Logging)
+      return withSha256Node(
+        importChain(importPending.source),
+        sha256Logging,
+        sha256NodeStart,
+      )
     if (await needsSqliteMigration())
-      return withSha256Node(conversionChain(), sha256Logging)
-    return lndChain(sha256Logging)
+      return withSha256Node(conversionChain(), sha256Logging, sha256NodeStart)
+    return lndChain(sha256Logging, sha256NodeStart)
   })
 })

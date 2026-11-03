@@ -270,7 +270,11 @@ export function sha256NodeCommand(
       // so a restart of the SHA256 Bitcoin node, which writes a new cookie,
       // would leave it answered 401 for good. Stop lnd when the node writes
       // a different one; the daemon then restarts it, with the new cookie.
-      // An absent cookie (the node is down) is waited out, as main does.
+      // An absent cookie (the node is down) is waited out, as main does,
+      // and so is one not yet written when this starts with the node: this
+      // is rebuilt on each start of that node, so starting lnd without one
+      // would only restart it again when it appeared.
+      `until [ -s ${q(cookieFile)} ]; do sleep 2 & wait $!; done`,
       `cookie=$(cat ${q(cookieFile)} 2>/dev/null)`,
       // Both nodes log to the same service log, in the same format: say
       // which one this is when its detail is turned up.
