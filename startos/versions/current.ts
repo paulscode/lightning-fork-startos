@@ -3,9 +3,14 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.6-beta.22:0',
+  version: '0.21.6-beta.23:0',
   releaseNotes: {
-    en_US: `Lightning Fork on LND 0.21.6.
+    en_US: `- If a Bitcoin node this service uses fails to update, StartOS puts the node's data back by swapping folders, and Lightning Fork kept reading the old copy: LND, or the bridge's SHA256 node, kept the node's old RPC credentials and every call to it failed. Lightning Fork now restarts itself when its own Bitcoin node starts again and the node's new credentials have not reached it 30 seconds after the node is ready, and the bridge's SHA256 node is set up again each time its SHA256 Bitcoin node starts and is ready.
+- With a pruned Bitcoin Knots BLAKE2b node, blocks it has pruned are fetched only from peers that advertise the BLAKE2b service bit, which Bitcoin Knots 29.4.3 requires before it serves blocks past the fork.
+- The bridge: a swap whose hold invoice the node deleted (with the gc-canceled-invoices options on) now ends instead of retrying forever, once the bridge has checked it is reading the node that issued the invoice; on any other node it stops and is listed as needing the operator. A swap already stuck this way ends after the update.
+- Needs StartOS 0.4.0.2 or newer, as since 0.21.4-beta.19:0.
+
+From 0.21.6-beta.22:0, if you are updating from an earlier version: Lightning Fork on LND 0.21.6.
 
 - Resize Channels: after an aborted resize attempt, the channel's reserves now change at the next connection, as the spec says. If your channel's peer runs Lightning Fork 0.21.4-beta.19 to .21.3, upgrade both, or reconnect after each resize locks: otherwise a later aborted attempt can leave the two sides disagreeing about reserves until they reconnect, which at worst force closes the channel.
 - LND no longer proposes or accepts a commitment fee rate below 253 sat/kw. A node on an older release with a maximum commitment fee rate of 1 sat/vB cannot open a channel to yours until it raises that setting or upgrades.
@@ -41,7 +46,7 @@ Also: LND on SQLite could hang for every caller when two invoice subscriptions r
 
 From 0.21.4-beta.20:0, if you are updating from an earlier version: a hardened bridge after a private security review by cguida (thank you), bridge pricing from two exchanges, and no bridge outage after a difficulty retarget. From 0.21.4-beta.19:0: resize channels without closing them, off until you turn on Resize Channels in Actions, Channel Settings; turning it on upgrades the channel database, and StartOS then refuses to install an older Lightning Fork over this one.
 
-Lightning Fork 0.21.6-beta-blake2b.22, dashboard 1.3.2-blake2b.22.`,
+Lightning Fork 0.21.6-beta-blake2b.23, dashboard 1.3.2-blake2b.22.`,
   },
   migrations: {
     // Resize Channels moves the channel database to a version older
