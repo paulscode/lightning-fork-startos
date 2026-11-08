@@ -66,6 +66,29 @@ RUN apk add --no-cache --update git make \
         mv "/go/bin/${TARGETOS}_${TARGETARCH}"/* /go/bin/; \
     fi
 
+# rclone from its release, checked against the SHA-256 in rclone's own
+# SHA256SUMS for v1.75.2, rather than Alpine 3.21's package (1.68.2). The
+# stage only downloads, so it runs on the build platform and picks the
+# target's binary by TARGETARCH. Start9's lnd-startos pins the same version.
+FROM --platform=$BUILDPLATFORM alpine:3.21 AS rclone-fetch
+ARG RCLONE_VERSION=1.75.2
+ARG RCLONE_SHA256_AMD64=349ac8fba6ff65d6247043f1750cdcb518ec5d500ef91463a10d37c0ccdf3702
+ARG RCLONE_SHA256_ARM64=7e1e8d69654941b7b7df84ee74c5f7fb09cce7d5496947fb7bf16b55ff427d10
+ARG TARGETARCH
+RUN apk add --no-cache ca-certificates curl unzip
+WORKDIR /out
+RUN case "${TARGETARCH}" in \
+      amd64) SHA="${RCLONE_SHA256_AMD64}" ;; \
+      arm64) SHA="${RCLONE_SHA256_ARM64}" ;; \
+      *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+&&  curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+      "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-${TARGETARCH}.zip" \
+      -o rclone.zip \
+&&  echo "${SHA}  rclone.zip" | sha256sum -c - \
+&&  unzip -q rclone.zip \
+&&  install -m 0755 "rclone-v${RCLONE_VERSION}-linux-${TARGETARCH}/rclone" rclone
+
 FROM alpine:3.21
 
 # The base image's CA store is only as current as its last release.
@@ -73,15 +96,17 @@ RUN apk add --no-cache --upgrade ca-certificates ca-certificates-bundle
 
 # curl calls the REST API for wallet setup and migration polling; sqlite
 # scrubs the migrated database; openssh-client and sshpass import remote
-# wallets; rclone copies channel.backup to configured providers; flock
-# serializes copies. bash, jq, ca-certificates, gnupg and wget match
+# wallets; flock serializes copies. bash, jq, ca-certificates, gnupg and wget match
 # upstream's image. coreutils replaces BusyBox's timeout, which the health
 # checks run lncli under: BusyBox's forks a watchdog and execs the command in
 # its place, so the watchdog outlives it, is handed to the subcontainer's
 # init, which never reaps, and stays a zombie, three a minute for as long as
 # the service runs. GNU timeout waits for its own child.
 RUN apk add --no-cache bash jq ca-certificates gnupg wget \
-        curl sqlite openssh-client sshpass rclone flock coreutils
+        curl sqlite openssh-client sshpass flock coreutils
+
+# rclone copies channel.backup to configured providers.
+COPY --from=rclone-fetch /out/rclone /usr/local/bin/rclone
 
 COPY --from=builder /go/bin/lnd /go/bin/lncli /bin/
 COPY --from=builder /lightning-fork-commit /etc/lightning-fork-commit
