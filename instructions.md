@@ -56,6 +56,15 @@ differ from an LND node on the SHA256 chain:
   Lightning Fork nodes, or with privkeyio's Core Lightning from
   v26.06.8-blake2b.5.
 
+If you publish the **Peer Interface** through StartTunnel to keep your home IP
+private, send Lightning Fork's outbound traffic through that tunnel too.
+Connections the node opens itself, to the peers it connects to and opens
+channels with, otherwise leave through your home router, so those peers see
+your home IP. While **Enable Tor** is on with **Skip for clearnet peers** off,
+so that all outbound connections go through Tor, this doesn't apply. If you use
+the tunnel for another reason, such as a port your router can't forward, there
+is nothing to change.
+
 ## Dashboard
 
 The **Dashboard** interface is a web page for everyday use: the on-chain and
