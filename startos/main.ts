@@ -962,7 +962,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               return {
                 result: 'starting' as const,
                 message: i18n(
-                  "No channel.backup yet: the bridge's SHA256 node writes it when its first channel opens.",
+                  "No channel.backup yet: the bridge's SHA256 node writes it each time it starts, once it has caught up with its chain.",
                 ),
               }
             },
@@ -1773,7 +1773,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             return {
               result: 'starting',
               message: i18n(
-                'No channel.backup yet: LND writes it when your first channel opens.',
+                'No channel.backup yet: LND writes it each time it starts, once it has caught up with the chain.',
               ),
             }
           },

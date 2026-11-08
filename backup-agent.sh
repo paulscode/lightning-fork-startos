@@ -516,7 +516,7 @@ do_backup() {
       return 1
     }
     unlock
-    [ "$_announce" = force ] && log "no channel.backup yet: LND writes it when the first channel opens"
+    [ "$_announce" = force ] && log "no channel.backup yet: LND writes it each time it starts, once it has caught up with the chain"
     return 3
   fi
   snapshot_config || {

@@ -56,7 +56,7 @@ export const backupChannelsNow = sdk.Action.withoutInput(
       case 3:
         return done(
           i18n(
-            'There is no channel.backup to copy yet. LND writes it when your first channel opens.',
+            'There is no channel.backup to copy yet. LND writes it each time it starts, once it has caught up with the chain.',
           ),
         )
       case 4:
