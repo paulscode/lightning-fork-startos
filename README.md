@@ -11,6 +11,14 @@ not offered those releases: installing one reports
 `not found on https://start9.paulscode.com/rpc/v0`.
 Such a server can still install 0.21.4-beta.18:0. Update StartOS first.
 
+On StartOS 0.4.1 and newer, an install from this registry with `start-cli` can fail with
+`Signer(s) not accepted`. Add `--trust`, which accepts the package's signer for that
+install; StartOS still checks the signature and the package's integrity:
+
+```
+start-cli -r https://start9.paulscode.com package install --trust lightning-fork "=0.21.6-beta.23:0"
+```
+
 Maintained by Paul Lamb (<https://github.com/paulscode>). Not affiliated with
 Start9 or Lightning Labs.
 
