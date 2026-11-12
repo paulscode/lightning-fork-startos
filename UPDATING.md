@@ -48,7 +48,7 @@ daemon is rebased on, checking that the patch still applies (the build fails
 if it does not).
 
 The bridge's SHA256 node runs the stock `lightninglabs/lnd` image (`sha256-lnd`
-in `startos/manifest/index.ts`, now `v0.21.6-beta`, index digest in the
+in `startos/manifest/index.ts`, now `v0.21.8-beta`, index digest in the
 comment beside it). Move it when upstream LND releases, after checking that
 `lncli state`, `--wallet-unlock-password-file` with
 `--wallet-unlock-allow-create`, `--routing.assumechanvalid` (deprecated

@@ -16,7 +16,7 @@ On StartOS 0.4.1 and newer, an install from this registry with `start-cli` can f
 install; StartOS still checks the signature and the package's integrity:
 
 ```
-start-cli -r https://start9.paulscode.com package install --trust lightning-fork "=0.21.6-beta.23:0"
+start-cli -r https://start9.paulscode.com package install --trust lightning-fork "=0.21.8-beta.24:0"
 ```
 
 Maintained by Paul Lamb (<https://github.com/paulscode>). Not affiliated with
