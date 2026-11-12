@@ -36,7 +36,7 @@ export const manifest = setupManifest({
       // for two platforms ("cannot overwrite digest"). The tag is never moved
       // once published. What it resolved to when this version was released,
       // to compare with `docker buildx imagetools inspect <tag>`:
-      //   index DASHBOARD_IMAGE_DIGEST
+      //   index sha256:bea8419bc65b1f8cbba38f27e8338eb9822fd0ea625e0576a6689d1d2c6819fc
       // The Makefile refuses to pack while a digest placeholder is in
       // place, for a future edit that forgets this line.
       source: {
