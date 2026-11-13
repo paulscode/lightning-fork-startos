@@ -3,9 +3,13 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.8-beta.24:0',
+  version: '0.21.8-beta.24:1',
   releaseNotes: {
-    en_US: `- Lightning Fork on LND 0.21.8. Among its fixes: on a node without a transaction index, such as one using a pruned Bitcoin Knots BLAKE2b node, a channel could stay "opening" after its funding transaction confirmed, because LND's record of how far it had looked moved past the block that confirmed it. After this update such a channel finds its confirmation and opens. Also: a peer whose channel is still waiting for its funding to confirm gets the reconnection message it expects, so it no longer disconnects and takes your other channels with it offline; a deadlock between a failing channel and a cooperative close is fixed; and sweeps, forwarded payments across reconnections and AMP payments recover better.
+    en_US: `Test build, not a release: 0.21.8-beta.24:0 plus the fix for channels that stay opening, or closes that never resolve, on a node without a transaction index (Lightning Fork 6503cd5c4, lightningnetwork/lnd#11247). Confirmation hints stored before it are rescanned from where the transaction was broadcast.
+
+From 0.21.8-beta.24:0:
+
+- Lightning Fork on LND 0.21.8. Among its fixes: on a node without a transaction index, such as one using a pruned Bitcoin Knots BLAKE2b node, a channel could stay "opening" after its funding transaction confirmed, because LND's record of how far it had looked moved past the block that confirmed it. After this update such a channel finds its confirmation and opens. Also: a peer whose channel is still waiting for its funding to confirm gets the reconnection message it expects, so it no longer disconnects and takes your other channels with it offline; a deadlock between a failing channel and a cooperative close is fixed; and sweeps, forwarded payments across reconnections and AMP payments recover better.
 - Resize Channels: after a resize, the payments and fee updates your peer sends again when you reconnect are accepted under the reserves from before the resize until its next commitment, instead of closing the connection on every reconnection.
 - Apps that reconnect your peers every few minutes, such as LNDg, no longer pile up hundreds of connection attempts to a peer that is offline.
 - Raising the fee of a cooperative close just after a reconnection now waits until the channel is ready for it, instead of failing (from 2rdzy).
