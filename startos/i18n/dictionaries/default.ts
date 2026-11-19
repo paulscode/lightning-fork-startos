@@ -742,6 +742,8 @@ const dict = {
   // A running LND that is slow to answer (lnd-startos #228)
   'LND is running but not responding': 772,
   'LND is running but slow to respond': 773,
+  // Start Fresh fails with LND's error (lnd-startos #242)
+  'LND could not create the wallet: ${error}': 774,
 } as const
 
 /**

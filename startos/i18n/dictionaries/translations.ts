@@ -662,6 +662,7 @@ export default {
     771: 'Capturado el',
     772: 'LND está en marcha pero no responde',
     773: 'LND está en marcha pero tarda en responder',
+    774: 'LND no pudo crear el monedero: ${error}',
   },
   de_DE: {
     309: 'Backups',
@@ -1324,6 +1325,7 @@ export default {
     771: 'Erfasst am',
     772: 'LND läuft, antwortet aber nicht',
     773: 'LND läuft, antwortet aber langsam',
+    774: 'LND konnte die Wallet nicht erstellen: ${error}',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1986,6 +1988,7 @@ export default {
     771: 'Zapisano',
     772: 'LND działa, ale nie odpowiada',
     773: 'LND działa, ale odpowiada powoli',
+    774: 'LND nie mógł utworzyć portfela: ${error}',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2648,5 +2651,6 @@ export default {
     771: 'Capturé le',
     772: 'LND fonctionne mais ne répond pas',
     773: 'LND fonctionne mais répond lentement',
+    774: "LND n'a pas pu créer le portefeuille : ${error}",
   },
 } satisfies Record<string, LangDict>

@@ -4,8 +4,15 @@ import { startupFlagsJson } from '../fileModels/startupFlags.json'
 import { storeJson } from '../fileModels/store.json'
 import { i18n } from '../i18n'
 import { sdk } from '../sdk'
-import { lndDataDir, lndEnv, mainMounts, selfRestUrl, sleep } from '../utils'
-import { UNLOCK_TIMEOUT_MS } from '../walletUnlocker'
+import {
+  literal,
+  lndDataDir,
+  lndEnv,
+  mainMounts,
+  selfRestUrl,
+  sleep,
+} from '../utils'
+import { parseGatewayReply, UNLOCK_TIMEOUT_MS } from '../walletUnlocker'
 
 const { InputSpec, Value, Variants } = sdk
 
@@ -140,7 +147,6 @@ async function initFresh(
         const res = await subc.exec([
           'curl',
           '--no-progress-meter',
-          'GET',
           '--cacert',
           `${lndDataDir}/tls.cert`,
           '--fail-with-body',
@@ -162,8 +168,11 @@ async function initFresh(
       const walletPassword = (await storeJson.read().once())?.walletPassword
       if (!walletPassword) throw new Error('No wallet password found')
 
-      // Creating the wallet is the same work as opening it, and a SIGKILLed
-      // curl would carry on to store the seed and stop LND mid-write.
+      // Before the call, so a wallet created despite a failed reply keeps its
+      // seed. Creating the wallet is the same work as opening it, and a
+      // SIGKILLed curl would carry on to stop LND mid-write. The body goes
+      // over stdin, so the password and seed stay out of the process list.
+      await storeJson.merge(effects, { aezeedCipherSeed: cipherSeed })
       const status = await subc.exec(
         [
           'curl',
@@ -174,29 +183,38 @@ async function initFresh(
           `${lndDataDir}/tls.cert`,
           '--fail-with-body',
           `${selfRestUrl}/v1/initwallet`,
-          '-d',
-          JSON.stringify({
+          '--data-binary',
+          '@-',
+        ],
+        {
+          input: JSON.stringify({
             wallet_password: base64.stringify(
               Buffer.from(walletPassword, 'latin1'),
             ),
             cipher_seed_mnemonic: cipherSeed,
           }),
-        ],
-        {},
+        },
         UNLOCK_TIMEOUT_MS,
       )
-
-      if (status.stderr !== '' && typeof status.stderr === 'string') {
-        console.log(`Error running initwallet: ${status.stderr}`)
-      }
-
-      await storeJson.merge(effects, { aezeedCipherSeed: cipherSeed })
 
       child.kill(T.SIGTERM)
       await new Promise<void>((resolve) => {
         child.on('exit', () => resolve())
         setTimeout(resolve, 60_000)
       })
+
+      if (status.exitCode !== 0) {
+        const message = parseGatewayReply(String(status.stdout))?.message
+        throw new Error(
+          i18n('LND could not create the wallet: ${error}', {
+            error: literal(
+              (typeof message === 'string' && message.trim()) ||
+                String(status.stderr).trim() ||
+                `curl exited ${status.exitCode}`,
+            ),
+          }),
+        )
+      }
 
       return cipherSeed
     },
