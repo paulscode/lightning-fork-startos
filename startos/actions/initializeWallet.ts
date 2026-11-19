@@ -9,6 +9,7 @@ import {
   lndDataDir,
   lndEnv,
   mainMounts,
+  scanHostKeys,
   selfRestUrl,
   sleep,
 } from '../utils'
@@ -248,6 +249,14 @@ async function initFresh(
  * this same user and password (myNode and StartOS feed it to `sudo -S` as well),
  * so a login that succeeds is the strongest check available without touching the
  * origin's data.
+ *
+ * Nothing is sent to the origin until its host key is pinned (lnd-startos
+ * #242): a first run scans the key and shows its fingerprint, and only a later
+ * run for the same host with `verified` (a "Host key verified" toggle in the
+ * migration's form) logs in, with StrictHostKeyChecking=yes against that key,
+ * which the import scripts then use as well. This package offers no migration
+ * (see the method's description), so nothing calls this today; a migration
+ * variant brought back must add that toggle.
  */
 async function scheduleImport(
   effects: T.Effects,
@@ -257,9 +266,23 @@ async function scheduleImport(
     user: string
     host: string
     password: string
+    verified: boolean
     reached: string
   },
 ): Promise<T.ActionResult & { version: '1' }> {
+  const scanned = await startupFlagsJson.read((f) => f.importHostKey).once()
+  if (!source.verified || scanned?.host !== source.host) {
+    const scan = await scanHostKeys(effects, source.host, '22', source.label)
+    await startupFlagsJson.merge(effects, {
+      importHostKey: { host: source.host, ...scan },
+    })
+    throw new Error(
+      i18n(
+        '${source} identified itself as ${fingerprint}. Compare it with the fingerprint the origin reports, then run this again with Host key verified turned on. Nothing has been sent to it.',
+        { source: source.label, fingerprint: literal(scan.fingerprints) },
+      ),
+    )
+  }
   const res = await sdk.SubContainer.withTemp(
     effects,
     { imageId: 'lnd' },
@@ -268,18 +291,15 @@ async function scheduleImport(
     (subc) =>
       subc.exec(
         [
-          'sshpass',
-          '-e',
-          'ssh',
-          '-o',
-          'StrictHostKeyChecking=no',
-          '-o',
-          'ConnectTimeout=10',
-          '-T',
+          'sh',
+          '-c',
+          `printf '%s\\n' "$KNOWN_HOSTS" > /tmp/known_hosts && exec sshpass -e ssh -o UserKnownHostsFile=/tmp/known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -T "$1" true`,
+          'sh',
           `${source.user}@${source.host}`,
-          'true',
         ],
-        { env: { SSHPASS: source.password } },
+        {
+          env: { SSHPASS: source.password, KNOWN_HOSTS: scanned.knownHosts },
+        },
         30_000,
       ),
   )
@@ -299,7 +319,9 @@ async function scheduleImport(
       source: source.id,
       host: source.host,
       password: source.password,
+      knownHosts: scanned.knownHosts,
     },
+    importHostKey: null,
   })
 
   return {

@@ -183,7 +183,11 @@ to the other package.
   proof of work itself against a network with no filter servers.
 - Wallet migration from Umbrel, myNode or another StartOS server: those hold
   channels on the SHA256d chain with peers on the SHA256d chain, and nothing
-  here could close them. Initialize Wallet offers Start Fresh only.
+  here could close them. Initialize Wallet offers Start Fresh only. The
+  import phase and `assets/import-*.sh` are kept, unreachable, as in the LND
+  package: they connect only with the origin's SSH host key pinned
+  (`StrictHostKeyChecking=yes` against the key the user confirmed, carried as
+  `importPending.knownHosts`), and refuse an import scheduled without one.
 - The version graph below `current`: every earlier revision upgrades
   through `current`'s own migration, which is idempotent (it completes a
   saved Nextcloud address, and leaves a complete one alone).

@@ -11,6 +11,9 @@ const importPending = z
       source: z.enum(['umbrel', 'mynode', 'startos']),
       host: z.string(),
       password: z.string(),
+      // The origin's host keys as ssh-keyscan returned them, pinned by the
+      // user's confirmation. An import scheduled without them is refused.
+      knownHosts: z.string().optional(),
     }),
     z.literal(false),
   ])
@@ -54,5 +57,15 @@ export const startupFlagsJson = FileHelper.json(
     dbSchemaFinalized: z.boolean().catch(false),
     dbMigrationComplete: z.boolean().catch(false),
     importPending,
+    // Initialize Wallet's last scan of an origin, pinned once a later run
+    // confirms it.
+    importHostKey: z
+      .looseObject({
+        host: z.string(),
+        knownHosts: z.string(),
+        fingerprints: z.string(),
+      })
+      .nullable()
+      .catch(null),
   }),
 )
