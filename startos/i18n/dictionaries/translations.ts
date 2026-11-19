@@ -665,6 +665,7 @@ export default {
     774: 'LND no pudo crear el monedero: ${error}',
     775: '${source} se identificó como ${fingerprint}. Compárala con la huella que indica el origen y vuelve a ejecutar esto con Clave de servidor verificada activado. No se le ha enviado nada.',
     776: 'La clave de host del origen no se ha verificado. Vuelve a ejecutar Inicializar billetera.',
+    777: 'Esta comprobación no terminó en 90 segundos; volverá a intentarlo.',
   },
   de_DE: {
     309: 'Backups',
@@ -1330,6 +1331,7 @@ export default {
     774: 'LND konnte die Wallet nicht erstellen: ${error}',
     775: '${source} hat sich als ${fingerprint} ausgewiesen. Vergleiche das mit dem Fingerabdruck, den der Ursprung meldet, und führe dies dann erneut mit eingeschaltetem „Host-Schlüssel geprüft“ aus. Es wurde nichts an ihn gesendet.',
     776: 'Der Host-Schlüssel des Ursprungs wurde nicht überprüft. Führe Wallet initialisieren erneut aus.',
+    777: 'Diese Prüfung wurde nicht innerhalb von 90 Sekunden abgeschlossen; sie wird erneut versucht.',
   },
   pl_PL: {
     309: 'Kopie zapasowe',
@@ -1995,6 +1997,7 @@ export default {
     774: 'LND nie mógł utworzyć portfela: ${error}',
     775: '${source} przedstawił się jako ${fingerprint}. Porównaj to z odciskiem, który podaje węzeł źródłowy, a następnie uruchom to ponownie z włączoną opcją „Klucz hosta zweryfikowany”. Nic nie zostało do niego wysłane.',
     776: 'Klucz hosta węzła źródłowego nie został zweryfikowany. Uruchom ponownie Zainicjalizuj portfel.',
+    777: 'To sprawdzenie nie zakończyło się w ciągu 90 sekund; zostanie ponowione.',
   },
   fr_FR: {
     309: 'Sauvegardes',
@@ -2660,5 +2663,6 @@ export default {
     774: "LND n'a pas pu créer le portefeuille : ${error}",
     775: "${source} s'est identifié comme ${fingerprint}. Comparez avec l'empreinte que l'origine indique, puis relancez ceci avec « Clé d'hôte vérifiée » activé. Rien ne lui a été envoyé.",
     776: "La clé d'hôte de l'origine n'a pas été vérifiée. Relancez Initialiser le portefeuille.",
+    777: 'Cette vérification ne s’est pas terminée en 90 secondes ; elle sera relancée.',
   },
 } satisfies Record<string, LangDict>

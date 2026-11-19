@@ -65,6 +65,7 @@ import {
 } from './interfaces'
 import { backends, Sha256BackendId } from './backends'
 import { DependencyStart, restartOnStaleMount } from './staleMount'
+import { bounded } from './boundedCheck'
 import {
   sha256BitcoindMnt,
   sha256DashboardMnt,
@@ -85,6 +86,16 @@ import {
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
 // SIGKILL the copy long before it finished.
+// What a health check shows when a run of it has not finished in time
+// (boundedCheck.ts): starting, never failure, so a slow answer does not read as
+// a fault, and the check tries again on its next run.
+const unanswered = () => ({
+  result: 'starting' as const,
+  message: i18n(
+    'This check did not finish within 90 seconds; it will try again',
+  ),
+})
+
 const IMPORT_TIMEOUT_MS = 6 * 60 * 60_000
 
 // Well past the observed 36 s – 2 m 37 s a healthy node takes to reach
@@ -817,7 +828,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             // Its wallet's state, which it answers without a macaroon: a port
             // that listens says only that lnd is up, which it is long before it
             // has a wallet.
-            fn: async () => {
+            fn: bounded(async () => {
               const res = await sub
                 .exec(
                   [
@@ -892,7 +903,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                   ? i18n('Waiting for the bridge to set it up')
                   : i18n('Starting'),
               }
-            },
+            }, unanswered),
           },
           // Not lnd: this node watches its own channels, and must go on doing
           // so while Lightning Fork restarts or is unhealthy.
@@ -937,7 +948,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               starting: 5_000,
               waiting: 5_000,
             }),
-            fn: async () => {
+            fn: bounded(async () => {
               const cfg = await channelBackupJson.read().once()
               if (
                 ![cfg?.gdrive, cfg?.dropbox, cfg?.nextcloud, cfg?.sftp].some(
@@ -974,7 +985,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                   "No channel.backup yet: the bridge's SHA256 node writes it each time it starts, once it has caught up with its chain.",
                 ),
               }
-            },
+            }, unanswered),
           },
           requires: ['sha256-channel-backup-agent'],
         }) as C
@@ -1027,7 +1038,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
         subcontainer: lndSub,
         ready: {
           display: i18n('LND Server'),
-          fn: async () => {
+          fn: bounded(async () => {
             const { state, slow } = await lndStateNow()
             // Any non-success here stops every daemon that requires `lnd`.
             // WAITING_TO_START (255) is earliest in the state machine — the
@@ -1043,7 +1054,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                 ? i18n('LND is running but slow to respond')
                 : i18n('LND is ready'),
             }
-          },
+          }, unanswered),
         },
         requires: restore ? ['stage-local-restore'] : [],
       })
@@ -1202,7 +1213,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             waiting: 1_000,
             failure: 10_000,
           }),
-          fn: async () => {
+          fn: bounded(async () => {
             const { state } = await lndStateNow()
             if (state === 'LOCKED' && unlockError) {
               return {
@@ -1230,7 +1241,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               return { result: 'success', message: i18n('Wallet is unlocked') }
             }
             return { result: 'starting', message: null }
-          },
+          }, unanswered),
         },
         requires: ['lnd'],
       })
@@ -1242,7 +1253,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             loading: 5_000,
             failure: 10_000,
           }),
-          fn: async () => {
+          fn: bounded(async () => {
             // The daemon writes this file before its RPC server is up and
             // exits on a refusal, so this check must not depend on the lnd
             // daemon being healthy (it never is while the node is refused)
@@ -1312,7 +1323,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                   ),
                 }
             }
-          },
+          }, unanswered),
           gracePeriod: 0,
         },
         requires: [],
@@ -1320,7 +1331,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
       .addHealthCheck('sync-progress', {
         ready: {
           display: i18n('Network and Graph Sync Progress'),
-          fn: async () => {
+          fn: bounded(async () => {
             let res
             try {
               // The SDK's own timeout orphans lncli (see fetchTipBlock).
@@ -1427,7 +1438,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               message: i18n('LND is starting…'),
               result: 'starting',
             }
-          },
+          }, unanswered),
         },
         requires: ['lnd', 'unlock-wallet'],
       })
@@ -1745,7 +1756,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             starting: 5_000,
             waiting: 5_000,
           }),
-          fn: async () => {
+          fn: bounded(async () => {
             const cfg = await channelBackupJson.read().once()
             if (
               ![cfg?.gdrive, cfg?.dropbox, cfg?.nextcloud, cfg?.sftp].some(
@@ -1785,7 +1796,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
                 'No channel.backup yet: LND writes it each time it starts, once it has caught up with the chain.',
               ),
             }
-          },
+          }, unanswered),
         },
         requires: ['channel-backup-agent'],
       })
@@ -1954,7 +1965,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
           // /ping answers without a password and says whether one is set;
           // without one every other request is a 503, which a check that
           // only wanted an HTTP response would have called healthy.
-          fn: async () => {
+          fn: bounded(async () => {
             const ping = await dashboardPing(dashboardPort)
             if (!ping) {
               return {
@@ -1974,7 +1985,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               result: 'success',
               message: i18n('The dashboard is serving'),
             }
-          },
+          }, unanswered),
         },
         requires: ['dashboard-credentials'],
       })
@@ -2000,7 +2011,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
             waiting: 10_000,
             failure: 60_000,
           }),
-          fn: async () => {
+          fn: bounded(async () => {
             let res
             try {
               res = await lndSub.exec(
@@ -2078,7 +2089,7 @@ export const main = sdk.setupMain(async ({ effects }) => {
               result: settling ? 'starting' : 'failure',
               message: refusals[0],
             }
-          },
+          }, unanswered),
         },
         requires: ['lnd'],
       },
