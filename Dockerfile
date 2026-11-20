@@ -8,7 +8,7 @@
 FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine AS builder
 
 ARG LIGHTNING_FORK_REPO=https://github.com/paulscode/lightning-fork
-ARG LIGHTNING_FORK_REF=9920e774284b12fcfa57e9e5d2dbdbdd6b38bb20
+ARG LIGHTNING_FORK_REF=f777b3b2a9bbbc2b2e35dad5fe898ec621c6fa9c
 ARG TARGETOS
 ARG TARGETARCH
 
