@@ -3,9 +3,17 @@ import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
 export const current = VersionInfo.of({
-  version: '0.21.8-beta.24:0',
+  version: '0.21.8-beta.24.1:0',
   releaseNotes: {
-    en_US: `- Lightning Fork on LND 0.21.8. Among its fixes: on a node without a transaction index, such as one using a pruned Bitcoin Knots BLAKE2b node, a channel could stay "opening" after its funding transaction confirmed, because LND's record of how far it had looked moved past the block that confirmed it. After this update such a channel finds its confirmation and opens. Also: a peer whose channel is still waiting for its funding to confirm gets the reconnection message it expects, so it no longer disconnects and takes your other channels with it offline; a deadlock between a failing channel and a cooperative close is fixed; and sweeps, forwarded payments across reconnections and AMP payments recover better.
+    en_US: `- Channels that stayed "opening" after their funding transaction confirmed, and force closes that stayed waiting after their closing transaction confirmed, on a node without a transaction index such as one using a pruned Bitcoin Knots BLAKE2b node. 0.21.8-beta.24:0 fixed one cause; this fixes the other: when LND republished a transaction at startup, it could record that it had looked past the block that confirmed it. A channel stuck this way finds its confirmation after the update, though the first start can take longer while LND looks again (reported and tested by bmdavll).
+- LND no longer shuts down when the Bitcoin node it uses is only restarting: it asks again for up to 5 minutes before deciding the node has changed chains (from Kilombino).
+- Raising the fee of a cooperative close twice in quick succession no longer makes the close fail and need retrying (from 2rdzy).
+- Stop, updates and restarts can no longer be held up by a status check that never finishes: each check now gives up after 90 seconds and tries again. The same problem made Bitcoin Knots (BLAKE2b) Companion updates hang before its 29.5.0:1.
+- Initialize Wallet: if LND cannot create the wallet, Start Fresh now shows LND's error instead of a recovery phrase for a wallet that was never created (from Start9's LND package).
+
+From 0.21.8-beta.24:0, if you are updating from an earlier version:
+
+- Lightning Fork on LND 0.21.8. Among its fixes: on a node without a transaction index, such as one using a pruned Bitcoin Knots BLAKE2b node, a channel could stay "opening" after its funding transaction confirmed, because LND's record of how far it had looked moved past the block that confirmed it. After this update such a channel finds its confirmation and opens. Also: a peer whose channel is still waiting for its funding to confirm gets the reconnection message it expects, so it no longer disconnects and takes your other channels with it offline; a deadlock between a failing channel and a cooperative close is fixed; and sweeps, forwarded payments across reconnections and AMP payments recover better.
 - Resize Channels: after a resize, the payments and fee updates your peer sends again when you reconnect are accepted under the reserves from before the resize until its next commitment, instead of closing the connection on every reconnection.
 - Apps that reconnect your peers every few minutes, such as LNDg, no longer pile up hundreds of connection attempts to a peer that is offline.
 - Raising the fee of a cooperative close just after a reconnection now waits until the channel is ready for it, instead of failing (from 2rdzy).
@@ -56,7 +64,7 @@ Also: LND on SQLite could hang for every caller when two invoice subscriptions r
 
 From 0.21.4-beta.20:0, if you are updating from an earlier version: a hardened bridge after a private security review by cguida (thank you), bridge pricing from two exchanges, and no bridge outage after a difficulty retarget. From 0.21.4-beta.19:0: resize channels without closing them, off until you turn on Resize Channels in Actions, Channel Settings; turning it on upgrades the channel database, and StartOS then refuses to install an older Lightning Fork over this one.
 
-Lightning Fork 0.21.8-beta-blake2b.24, dashboard 1.3.2-blake2b.24.`,
+Lightning Fork 0.21.8-beta-blake2b.24.1, dashboard 1.3.2-blake2b.24.`,
   },
   migrations: {
     // Resize Channels moves the channel database to a version older
