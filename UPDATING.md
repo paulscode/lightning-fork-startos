@@ -39,6 +39,22 @@ including the upgrade from `:9` and `:7` through `current`'s migration. Never
 publish an upstream release candidate: `beta.rc1` is not a valid version
 either.
 
+start-sdk 2.0.9 compares pre-release parts only as far as the left-hand
+version has them, so `0.21.8-beta.24:x` and `0.21.8-beta.24.1:0` look equal
+from the shorter side, and the package revision decides. A point release
+(`beta.N.1`) after `beta.N` therefore migrates differently from each revision
+of `beta.N`: from `:0` the graph sees no change and runs no `up` (harmless
+while `current`'s migrations are idempotent and already ran), and from `:1`
+or above it finds no path and the update fails with "cannot migrate" unless
+`current` lists that revision in `migrations.other` with an exact range
+(`'=0.21.8-beta.24:1'`; a key without `=` matches nothing). So a test build
+should not take a revision above the release it precedes, and a migration
+added in a point release does not run on nodes coming from `beta.N:0`: put
+such a migration in the next `beta.N+1` instead. Before publishing, run the
+package's own `versionGraph.migrate` from every version in the registry and
+from any test build handed out (`npx tsx`, with a stub `effects` that has
+`setDataVersion`).
+
 `lndinit` is built from its source in the Dockerfile (`LNDINIT_REF`, now
 the `v0.1.38-beta` commit, for lnd v0.21.4) with one patch,
 `patches/lndinit-fork-channeldb-version.patch`: stock lndinit refuses a

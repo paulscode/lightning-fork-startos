@@ -183,10 +183,18 @@ to the other package.
   proof of work itself against a network with no filter servers.
 - Wallet migration from Umbrel, myNode or another StartOS server: those hold
   channels on the SHA256d chain with peers on the SHA256d chain, and nothing
-  here could close them. Initialize Wallet offers Start Fresh only.
+  here could close them. Initialize Wallet offers Start Fresh only. The
+  import phase and `assets/import-*.sh` are kept, unreachable, as in the LND
+  package: they connect only with the origin's SSH host key pinned
+  (`StrictHostKeyChecking=yes` against the key the user confirmed, carried as
+  `importPending.knownHosts`), and refuse an import scheduled without one.
 - The version graph below `current`: every earlier revision upgrades
   through `current`'s own migration, which is idempotent (it completes a
-  saved Nextcloud address, and leaves a complete one alone).
+  saved Nextcloud address, and leaves a complete one alone). Two exceptions
+  come from start-sdk 2.0.9's version ordering (see `UPDATING.md`): the test
+  build `0.21.8-beta.24:1` reaches it through an `other` entry, and
+  `0.21.8-beta.24:0` compares equal to `current` and runs no migration; it
+  ran the same one when it was installed.
 
 ## Channel backups
 
@@ -315,6 +323,18 @@ workspace's `release.sh` stages universal builds for the registry.
   Lightning Fork's own node, and always for the bridge's SHA256 node, pruned
   or not (see `AGENTS.md`); that node logs *Config 'routing.assumechanvalid'
   is deprecated, please remove it* at each start, which is expected.
+- **A check that never finishes cannot block a stop.** start-sdk awaits each
+  health check's run with no limit, and a stop waits for every check before
+  the daemon it requires, so one call that never returned would hold up Stop,
+  updates and restarts (as in Bitcoin Knots (BLAKE2b) Companion before
+  29.5.0:1). Every readiness check here goes through `startos/boundedCheck.ts`:
+  a run still pending after 3 minutes is left behind, the check repeats its
+  last result twice and then reads *This check has not finished after 3
+  minutes* (`starting`, never `failure`), and no second run starts while one
+  is pending. A run that finishes after it was left behind is the next
+  call's answer, so a check that always takes a little over 3 minutes still
+  reports. The longest legitimate run is the sync check's block probe,
+  about two and a half minutes.
 - **A slow LND stays shown as running.** LND Server, Wallet Unlock and the
   sync check share one `/v1/state` probe, and a request that times out keeps
   LND's last answered state, since a timeout means LND accepted the

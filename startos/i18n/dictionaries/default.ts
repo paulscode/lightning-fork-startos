@@ -441,7 +441,7 @@ const dict = {
   'SFTP: that key is protected by a passphrase, which rclone cannot enter. Export an unencrypted key for this purpose.': 443,
   'Record a new host key': 444,
   'Turn on after the server was reinstalled and its host key changed. The key it presents now replaces the recorded one.': 445,
-  'SFTP: ${host} did not answer with a host key. Check the address and port, and that the server is reachable from here.': 446,
+  '${label}: ${host} did not answer with a host key. Check the address and port, and that the server is reachable from here.': 446,
   'The SFTP server identified itself as ${fingerprint}. Compare it with your server, then save again with Host key verified turned on; nothing is sent to it until then.': 447,
   '${target}: upload failed: ${detail}': 448,
   '${target}: could not be checked: ${detail}': 449,
@@ -456,7 +456,7 @@ const dict = {
   '${target}: the copy went out, but its record could not be written here.': 474,
   '${target}: not reached before the run ran out of time. The watcher retries on its own.': 475,
   'The backup settings could not be read. Try again in a moment.': 477,
-  'SFTP: the host key ${host} presented could not be read. Try saving again.': 479,
+  '${label}: the host key ${host} presented could not be read. Try again.': 479,
   '${label}: must be at most ${max} characters.': 480,
   'Forget saved credentials': 481,
   'Remove this target and all of its saved settings. Turn off Enabled before selecting this.': 482,
@@ -742,6 +742,13 @@ const dict = {
   // A running LND that is slow to answer (lnd-startos #228)
   'LND is running but not responding': 772,
   'LND is running but slow to respond': 773,
+  // Start Fresh fails with LND's error (lnd-startos #242)
+  'LND could not create the wallet: ${error}': 774,
+  // Wallet import: the origin's host key (lnd-startos #242)
+  '${source} identified itself as ${fingerprint}. Compare it with the fingerprint the origin reports, then run this again with Host key verified turned on. Nothing has been sent to it.': 775,
+  "The origin's host key has not been verified. Run Initialize Wallet again.": 776,
+  'This check has not finished after 3 minutes': 777,
+  'LND did not answer while creating the wallet, and it could not be told whether the wallet was written. Run Initialize Wallet again: if it reports that a wallet already exists, the wallet was created, and Show Credentials shows its seed.': 778,
 } as const
 
 /**
