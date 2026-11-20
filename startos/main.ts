@@ -65,7 +65,7 @@ import {
 } from './interfaces'
 import { backends, Sha256BackendId } from './backends'
 import { DependencyStart, restartOnStaleMount } from './staleMount'
-import { bounded } from './boundedCheck'
+import { bounded, unanswered } from './boundedCheck'
 import {
   sha256BitcoindMnt,
   sha256DashboardMnt,
@@ -86,16 +86,6 @@ import {
 // Bounded by the channel db an origin node hands over — multi-GB on a busy
 // routing node, off a USB disk, over LAN. The SDK's 30 s exec default would
 // SIGKILL the copy long before it finished.
-// What a health check shows when a run of it has not finished in time
-// (boundedCheck.ts): starting, never failure, so a slow answer does not read as
-// a fault, and the check tries again on its next run.
-const unanswered = () => ({
-  result: 'starting' as const,
-  message: i18n(
-    'This check did not finish within 90 seconds; it will try again',
-  ),
-})
-
 const IMPORT_TIMEOUT_MS = 6 * 60 * 60_000
 
 // Well past the observed 36 s – 2 m 37 s a healthy node takes to reach

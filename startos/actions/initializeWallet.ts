@@ -204,7 +204,25 @@ async function initFresh(
         setTimeout(resolve, 60_000)
       })
 
-      if (status.exitCode !== 0) {
+      // A reply lost after LND wrote the wallet (a timeout, a dropped
+      // connection) leaves a wallet whose seed is the one stored above.
+      // Showing it is the only way out: a second Start Fresh refuses an
+      // existing wallet, and the Initialize Wallet task would stay posted.
+      const created =
+        status.exitCode !== 0 &&
+        (
+          await subc.exec([
+            'sh',
+            '-c',
+            `d=${lndDataDir}/data/chain/bitcoin/mainnet; test -f $d/wallet.db -o -f $d/chain.sqlite`,
+          ])
+        ).exitCode === 0
+      if (created)
+        console.warn(
+          'initwallet did not answer, but LND wrote the wallet; showing its seed',
+        )
+
+      if (status.exitCode !== 0 && !created) {
         const message = parseGatewayReply(String(status.stdout))?.message
         throw new Error(
           i18n('LND could not create the wallet: ${error}', {

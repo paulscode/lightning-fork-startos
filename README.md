@@ -319,6 +319,16 @@ workspace's `release.sh` stages universal builds for the registry.
   Lightning Fork's own node, and always for the bridge's SHA256 node, pruned
   or not (see `AGENTS.md`); that node logs *Config 'routing.assumechanvalid'
   is deprecated, please remove it* at each start, which is expected.
+- **A check that never finishes cannot block a stop.** start-sdk awaits each
+  health check's run with no limit, and a stop waits for every check before
+  the daemon it requires, so one call that never returned would hold up Stop,
+  updates and restarts (as in Bitcoin Knots (BLAKE2b) Companion before
+  29.5.0:1). Every readiness check here goes through `startos/boundedCheck.ts`:
+  a run still pending after 3 minutes is left behind, the check repeats its
+  last result twice and then reads *This check has not finished after 3
+  minutes* (`starting`, never `failure`), and no second run starts while one
+  is pending. The longest legitimate run is the sync check's block probe,
+  about two and a half minutes.
 - **A slow LND stays shown as running.** LND Server, Wallet Unlock and the
   sync check share one `/v1/state` probe, and a request that times out keeps
   LND's last answered state, since a timeout means LND accepted the

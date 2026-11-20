@@ -747,7 +747,7 @@ const dict = {
   // Wallet import: the origin's host key (lnd-startos #242)
   '${source} identified itself as ${fingerprint}. Compare it with the fingerprint the origin reports, then run this again with Host key verified turned on. Nothing has been sent to it.': 775,
   "The origin's host key has not been verified. Run Initialize Wallet again.": 776,
-  'This check did not finish within 90 seconds; it will try again': 777,
+  'This check has not finished after 3 minutes': 777,
 } as const
 
 /**

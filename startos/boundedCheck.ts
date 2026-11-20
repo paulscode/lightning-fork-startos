@@ -1,15 +1,18 @@
 import type { healthFns } from '@start9labs/start-sdk'
+import { i18n } from './i18n'
 
 type Result = healthFns.HealthCheckResult
 
 /**
  * How long one run of a health check may take before it is treated as
- * unanswered. The longest wait inside a check is a 30 s lncli call, and a few
- * checks make two or three calls, so 90 s only runs out on a call that is not
- * coming back. It is not a limit on LND: nothing is killed, and LND's own
- * shutdown keeps its separate timeout.
+ * unanswered. The longest legitimate run is sync-progress when the Bitcoin
+ * node serves headers but not blocks: lncli getinfo (25 s), then the block
+ * probe (getbestblock and getblock, capped at 120 s together), then a
+ * notification. Three minutes covers that with room to spare, so it only runs
+ * out on a call that is not coming back. It is not a limit on LND: nothing is
+ * killed, and LND's own shutdown keeps its separate timeout.
  */
-export const CHECK_TIMEOUT_MS = 90_000
+export const CHECK_TIMEOUT_MS = 180_000
 
 /**
  * How many runs in a row may go unanswered while the check keeps showing its
@@ -24,8 +27,8 @@ export const STALE_REPEATS = 2
  *
  * Why this exists: start-sdk's `HealthDaemon.runHealthCheckLoop` awaits `fn()`
  * with no limit and only looks at its abort signal once `fn()` returns. When a
- * service stops, `Daemons.stopEntries` terms entries one by one in dependency
- * order, every check before the daemon it requires, and each term waits
+ * service stops, `Daemons` terms entries one by one in dependency order
+ * (`_term`, and `stopEntries` when it reconciles), every check before the daemon it requires, and each term waits
  * for that loop to end. So one `fn()` that never returns freezes its check at
  * "Starting" for the life of the service, and later blocks every stop, update
  * and restart before the daemon it requires is ever signalled. In Bitcoin
@@ -90,3 +93,11 @@ export function bounded(
     return onTimeout()
   }
 }
+
+// What a health check shows when a run of it has not finished in time:
+// starting, never failure, so a slow answer does not read as a fault. The
+// check shows its result again once that run finishes.
+export const unanswered = () => ({
+  result: 'starting' as const,
+  message: i18n('This check has not finished after 3 minutes'),
+})

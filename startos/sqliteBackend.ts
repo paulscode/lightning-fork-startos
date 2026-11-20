@@ -4,6 +4,7 @@ import { base64 } from 'rfc4648'
 import { lndConfFile } from './fileModels/lnd.conf'
 import { startupFlagsJson } from './fileModels/startupFlags.json'
 import { storeJson } from './fileModels/store.json'
+import { bounded, unanswered } from './boundedCheck'
 import { i18n } from './i18n'
 import { manifest } from './manifest'
 import { sdk } from './sdk'
@@ -259,12 +260,12 @@ async function finalizeBoltSchema(
         display: null,
         // Ready once the wallet unlocker is serving (LOCKED) or the wallet is
         // already unlocked — the gate for the finalize oneshot to run.
-        fn: async () => {
+        fn: bounded(async () => {
           const state = await getState(schemaSub)
           return state === 'LOCKED' || isPastUnlock(state)
-            ? { result: 'success', message: null }
-            : { result: 'starting', message: null }
-        },
+            ? { result: 'success' as const, message: null }
+            : { result: 'starting' as const, message: null }
+        }, unanswered),
       },
       requires: [],
     })
