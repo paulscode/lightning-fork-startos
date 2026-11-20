@@ -1,4 +1,4 @@
-import { IMPOSSIBLE, VersionInfo } from '@start9labs/start-sdk'
+import { IMPOSSIBLE, T, VersionInfo } from '@start9labs/start-sdk'
 import { channelBackupJson } from '../fileModels/channel-backup.json'
 import { nextcloudDavUrl } from '../utils'
 
@@ -79,23 +79,33 @@ Lightning Fork 0.21.8-beta-blake2b.24.1, dashboard 1.3.2-blake2b.24.`,
     //
     // Best effort: an unreadable configuration must not fail the update,
     // which the backup agent reports on its own.
-    up: async ({ effects }) => {
-      try {
-        const nextcloud = (await channelBackupJson.read().once())?.nextcloud
-        if (!nextcloud?.url) return
-        let url: string
-        try {
-          url = nextcloudDavUrl(nextcloud.url, nextcloud.user)
-        } catch {
-          return
-        }
-        if (url !== nextcloud.url)
-          await channelBackupJson.merge(effects, {
-            nextcloud: { ...nextcloud, url },
-          })
-      } catch (e) {
-        console.warn('Could not complete the saved Nextcloud address', e)
-      }
-    },
+    up: completeNextcloudUrl,
+    // The test build 0.21.8-beta.24:1 (v0.21.8-beta.24.1-rc1, sideloaded to
+    // test the fix for #1) needs an entry of its own. start-sdk 2.0.9
+    // compares prerelease parts only as far as the left-hand version has
+    // them, so it finds 0.21.8-beta.24:1 neither below this version nor equal
+    // to it: `up` alone gives it no path, the migration throws "cannot
+    // migrate", and the update fails. 0.21.8-beta.24:0 compares equal and
+    // needs nothing. Keep this while the test build can still be installed.
+    other: { '=0.21.8-beta.24:1': { up: completeNextcloudUrl } },
   },
 })
+
+async function completeNextcloudUrl({ effects }: { effects: T.Effects }) {
+  try {
+    const nextcloud = (await channelBackupJson.read().once())?.nextcloud
+    if (!nextcloud?.url) return
+    let url: string
+    try {
+      url = nextcloudDavUrl(nextcloud.url, nextcloud.user)
+    } catch {
+      return
+    }
+    if (url !== nextcloud.url)
+      await channelBackupJson.merge(effects, {
+        nextcloud: { ...nextcloud, url },
+      })
+  } catch (e) {
+    console.warn('Could not complete the saved Nextcloud address', e)
+  }
+}
