@@ -190,7 +190,11 @@ to the other package.
   `importPending.knownHosts`), and refuse an import scheduled without one.
 - The version graph below `current`: every earlier revision upgrades
   through `current`'s own migration, which is idempotent (it completes a
-  saved Nextcloud address, and leaves a complete one alone).
+  saved Nextcloud address, and leaves a complete one alone). Two exceptions
+  come from start-sdk 2.0.9's version ordering (see `UPDATING.md`): the test
+  build `0.21.8-beta.24:1` reaches it through an `other` entry, and
+  `0.21.8-beta.24:0` compares equal to `current` and runs no migration; it
+  ran the same one when it was installed.
 
 ## Channel backups
 
@@ -327,7 +331,9 @@ workspace's `release.sh` stages universal builds for the registry.
   a run still pending after 3 minutes is left behind, the check repeats its
   last result twice and then reads *This check has not finished after 3
   minutes* (`starting`, never `failure`), and no second run starts while one
-  is pending. The longest legitimate run is the sync check's block probe,
+  is pending. A run that finishes after it was left behind is the next
+  call's answer, so a check that always takes a little over 3 minutes still
+  reports. The longest legitimate run is the sync check's block probe,
   about two and a half minutes.
 - **A slow LND stays shown as running.** LND Server, Wallet Unlock and the
   sync check share one `/v1/state` probe, and a request that times out keeps

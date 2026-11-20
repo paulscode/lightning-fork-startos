@@ -748,6 +748,7 @@ const dict = {
   '${source} identified itself as ${fingerprint}. Compare it with the fingerprint the origin reports, then run this again with Host key verified turned on. Nothing has been sent to it.': 775,
   "The origin's host key has not been verified. Run Initialize Wallet again.": 776,
   'This check has not finished after 3 minutes': 777,
+  'LND did not answer while creating the wallet, and it could not be told whether the wallet was written. Run Initialize Wallet again: if it reports that a wallet already exists, the wallet was created, and Show Credentials shows its seed.': 778,
 } as const
 
 /**

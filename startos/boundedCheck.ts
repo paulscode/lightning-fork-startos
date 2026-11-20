@@ -42,7 +42,9 @@ export const STALE_REPEATS = 2
  * At most one run is outstanding. If the previous one is still pending when
  * the check fires again, this waits on that run again rather than starting
  * another, so a call that never returns costs one pending promise, not one a
- * minute.
+ * minute. A run that finishes after it was given up on keeps its result for
+ * the next call, which returns it rather than starting over, so a check that
+ * always takes a little longer than the bound still reports.
  */
 export function bounded(
   fn: () => Result | Promise<Result>,
@@ -50,10 +52,19 @@ export function bounded(
   ms: number = CHECK_TIMEOUT_MS,
 ): () => Promise<Result> {
   let inFlight: Promise<Result> | null = null
+  let abandoned: Promise<Result> | null = null
+  let late: Result | null = null
   let last: Result | null = null
   let misses = 0
 
   return async () => {
+    if (!inFlight && late) {
+      const res = late
+      late = null
+      misses = 0
+      last = res
+      return res
+    }
     if (!inFlight) {
       const run = Promise.resolve()
         .then(fn)
@@ -61,17 +72,26 @@ export function bounded(
           if (inFlight === run) inFlight = null
         })
       inFlight = run
+      run.then(
+        (res) => {
+          if (abandoned === run) late = res
+        },
+        () => {},
+      )
     }
 
     let timer: ReturnType<typeof setTimeout> | undefined
     const timedOut = new Promise<null>((resolve) => {
       timer = setTimeout(() => resolve(null), ms)
     })
+    const current = inFlight
     try {
       // The race also handles the run, so if it is abandoned here and rejects
       // later there is no unhandled rejection to take down the runtime.
-      const res = await Promise.race([inFlight, timedOut])
+      const res = await Promise.race([current, timedOut])
       if (res !== null) {
+        // Answered here, so it is not kept for the next call as well.
+        if (abandoned === current) abandoned = late = null
         misses = 0
         last = res
         return res
@@ -85,6 +105,7 @@ export function bounded(
       clearTimeout(timer)
     }
 
+    abandoned = current
     misses += 1
     console.warn(
       `health check run unanswered after ${ms / 1000}s (${misses} in a row)`,

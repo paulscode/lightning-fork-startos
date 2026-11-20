@@ -66,47 +66,26 @@ export const initializeWallet = sdk.Action.withInput(
   // execution function
   async ({ effects, input }) => {
     // A wallet on disk blocks re-initialization — overwriting it loses funds.
-    // Two spellings: wallet.db is a bolt-era or imported wallet; chain.sqlite
-    // holds the wallet on the SQLite backend (a fresh 0.21 install creates no
-    // .db files at all, so testing wallet.db alone misses it).
-    //
-    // One exception: while an import is scheduled or has failed partway
-    // (importPending set), any wallet material on the volume is an incomplete
-    // copy of the origin's, so re-running a *migration* over it is the
-    // recovery path. Start Fresh stays blocked even then — that partial data
-    // could be the only copy of a migrated channel state (a StartOS origin is
-    // left stopped, but its data may since be gone), so discarding it is a
-    // decision for uninstall, not a side effect.
-    const chainDir = `${lndDataDir}/data/chain/bitcoin/mainnet`
-    const walletExists = await sdk.SubContainer.withTemp(
+    // A bolt-era or imported wallet is a wallet.db file, tested here. On the
+    // SQLite backend the wallet lives in chain.sqlite, which says nothing by
+    // itself: LND creates that file at every start, before it has a wallet,
+    // so a Start Fresh that failed leaves one behind. Whether it holds a
+    // wallet is LND's answer, read in initFresh before anything is written.
+    const walletDbExists = await sdk.SubContainer.withTemp(
       effects,
       { imageId: 'lnd' },
       mainMounts,
       'check-wallet',
       async (subc) => {
         const res = await subc.exec([
-          'sh',
-          '-c',
-          `test -f ${chainDir}/wallet.db -o -f ${chainDir}/chain.sqlite`,
+          'test',
+          '-f',
+          `${lndDataDir}/data/chain/bitcoin/mainnet/wallet.db`,
         ])
         return res.exitCode === 0
       },
     )
-
-    if (walletExists) {
-      const importPending = (await startupFlagsJson.read().once())
-        ?.importPending
-      if (!importPending) {
-        throw new Error(
-          'A wallet already exists. Re-initializing would overwrite your existing wallet and could lead to loss of funds.',
-        )
-      }
-      if (input.method.selection === 'fresh') {
-        throw new Error(
-          'An interrupted migration left imported data on this server. Re-run the migration to finish it — it picks up where it left off — or uninstall LND and reinstall to truly start fresh.',
-        )
-      }
-    }
+    if (walletDbExists) await refuseExistingWallet(input.method.selection)
 
     switch (input.method.selection) {
       case 'fresh':
@@ -115,13 +94,32 @@ export const initializeWallet = sdk.Action.withInput(
   },
 )
 
+/**
+ * Refuse to initialize over a wallet that exists. One exception: while an
+ * import is scheduled or has failed partway (importPending set), any wallet
+ * material on the volume is an incomplete copy of the origin's, so re-running
+ * a *migration* over it is the recovery path. Start Fresh stays blocked even
+ * then — that partial data could be the only copy of a migrated channel state
+ * (a StartOS origin is left stopped, but its data may since be gone), so
+ * discarding it is a decision for uninstall, not a side effect.
+ */
+async function refuseExistingWallet(method: string): Promise<void> {
+  const importPending = (await startupFlagsJson.read().once())?.importPending
+  if (!importPending) {
+    throw new Error(
+      'A wallet already exists. Re-initializing would overwrite your existing wallet and could lead to loss of funds.',
+    )
+  }
+  if (method === 'fresh') {
+    throw new Error(
+      'An interrupted migration left imported data on this server. Re-run the migration to finish it — it picks up where it left off — or uninstall LND and reinstall to truly start fresh.',
+    )
+  }
+}
+
 async function initFresh(
   effects: T.Effects,
 ): Promise<T.ActionResult & { version: '1' }> {
-  // Drop a migration the user scheduled and then thought better of — otherwise
-  // main would import over the wallet this creates on the next start.
-  await startupFlagsJson.merge(effects, { importPending: false })
-
   const cipherSeed = await sdk.SubContainer.withTemp(
     effects,
     { imageId: 'lnd' },
@@ -142,6 +140,54 @@ async function initFresh(
         ],
         { env: lndEnv },
       )
+
+      // LND's wallet state, from its unauthenticated state service:
+      // NON_EXISTING until a wallet is written, then LOCKED or later. Null
+      // while LND cannot answer.
+      const lndState = async (): Promise<string | null> => {
+        const res = await subc.exec([
+          'curl',
+          '--no-progress-meter',
+          '--max-time',
+          '5',
+          '--cacert',
+          `${lndDataDir}/tls.cert`,
+          '--fail-with-body',
+          `${selfRestUrl}/v1/state`,
+        ])
+        const state =
+          res.exitCode === 0
+            ? parseGatewayReply(String(res.stdout))?.state
+            : undefined
+        return typeof state === 'string' ? state : null
+      }
+      const stopLnd = async () => {
+        child.kill(T.SIGTERM)
+        await new Promise<void>((resolve) => {
+          child.on('exit', () => resolve())
+          setTimeout(resolve, 60_000)
+        })
+      }
+
+      // LND reports NON_EXISTING or LOCKED once it has opened its databases
+      // and looked for a wallet; WAITING_TO_START (or no answer) is before.
+      let state: string | null
+      while (
+        (state = await lndState()) === null ||
+        state === 'WAITING_TO_START'
+      ) {
+        console.log('Waiting for RPC to start...')
+        await sleep(2_000)
+      }
+      if (state !== 'NON_EXISTING') {
+        await stopLnd()
+        await refuseExistingWallet('fresh')
+      }
+
+      // Drop a migration the user scheduled and then thought better of —
+      // otherwise main would import over the wallet this creates on the next
+      // start.
+      await startupFlagsJson.merge(effects, { importPending: false })
 
       let cipherSeed: string[] = []
       do {
@@ -198,32 +244,44 @@ async function initFresh(
         UNLOCK_TIMEOUT_MS,
       )
 
-      child.kill(T.SIGTERM)
-      await new Promise<void>((resolve) => {
-        child.on('exit', () => resolve())
-        setTimeout(resolve, 60_000)
-      })
+      // A failed call may still have written the wallet: a reply lost after
+      // LND wrote it (a timeout, a dropped connection) leaves a wallet whose
+      // seed is the one stored above, and showing it is the only way out, as
+      // a second Start Fresh refuses an existing wallet. LND is asked before
+      // it is stopped, as its state moves past NON_EXISTING once the wallet
+      // is written. A call LND answered with an error has finished, so one
+      // reading settles it; a call with no answer may still be writing, so
+      // LND gets up to 20 seconds.
+      const message =
+        status.exitCode === 0
+          ? undefined
+          : parseGatewayReply(String(status.stdout))?.message
+      const answered = typeof message === 'string'
+      let created: boolean | null = status.exitCode === 0 ? true : null
+      for (let i = 0; created === null && i < (answered ? 1 : 10); i++) {
+        if (i > 0) await sleep(2_000)
+        const now = await lndState()
+        if (now !== null && now !== 'WAITING_TO_START')
+          created = now !== 'NON_EXISTING' ? true : answered ? false : null
+      }
+      await stopLnd()
 
-      // A reply lost after LND wrote the wallet (a timeout, a dropped
-      // connection) leaves a wallet whose seed is the one stored above.
-      // Showing it is the only way out: a second Start Fresh refuses an
-      // existing wallet, and the Initialize Wallet task would stay posted.
-      const created =
-        status.exitCode !== 0 &&
-        (
-          await subc.exec([
-            'sh',
-            '-c',
-            `d=${lndDataDir}/data/chain/bitcoin/mainnet; test -f $d/wallet.db -o -f $d/chain.sqlite`,
-          ])
-        ).exitCode === 0
-      if (created)
+      if (status.exitCode !== 0 && created)
         console.warn(
-          'initwallet did not answer, but LND wrote the wallet; showing its seed',
+          'initwallet failed, but LND wrote the wallet; showing its seed',
+        )
+      // No reply and no word from LND: the wallet may exist, so its seed
+      // stays stored (Show Credentials shows it) and the user is told so.
+      if (created === null)
+        throw new Error(
+          i18n(
+            'LND did not answer while creating the wallet, and it could not be told whether the wallet was written. Run Initialize Wallet again: if it reports that a wallet already exists, the wallet was created, and Show Credentials shows its seed.',
+          ),
         )
 
-      if (status.exitCode !== 0 && !created) {
-        const message = parseGatewayReply(String(status.stdout))?.message
+      if (!created) {
+        // Nothing was written, so the stored seed belongs to no wallet.
+        await storeJson.merge(effects, { aezeedCipherSeed: null })
         throw new Error(
           i18n('LND could not create the wallet: ${error}', {
             error: literal(

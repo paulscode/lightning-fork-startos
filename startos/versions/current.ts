@@ -6,10 +6,10 @@ export const current = VersionInfo.of({
   version: '0.21.8-beta.24.1:0',
   releaseNotes: {
     en_US: `- Channels that stayed "opening" after their funding transaction confirmed, and force closes that stayed waiting after their closing transaction confirmed, on a node without a transaction index such as one using a pruned Bitcoin Knots BLAKE2b node. 0.21.8-beta.24:0 fixed one cause; this fixes the other: when LND republished a transaction at startup, it could record that it had looked past the block that confirmed it. A channel stuck this way finds its confirmation after the update, though the first start can take longer while LND looks again (reported and tested by bmdavll).
-- LND no longer shuts down when the Bitcoin node it uses is only restarting: it asks again for up to 5 minutes before deciding the node has changed chains (from Kilombino).
+- LND no longer shuts down when the Bitcoin node it uses is only restarting: it asks again for up to 5 minutes before deciding the node has changed chains (from Kilombino). A node that is reindexing is waited for until its chain passes the first Bitcoin BLAKE2b block, however long that takes.
 - Raising the fee of a cooperative close twice in quick succession no longer makes the close fail and need retrying (from 2rdzy).
-- Stop, updates and restarts can no longer be held up by a status check that never finishes: a check still waiting after 3 minutes shows that, and no longer keeps the service from stopping. The same problem made Bitcoin Knots (BLAKE2b) Companion updates hang before its 29.5.0:1.
-- Initialize Wallet: if LND cannot create the wallet, Start Fresh now shows LND's error instead of a recovery phrase for a wallet that was never created (from Start9's LND package).
+- Stop, updates and restarts can no longer be held up by a status check that never finishes: a check that has not finished after a few minutes says so, and no longer keeps the service from stopping. The same problem made Bitcoin Knots (BLAKE2b) Companion updates hang before its 29.5.0:1.
+- Initialize Wallet: if LND cannot create the wallet, Start Fresh now shows LND's error instead of a recovery phrase for a wallet that was never created, and can be run again (from Start9's LND package).
 
 From 0.21.8-beta.24:0, if you are updating from an earlier version:
 

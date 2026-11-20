@@ -110,6 +110,30 @@ test('a run that answers late is picked up by the next call and resets the count
   assert.equal(calls, 2)
 })
 
+test('a run that answers late, after its caller has gone, is kept for the next call', async () => {
+  let release!: (r: R) => void
+  let calls = 0
+  const check = bounded(
+    () => {
+      calls += 1
+      return (
+        calls === 1
+          ? new Promise<R>((r) => (release = r))
+          : Promise.resolve(ok('later'))
+      ) as any
+    },
+    unanswered,
+    MS,
+  )
+  assert.deepEqual(await check(), unanswered())
+  release(ok('late'))
+  // The next call comes well after the run has finished, as the SDK's does.
+  await new Promise((r) => setTimeout(r, MS * 3))
+  assert.deepEqual(await check(), ok('late'))
+  assert.deepEqual(await check(), ok('later'))
+  assert.equal(calls, 2)
+})
+
 test('an error from the check still reaches the SDK', async () => {
   const check = bounded(
     async () => {
